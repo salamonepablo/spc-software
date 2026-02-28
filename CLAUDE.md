@@ -172,6 +172,142 @@ Documentation in `/docs/`:
 
 ---
 
+## Development Principles
+
+### SOLID Principles
+
+| Principle | Description | Example |
+|-----------|-------------|---------|
+| **S** - Single Responsibility | A class should have only one reason to change | `InvoiceService` only handles invoice logic, not PDF generation |
+| **O** - Open/Closed | Open for extension, closed for modification | Use interfaces to add new payment methods without changing existing code |
+| **L** - Liskov Substitution | Derived classes must be substitutable for their base classes | Any `IPaymentProcessor` implementation works wherever the interface is expected |
+| **I** - Interface Segregation | Many specific interfaces are better than one general interface | `IInvoiceReader` and `IInvoiceWriter` instead of one big `IInvoiceService` |
+| **D** - Dependency Inversion | Depend on abstractions, not concrete implementations | Controllers receive `ICustomerService`, not `CustomerService` directly |
+
+### Clean Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PRESENTATION                           │
+│              (Blazor Pages, API Controllers)                │
+├─────────────────────────────────────────────────────────────┤
+│                      APPLICATION                            │
+│                (Services, Use Cases, DTOs)                  │
+├─────────────────────────────────────────────────────────────┤
+│                        DOMAIN                               │
+│              (Entities, Business Rules)                     │
+├─────────────────────────────────────────────────────────────┤
+│                    INFRASTRUCTURE                           │
+│         (EF Core, External APIs, File System)               │
+└─────────────────────────────────────────────────────────────┘
+
+Dependencies point INWARD - outer layers depend on inner layers
+Domain has NO external dependencies
+```
+
+### Test-Driven Development (TDD)
+
+```
+┌─────────────────────────────────────────┐
+│            TDD Cycle                    │
+│                                         │
+│    1. RED    → Write failing test       │
+│    2. GREEN  → Write minimal code       │
+│    3. REFACTOR → Improve code           │
+│                                         │
+│         ↺ Repeat                        │
+└─────────────────────────────────────────┘
+```
+
+- Write tests BEFORE implementation
+- Each feature starts with a test
+- Tests document expected behavior
+- Refactor with confidence
+
+---
+
+## Security
+
+### Security First Approach
+
+> **Current VB6 system has ZERO security** - no login, no user management.
+> New system must be secure from the ground up.
+
+### Authentication Strategy: Windows Authentication
+
+Since users are accustomed to no login, we'll use **Windows Authentication** (Integrated Security):
+- Users authenticate with their Windows/AD credentials
+- No additional passwords to remember
+- Seamless experience for existing users
+- IT department manages user access
+
+```csharp
+// Program.cs - Windows Authentication setup
+builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+    .AddNegotiate();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => 
+        policy.RequireRole("DOMAIN\\SPC-Admins"));
+    options.AddPolicy("SalesTeam", policy => 
+        policy.RequireRole("DOMAIN\\SPC-Sales"));
+});
+```
+
+### OWASP Top 10 - Security Checklist
+
+| # | Vulnerability | Mitigation in SPC |
+|---|---------------|-------------------|
+| 1 | **Injection** | Parameterized queries via EF Core, never raw SQL concatenation |
+| 2 | **Broken Authentication** | Windows Auth + session management |
+| 3 | **Sensitive Data Exposure** | HTTPS only, encrypt sensitive fields, secure connection strings |
+| 4 | **XML External Entities (XXE)** | Disable DTD processing in XML parsers |
+| 5 | **Broken Access Control** | Role-based authorization on every endpoint |
+| 6 | **Security Misconfiguration** | Secure defaults, remove debug info in production |
+| 7 | **Cross-Site Scripting (XSS)** | Blazor auto-encodes output, validate all inputs |
+| 8 | **Insecure Deserialization** | Use System.Text.Json with safe settings |
+| 9 | **Known Vulnerabilities** | Keep NuGet packages updated, use `dotnet list package --vulnerable` |
+| 10 | **Insufficient Logging** | Structured logging with Serilog, audit trail for sensitive operations |
+
+### Security Implementation
+
+```csharp
+// Example: Secure endpoint with authorization
+[Authorize(Policy = "SalesTeam")]
+app.MapPost("/api/invoices", async (Invoice invoice, IInvoiceService service) =>
+{
+    // User is authenticated and authorized
+    return await service.CreateAsync(invoice);
+});
+
+// Example: Audit logging
+public class AuditService
+{
+    public async Task LogAsync(string action, string entity, int entityId, string userId)
+    {
+        await _db.AuditLogs.AddAsync(new AuditLog
+        {
+            Action = action,
+            Entity = entity,
+            EntityId = entityId,
+            UserId = userId,
+            Timestamp = DateTime.UtcNow,
+            IpAddress = GetClientIp()
+        });
+    }
+}
+```
+
+### Data Protection
+
+- Connection strings in User Secrets (dev) or Azure Key Vault (prod)
+- Never commit secrets to git
+- Encrypt sensitive customer data (CUIT, financial info)
+- Regular security audits
+
+---
+
 ## Code Conventions
 
 - All code in English: variable names, entities, properties, and comments
