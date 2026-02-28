@@ -516,12 +516,142 @@ dotnet ef database update
 
 ---
 
+## Git Workflow (Git Flow)
+
+### Branch Strategy
+
+```
+main (production)
+  │
+  └── develop (integration)
+        │
+        ├── feature/customer-crud
+        ├── feature/invoice-api
+        ├── feature/blazor-ui
+        │
+        └── release/1.0.0
+              │
+              └── hotfix/critical-bug
+```
+
+### Branch Types
+
+| Branch | Purpose | Created from | Merges to |
+|--------|---------|--------------|-----------|
+| `main` | Production-ready code | - | - |
+| `develop` | Integration branch, next release | `main` | `main` (via release) |
+| `feature/*` | New features | `develop` | `develop` |
+| `release/*` | Release preparation | `develop` | `main` + `develop` |
+| `hotfix/*` | Critical production fixes | `main` | `main` + `develop` |
+
+### Workflow Commands
+
+```bash
+# Start new feature
+git checkout develop
+git pull origin develop
+git checkout -b feature/customer-crud
+
+# Work on feature...
+git add .
+git commit -m "feat: add customer CRUD endpoints"
+
+# Finish feature (merge to develop)
+git checkout develop
+git pull origin develop
+git merge feature/customer-crud
+git push origin develop
+git branch -d feature/customer-crud
+
+# Create release
+git checkout develop
+git checkout -b release/1.0.0
+# bump version, final tests...
+git checkout main
+git merge release/1.0.0
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin main --tags
+git checkout develop
+git merge release/1.0.0
+git branch -d release/1.0.0
+
+# Hotfix (critical bug in production)
+git checkout main
+git checkout -b hotfix/fix-invoice-calc
+# fix the bug...
+git checkout main
+git merge hotfix/fix-invoice-calc
+git tag -a v1.0.1 -m "Hotfix: invoice calculation"
+git checkout develop
+git merge hotfix/fix-invoice-calc
+git branch -d hotfix/fix-invoice-calc
+```
+
+### Commit Message Convention (Conventional Commits)
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, no code change |
+| `refactor` | Code change that neither fixes nor adds |
+| `test` | Adding tests |
+| `chore` | Maintenance tasks |
+
+**Examples:**
+```bash
+git commit -m "feat(api): add customer search endpoint"
+git commit -m "fix(invoice): correct VAT calculation"
+git commit -m "docs: update README with installation steps"
+git commit -m "refactor(services): extract AFIP logic to separate service"
+```
+
+### Branch Protection Rules (GitHub)
+
+For `main` branch:
+- Require pull request before merging
+- Require at least 1 approval
+- Require status checks to pass
+- No direct pushes
+
+For `develop` branch:
+- Require pull request for features
+- Allow direct pushes for quick fixes
+
+---
+
 ## Useful Resources
 
 - Blazor docs: https://learn.microsoft.com/aspnet/core/blazor
 - EF Core docs: https://learn.microsoft.com/ef/core
 - AFIP .NET: Search "Afip SDK .NET" or use interop with FEAFIP
 - Access to SQL Server migration: SQL Server Migration Assistant (SSMA)
+- Git Flow: https://nvie.com/posts/a-successful-git-branching-model/
+- Conventional Commits: https://www.conventionalcommits.org/
+
+---
+
+## Developer Context
+
+**Pablo Salamone**
+- Background: VB6 + Access (20+ years)
+- Learning: C# / ASP.NET Core / Blazor
+- Goal: Backend developer position in Spain (Cantabria region)
+- Focus: REST APIs, Enterprise applications, Clean Architecture
+
+This project serves dual purpose:
+1. Real migration of production ERP system
+2. Portfolio project demonstrating modern .NET skills
 
 ---
 
