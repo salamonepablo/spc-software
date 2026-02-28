@@ -1,72 +1,398 @@
-# SPC - Sistema de Gestión Comercial
+# SPC - Integral Management Software | ERP
 
-## Contexto del Proyecto
-Sistema de gestión comercial para empresa de baterías, migrado desde Visual Basic 6.0 + Access a tecnologías modernas.
+## Migration Plan: VB6 to C# ASP.NET Core + Blazor
 
-## Stack Tecnológico
+### Current System (VB6 + Access)
+- VB6 + Access database
+- Electronic invoicing AFIP (FEAFIP)
+- Customers, Products, Stock
+- Invoices, Credit Notes, Debit Notes, Delivery Notes, Quotes
+- Current Accounts
+- IIBB Withholdings (ARBA)
+
+---
+
+## Technology Stack
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      NEW ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   FRONTEND           BACKEND              DATABASE              │
+│   ─────────          ───────              ────────              │
+│   Blazor Server      ASP.NET Core API     SQL Server            │
+│   (C# in browser)    (REST + Services)    (or PostgreSQL)       │
+│                                                                 │
+│         │                  │                    │               │
+│         └──────────────────┴────────────────────┘               │
+│                          │                                      │
+│                    All in C#                                    │
+│                    Single language                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 - **Backend**: ASP.NET Core 10 (Minimal APIs)
 - **Frontend**: Blazor Server
-- **Base de Datos**: SQLite (desarrollo) / SQL Server (producción)
+- **Database**: SQLite (development) / SQL Server (production)
 - **ORM**: Entity Framework Core 10
 
-## Estructura de la Solución
+---
+
+## Project Structure
+
 ```
 spc-software/
-├── SPC.API/           # API REST
-├── SPC.Shared/        # Modelos compartidos
-├── SPC.Web/           # Frontend Blazor
-└── docs/              # Documentación BD Access original
+│
+├── SPC.API/                         ← Backend REST API
+│   ├── Controllers/
+│   │   ├── CustomersController.cs
+│   │   ├── ProductsController.cs
+│   │   ├── InvoicesController.cs
+│   │   ├── DeliveryNotesController.cs
+│   │   ├── StockController.cs
+│   │   └── AFIPController.cs
+│   │
+│   ├── Services/                    ← Business logic
+│   │   ├── InvoicingService.cs
+│   │   ├── StockService.cs
+│   │   ├── CurrentAccountService.cs
+│   │   └── AFIP/
+│   │       ├── ElectronicInvoiceService.cs
+│   │       └── ARBAPadronService.cs
+│   │
+│   ├── Data/
+│   │   └── SPCDbContext.cs          ← Entity Framework
+│   │
+│   └── Program.cs
+│
+├── SPC.Web/                         ← Blazor Frontend
+│   ├── Pages/
+│   │   ├── Index.razor
+│   │   ├── Customers/
+│   │   │   ├── CustomerList.razor
+│   │   │   └── CustomerEdit.razor
+│   │   ├── Products/
+│   │   ├── Invoicing/
+│   │   │   ├── NewInvoice.razor
+│   │   │   ├── InvoiceSearch.razor
+│   │   │   └── CreditNote.razor
+│   │   ├── Stock/
+│   │   └── Reports/
+│   │
+│   ├── Components/                  ← Reusable components
+│   │   ├── CustomerSearch.razor
+│   │   ├── ProductGrid.razor
+│   │   └── WarehouseSelector.razor
+│   │
+│   └── Services/
+│       └── ApiService.cs            ← API consumer
+│
+├── SPC.Shared/                      ← Shared models
+│   └── Models/
+│       ├── Customer.cs
+│       ├── Product.cs
+│       ├── Invoice.cs
+│       ├── InvoiceDetail.cs
+│       ├── CreditNote.cs
+│       ├── DeliveryNote.cs
+│       ├── StockMovement.cs
+│       └── DTOs/
+│           ├── CustomerDto.cs
+│           └── InvoiceCreateDto.cs
+│
+├── SPC.Desktop/                     ← Optional: Desktop app
+│   └── (MAUI or WPF)
+│
+└── docs/                            ← Original Access DB docs
+    ├── doc_DB_SPC_SI_Tables.txt
+    └── doc_DB_SPC_SI_Queries.txt
 ```
 
-## Base de Datos Original (Access)
-La documentación de la BD Access está en `/docs/`:
-- `doc_DB_SPC_SI_Tables.txt` - Estructura de tablas
-- `doc_DB_SPC_SI_Queries.txt` - Consultas existentes
+---
 
-### Tablas Principales
-| Categoría | Tablas |
-|-----------|--------|
-| Clientes | Clientes, DomiciliosClientes, CtaCte |
-| Productos | Productos, Stock, Rubros, UnidadesMedida, Depositos |
-| Facturación | FacturaC/D, PresupuestoC/D, RemitoC/D |
-| Notas | NotaCreditoC/D, NotaDebitoC/D |
-| Pagos | PagoC/D, RecibosC/D, CodPago |
+## VB6 → C# Mapping
+
+### Forms → Blazor Pages
+
+| VB6 (.frm) | Blazor (.razor) |
+|------------|-----------------|
+| MenuPrincipal.frm | MainLayout.razor |
+| Clientes.frm | Customers/CustomerList.razor |
+| FormFactura.frm | Invoicing/NewInvoice.razor |
+| FormBuscarFactura.frm | Invoicing/InvoiceSearch.razor |
+| FormNotaCredito.frm | Invoicing/CreditNote.razor |
+| FormRemito.frm | DeliveryNotes/NewDeliveryNote.razor |
+| Articulos.frm | Products/ProductList.razor |
+| FormConsultarStock.frm | Stock/StockQuery.razor |
+
+### Modules .bas → Services
+
+| VB6 (.bas) | C# Service |
+|------------|------------|
+| VariablesPublicas.bas | Dependency Injection |
+| Declaraciones.bas | SPCDbContext.cs |
+| AFIP Functions | AFIPService.cs |
+| Stock Functions | StockService.cs |
+
+### Access Tables → C# Entities
+
+```
+VB6 - Access          →    C# Entity
+─────────────────────────────────────
+tClientes             →    Customer
+tProductos            →    Product  
+tFacturaC             →    Invoice
+tFacturaD             →    InvoiceDetail
+tNotaCreditoC         →    CreditNote
+tStock                →    Stock
+tCtaCte               →    CurrentAccountMovement
+```
+
+---
+
+## Original Database (Access)
+
+Documentation in `/docs/`:
+- `doc_DB_SPC_SI_Tables.txt` - Table structure
+- `doc_DB_SPC_SI_Queries.txt` - Existing queries
+
+### Main Tables
+
+| Category | Tables |
+|----------|--------|
+| Customers | Clientes, DomiciliosClientes, CtaCte |
+| Products | Productos, Stock, Rubros, UnidadesMedida, Depositos |
+| Invoicing | FacturaC/D, PresupuestoC/D, RemitoC/D |
+| Notes | NotaCreditoC/D, NotaDebitoC/D |
+| Payments | PagoC/D, RecibosC/D, CodPago |
 | Stock | MovIntStockC/D, MovimientosCtaCte |
-| Auxiliares | Paises, Provincias, Localidades, CondicionIva |
+| Auxiliary | Paises, Provincias, Localidades, CondicionIva |
 
-## Convenciones de Código
-- Usar español para nombres de entidades de negocio
-- Documentar métodos públicos con XML comments
-- Soft delete (campo Activo) en lugar de eliminación física
-- Patrón Cabecera/Detalle para documentos (Factura/FacturaDetalle)
+---
 
-## Comandos Útiles
+## Code Conventions
+
+- All code in English: variable names, entities, properties, and comments
+- Spanish comments allowed when clarifying concepts or VB6 transition logic
+- References to original VB6 code valid for explaining logic
+- New code must follow modern C# and .NET conventions
+- Soft delete (Active/IsActive field) instead of physical deletion
+- Header/Detail pattern for documents (Invoice/InvoiceDetail)
+
+---
+
+## Code Examples
+
+### VB6 (Access) - Finding a Customer
+```vb
+Set tClientes = BaseSPC.OpenRecordset("Clientes", dbOpenTable)
+tClientes.Index = "PrimaryKey"
+tClientes.Seek "=", CodCliente
+If Not tClientes.NoMatch Then
+    nombreCliente = tClientes!RazonSocial
+End If
+```
+
+### C# (Entity Framework) - Same Operation
+```csharp
+public class Customer
+{
+    public int Id { get; set; }
+    public string BusinessName { get; set; } = "";
+    public string TaxId { get; set; } = "";  // CUIT
+    public string Address { get; set; } = "";
+    public string City { get; set; } = "";
+    public int TaxConditionId { get; set; }
+    public TaxCondition? TaxCondition { get; set; }
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
+    
+    // Navigation
+    public List<Invoice> Invoices { get; set; } = new();
+    public List<DeliveryNote> DeliveryNotes { get; set; } = new();
+}
+
+// Usage
+var customer = await db.Customers.FindAsync(customerId);
+var businessName = customer?.BusinessName;
+```
+
+### VB6 - Electronic Invoice (AFIP)
+```vb
+Function FacturaElectronicaSPC(...) As Boolean
+    Set wsfev1 = New FEAFIPLib.wsfev1
+    wsfev1.CUIT = 30708432543#
+    wsfev1.URL = URLWSW
+    
+    If wsfev1.login("quilplac.crt", "quilplac.key", URLWSAA) Then
+        wsfev1.AgregaFactura ...
+        wsfev1.AgregaIVA ...
+        If wsfev1.Autorizar(PtoVta, TipoComp) Then
+            ' Success
+        End If
+    End If
+End Function
+```
+
+### C# - Electronic Invoice Service
+```csharp
+public class AFIPService
+{
+    private readonly IConfiguration _config;
+    
+    public AFIPService(IConfiguration config)
+    {
+        _config = config;
+    }
+    
+    public async Task<AFIPResult> AuthorizeInvoiceAsync(AFIPInvoice invoice)
+    {
+        var wsfe = new WSFEClient(
+            cuit: _config["AFIP:CUIT"],
+            certificate: _config["AFIP:Certificate"],
+            production: true
+        );
+        
+        var result = await wsfe.AuthorizeAsync(new
+        {
+            PointOfSale = invoice.PointOfSale,
+            VoucherType = invoice.VoucherType,
+            // ...
+        });
+        
+        return new AFIPResult
+        {
+            CAE = result.CAE,
+            ExpirationDate = result.ExpirationDate,
+            Approved = result.Result == "A"
+        };
+    }
+}
+```
+
+---
+
+## Migration Phases
+
+### PHASE 1: Infrastructure (1-2 months)
+```
+[x] Create .NET solution
+[ ] Configure SQL Server
+[ ] Migrate Access schema → SQL Server
+[ ] Create Entity Framework entities
+[ ] Basic API working
+[ ] Migrate historical data
+```
+
+### PHASE 2: Queries (2 months)
+```
+[ ] GET endpoints (read-only)
+[ ] Basic Blazor frontend
+[ ] Lists: Customers, Products, Stock
+[ ] Document searches
+[ ] Basic reports
+[ ] VB6 still operative for CRUD
+```
+
+### PHASE 3: Operations (3 months)
+```
+[ ] Full CRUD Customers
+[ ] Full CRUD Products
+[ ] Stock movements
+[ ] Quotes
+[ ] Delivery Notes
+[ ] Test in parallel with VB6
+```
+
+### PHASE 4: Invoicing (2-3 months)
+```
+[ ] Integrate AFIP in C#
+[ ] Invoice types A and B
+[ ] Credit Notes
+[ ] Debit Notes
+[ ] QR and PDF generation
+[ ] IIBB Withholdings
+[ ] Exhaustive testing
+```
+
+### PHASE 5: Finalization (1-2 months)
+```
+[ ] Current Accounts
+[ ] Payments and Receipts
+[ ] Complete reports
+[ ] User training
+[ ] Retire VB6
+```
+
+---
+
+## Useful Commands
+
 ```bash
-# Ejecutar API
+# Run API
 cd SPC.API && dotnet run
 
-# Ejecutar Web
+# Run Web
 cd SPC.Web && dotnet run
 
-# Restaurar paquetes
+# Restore packages
 dotnet restore
 
-# Compilar toda la solución
+# Build entire solution
 dotnet build
+
+# Create migration
+cd SPC.API && dotnet ef migrations add MigrationName
+
+# Apply migrations
+dotnet ef database update
 ```
 
-## Endpoints API Existentes
-- `GET /api/clientes` - Listar clientes
-- `GET /api/clientes/{id}` - Obtener cliente
-- `GET /api/clientes/buscar?nombre=xxx` - Buscar
-- `POST /api/clientes` - Crear
-- `PUT /api/clientes/{id}` - Actualizar
+---
+
+## Existing API Endpoints
+
+- `GET /api/clientes` - List customers
+- `GET /api/clientes/{id}` - Get customer
+- `GET /api/clientes/buscar?nombre=xxx` - Search
+- `POST /api/clientes` - Create
+- `PUT /api/clientes/{id}` - Update
 - `DELETE /api/clientes/{id}` - Soft delete
 - `GET /api/productos`, `GET /api/vendedores`, etc.
 
-## Pendientes
-- [ ] Completar modelos: Presupuesto, NotaCredito, Pagos, CtaCte
-- [ ] UI Blazor para gestión de Clientes y Productos
-- [ ] Endpoints de Facturas con lógica de stock
-- [ ] Autenticación y autorización
-- [ ] Migración de datos desde Access
+---
+
+## New System Advantages
+
+```
+✓ Web access (from anywhere)
+✓ Multiple simultaneous users
+✓ Centralized and secure database
+✓ Automatic backups
+✓ No Access dependency
+✓ Maintainable and testable code
+✓ Future mobile app possibility
+✓ Better performance
+✓ Easier updates
+```
+
+---
+
+## Useful Resources
+
+- Blazor docs: https://learn.microsoft.com/aspnet/core/blazor
+- EF Core docs: https://learn.microsoft.com/ef/core
+- AFIP .NET: Search "Afip SDK .NET" or use interop with FEAFIP
+- Access to SQL Server migration: SQL Server Migration Assistant (SSMA)
+
+---
+
+## Pending Tasks
+
+- [ ] Complete models: Quote, CreditNote, Payments, CurrentAccount
+- [ ] Blazor UI for Customer and Product management
+- [ ] Invoice endpoints with stock logic
+- [ ] Authentication and authorization
+- [ ] Data migration from Access
