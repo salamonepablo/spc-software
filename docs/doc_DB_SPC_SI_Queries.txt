@@ -1,0 +1,616 @@
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 1
+Consulta: qLiqComisiones
+SQL
+SELECT PagoC.NroPago, PagoC.FechaPago, PagoC.TotalAbonado, Clientes.RazonSocial, Empleados.Legajo, 
+Empleados.Comision, PagoD.ImportePago, PagoD.FormaPago, *
+FROM (Empleados INNER JOIN (Clientes INNER JOIN PagoC ON Clientes.IDCliente = PagoC.IDCliente) ON 
+Empleados.Legajo = Clientes.Vendedor) INNER JOIN PagoD ON PagoC.NroPago = PagoD.NroPago
+ORDER BY PagoC.FechaPago, PagoD.FormaPago;
+Columnas
+Nombre
+Tipo
+Tamaño
+PagoC.NroPago
+Doble
+FechaPago
+Fecha con hora
+TotalAbonado
+Doble
+RazonSocial
+Texto corto
+Legajo
+Texto corto
+Comision
+Doble
+ImportePago
+Doble
+FormaPago
+Texto corto
+Nombre
+Texto corto
+CUIL
+Texto corto
+Empleados.Domicilio
+Texto corto
+Empleados.Localidad
+Texto corto
+Empleados.Pais
+Texto corto
+Empleados.Prov
+Texto corto
+Empleados.CP
+Texto corto
+DNI
+Texto corto
+Empleados.Tel
+Texto corto
+Empleados.Cel
+Texto corto
+emaill
+Texto corto
+FechaNacimiento
+Fecha con hora
+FechaIngreso
+Fecha con hora
+IDPuesto
+Entero largo
+Empleados.Observaciones
+Texto corto
+Clientes.IDCliente
+Entero largo
+NombreFantasia
+Texto corto
+CUIT
+Texto corto
+Clientes.Domicilio
+Texto corto
+Clientes.Localidad
+Texto corto
+IdPais
+Entero largo
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 2
+Consulta: qLiqComisiones
+Clientes.Pais
+Texto corto
+Clientes.Prov
+Texto corto
+Clientes.CP
+Texto corto
+Clientes.Tel
+Texto corto
+Clientes.Cel
+Texto corto
+email
+Texto corto
+PorcentajeDescuento
+Doble
+CondicionIva
+Texto corto
+ZonaVenta
+Entero largo
+Vendedor
+Texto corto
+LimiteCredito
+Doble
+Clientes.Observaciones
+Texto largo
+PagoC.IdSucursal
+Entero largo
+PagoC.IDCliente
+Entero largo
+Anulado
+Texto corto
+Corresponde
+Texto corto
+PagoD.IdSucursal
+Entero largo
+PagoD.NroPago
+Doble
+LineaPago
+Entero largo
+PagoD.Observaciones
+Texto largo
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+PagoCIDCliente
+1
+PrimaryKey
+2
+CondicionIvaClientes
+1
+PaisesClientes
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 3
+Consulta: qLiqComisiones
+PrimaryKey
+1
+IDPuesto
+1
+IndiceNombre
+1
+PrimaryKey
+1
+CodPagoPagoD
+1
+IdSucursal
+1
+PagoCPagoD
+2
+PrimaryKey
+3
+IDPuesto
+1
+IndiceNombre
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 4
+Consulta: qLiqComisiones
+PrimaryKey
+1
+CondicionIvaClientes
+1
+PaisesClientes
+1
+PrimaryKey
+1
+IdSucursal
+1
+PagoCIDCliente
+1
+PrimaryKey
+2
+CodPagoPagoD
+1
+IdSucursal
+1
+PagoCPagoD
+2
+PrimaryKey
+3
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 5
+Consulta: qLiqComisiones
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 6
+Consulta: qLiqComisionesOld
+SQL
+SELECT PagoC.NroPago, PagoC.FechaPago, PagoC.TotalAbonado, Clientes.RazonSocial, Empleados.Legajo, 
+Empleados.Comision, *
+FROM Empleados INNER JOIN (Clientes INNER JOIN PagoC ON Clientes.IDCliente = PagoC.IDCliente) ON 
+Empleados.Legajo = Clientes.Vendedor;
+Columnas
+Nombre
+Tipo
+Tamaño
+NroPago
+Doble
+FechaPago
+Fecha con hora
+TotalAbonado
+Doble
+RazonSocial
+Texto corto
+Legajo
+Texto corto
+Comision
+Doble
+Nombre
+Texto corto
+CUIL
+Texto corto
+Empleados.Domicilio
+Texto corto
+Empleados.Localidad
+Texto corto
+Empleados.Pais
+Texto corto
+Empleados.Prov
+Texto corto
+Empleados.CP
+Texto corto
+DNI
+Texto corto
+Empleados.Tel
+Texto corto
+Empleados.Cel
+Texto corto
+emaill
+Texto corto
+FechaNacimiento
+Fecha con hora
+FechaIngreso
+Fecha con hora
+IDPuesto
+Entero largo
+Empleados.Observaciones
+Texto corto
+Clientes.IDCliente
+Entero largo
+NombreFantasia
+Texto corto
+CUIT
+Texto corto
+Clientes.Domicilio
+Texto corto
+Clientes.Localidad
+Texto corto
+IdPais
+Entero largo
+Clientes.Pais
+Texto corto
+Clientes.Prov
+Texto corto
+Clientes.CP
+Texto corto
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 7
+Consulta: qLiqComisionesOld
+Clientes.Tel
+Texto corto
+Clientes.Cel
+Texto corto
+email
+Texto corto
+PorcentajeDescuento
+Doble
+CondicionIva
+Texto corto
+ZonaVenta
+Entero largo
+Vendedor
+Texto corto
+LimiteCredito
+Doble
+Clientes.Observaciones
+Texto largo
+IdSucursal
+Entero largo
+PagoC.IDCliente
+Entero largo
+Anulado
+Texto corto
+Corresponde
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+PagoCIDCliente
+1
+PrimaryKey
+2
+CondicionIvaClientes
+1
+PaisesClientes
+1
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 8
+Consulta: qLiqComisionesOld
+IDPuesto
+1
+IndiceNombre
+1
+PrimaryKey
+1
+CondicionIvaClientes
+1
+PaisesClientes
+1
+PrimaryKey
+1
+IdSucursal
+1
+PagoCIDCliente
+1
+PrimaryKey
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 9
+Consulta: qListaClientesVendedor
+SQL
+SELECT CtaCte.IDCliente, CtaCte.SaldoL1, CtaCte.SaldoL2, CtaCte.SaldoTotal, CtaCte.FechaActSaldo, Empleados.Le
+Empleados.Nombre, Clientes.RazonSocial, Clientes.ZonaVenta
+FROM Empleados INNER JOIN (Clientes INNER JOIN CtaCte ON Clientes.IDCliente = CtaCte.IDCliente) ON 
+Empleados.Legajo = Clientes.Vendedor
+ORDER BY Empleados.Nombre, Clientes.ZonaVenta;
+Columnas
+Nombre
+Tipo
+Tamaño
+IDCliente
+Entero largo
+SaldoL1
+Doble
+SaldoL2
+Doble
+SaldoTotal
+Doble
+FechaActSaldo
+Fecha con hora
+Legajo
+Texto corto
+Nombre
+Texto corto
+RazonSocial
+Texto corto
+ZonaVenta
+Entero largo
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+IDPuesto
+1
+IndiceNombre
+1
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 10
+Consulta: qListaClientesVendedor
+CondicionIvaClientes
+1
+PaisesClientes
+1
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 11
+Consulta: qListaConsignaciones
+SQL
+SELECT Clientes.RazonSocial, ConsignacionesC.NroConsignacion, ConsignacionesC.FechaC, Productos.Descripcion
+Productos.UnidadMedida, ConsignacionesD.Cantidad, Empleados.Legajo, Clientes.IDCliente
+FROM ((Empleados INNER JOIN Clientes ON Empleados.Legajo = Clientes.Vendedor) INNER JOIN Consignacione
+Clientes.IDCliente = ConsignacionesC.IdCliente) INNER JOIN (Productos INNER JOIN ConsignacionesD ON 
+Productos.CodProd = ConsignacionesD.IdCodProd) ON ConsignacionesC.NroConsignacion = 
+ConsignacionesD.NroConsignacion;
+Columnas
+Nombre
+Tipo
+Tamaño
+RazonSocial
+Texto corto
+NroConsignacion
+Entero largo
+FechaC
+Fecha con hora
+Descripcion
+Texto corto
+UnidadMedida
+Texto corto
+Cantidad
+Doble
+Legajo
+Texto corto
+IDCliente
+Entero largo
+Índices de tabla
+Nombre
+Número de campos
+CondicionIvaClientes
+1
+PaisesClientes
+1
+PrimaryKey
+1
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 12
+Consulta: qListaConsignaciones
+SecondaryKey
+1
+PrimaryKey
+1
+{9A15327D-F976-4BA8-B0B4-4D6CBBDFABB1}
+1
+IdCodProd
+1
+PrimaryKey
+2
+IDPuesto
+1
+IndiceNombre
+1
+PrimaryKey
+1
+CondicionIvaClientes
+1
+PaisesClientes
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 13
+Consulta: qListaConsignaciones
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 14
+Consulta: qListadoVentasFac
+SQL
+SELECT FacturaC.NroFactura, FacturaC.TipoFactura, FacturaC.FechaFactura, FacturaC.TotalFactura, FacturaC.Porcen
+FacturaC.SubTotalFactura, FacturaC.TotalIVA, FacturaC.AlicuotaIIBB, FacturaC.ImportePercepIIBB, FacturaC.CodClie
+FacturaC.PorcentajeDesc, FacturaC.ImporteDesc, FacturaC.CodVendedor, FacturaC.FormaPago, FacturaC.UnidadN
+FacturaC.Cancelada, FacturaC.Cancelada, FacturaD.ItemFactura, FacturaD.IDCodProd, FacturaD.Cantidad, 
+FacturaD.PrecioUnitario, FacturaD.PorcentajeDescuento, FacturaD.TotalLinea, FacturaD.UnidadMedida, 
+FacturaD.ImporteDescuento
+FROM FacturaC INNER JOIN FacturaD ON (FacturaC.TipoFactura = FacturaD.TipoFactura) AND (FacturaC.NroFact
+FacturaD.NroFactura)
+ORDER BY FacturaD.IDCodProd;
+Columnas
+Nombre
+Tipo
+Tamaño
+NroFactura
+Entero largo
+TipoFactura
+Texto corto
+FechaFactura
+Fecha con hora
+TotalFactura
+Doble
+PorcentajeIVA
+Doble
+SubTotalFactura
+Doble
+TotalIVA
+Doble
+AlicuotaIIBB
+Doble
+ImportePercepIIBB
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+CodVendedor
+Texto corto
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+Expr1015
+Sí/No
+Cancelada
+Sí/No
+ItemFactura
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+ImporteDescuento
+Doble
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 15
+Consulta: qListadoVentasFac
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+PrimaryKey
+2
+IDCodProd
+1
+PK
+2
+PrimaryKey
+3
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 16
+Consulta: qListadoVentasPres
+SQL
+SELECT PresupuestoC.*, PresupuestoD.*
+FROM PresupuestoC INNER JOIN PresupuestoD ON PresupuestoC.NroPresu = PresupuestoD.NroPresu
+ORDER BY PresupuestoD.CodProd;
+Columnas
+Nombre
+Tipo
+Tamaño
+PresupuestoC.NroPresu
+Entero largo
+FechaPresu
+Fecha con hora
+TotalPresu
+Doble
+SubTotalPresu
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+CodVendedor
+Texto corto
+Anulado
+Texto corto
+PresupuestoD.NroPresu
+Entero largo
+ItemPresu
+Entero largo
+CodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+ImporteDescuento
+Doble
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 17
+Consulta: qListadoVentasPres
+IDCodProd
+1
+PresupuestoDNroPresu
+1
+PrimaryKey
+2

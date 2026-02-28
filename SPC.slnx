@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SPC.API/SPC.API.csproj" />
+  <Project Path="SPC.Shared/SPC.Shared.csproj" />
+  <Project Path="SPC.Web/SPC.Web.csproj" />
+</Solution>

@@ -1,0 +1,167 @@
+### =============================================
+### SPC - API REST
+### Sistema de Gestión Comercial
+### =============================================
+
+@baseUrl = http://localhost:5000
+
+
+### Información del sistema
+GET {{baseUrl}}/
+
+
+### =============================================
+### CLIENTES
+### =============================================
+
+### Listar todos los clientes
+GET {{baseUrl}}/api/clientes
+
+
+### Obtener cliente por ID
+GET {{baseUrl}}/api/clientes/1
+
+
+### Buscar clientes por nombre
+GET {{baseUrl}}/api/clientes/buscar?nombre=quilplac
+
+
+### Crear nuevo cliente
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+    "razonSocial": "Baterías del Centro SRL",
+    "nombreFantasia": "BatCenter",
+    "cuit": "30-12345678-9",
+    "direccion": "Av. Corrientes 1234",
+    "localidad": "CABA",
+    "provincia": "Buenos Aires",
+    "codigoPostal": "1043",
+    "telefono": "011-4555-1234",
+    "celular": "11-5555-4321",
+    "email": "info@batcenter.com.ar",
+    "condicionIvaId": 1,
+    "porcentajeDescuento": 10,
+    "limiteCredito": 50000,
+    "observaciones": "Cliente mayorista"
+}
+
+
+### Crear otro cliente (Consumidor Final)
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+    "razonSocial": "Juan Pérez",
+    "direccion": "Calle Falsa 123",
+    "localidad": "La Plata",
+    "provincia": "Buenos Aires",
+    "condicionIvaId": 3,
+    "porcentajeDescuento": 0
+}
+
+
+### Actualizar cliente
+PUT {{baseUrl}}/api/clientes/1
+Content-Type: application/json
+
+{
+    "razonSocial": "Baterías del Centro SRL (Actualizado)",
+    "nombreFantasia": "BatCenter",
+    "cuit": "30-12345678-9",
+    "direccion": "Av. Corrientes 5678",
+    "localidad": "CABA",
+    "provincia": "Buenos Aires",
+    "condicionIvaId": 1,
+    "porcentajeDescuento": 15
+}
+
+
+### Eliminar cliente (soft delete)
+DELETE {{baseUrl}}/api/clientes/2
+
+
+### =============================================
+### PRODUCTOS
+### =============================================
+
+### Listar todos los productos
+GET {{baseUrl}}/api/productos
+
+
+### Obtener producto por ID
+GET {{baseUrl}}/api/productos/1
+
+
+### Buscar productos
+GET {{baseUrl}}/api/productos/buscar?descripcion=bateria
+
+
+### Crear producto
+POST {{baseUrl}}/api/productos
+Content-Type: application/json
+
+{
+    "codigo": "BAT-12V-65A",
+    "descripcion": "Batería 12V 65Ah - Auto",
+    "rubroId": 1,
+    "unidadMedidaId": 1,
+    "precioVenta": 45000.00,
+    "precioCosto": 32000.00,
+    "porcentajeIVA": 21,
+    "stockMinimo": 5
+}
+
+
+### Crear otro producto
+POST {{baseUrl}}/api/productos
+Content-Type: application/json
+
+{
+    "codigo": "BAT-12V-7A",
+    "descripcion": "Batería 12V 7Ah - Moto",
+    "rubroId": 2,
+    "unidadMedidaId": 1,
+    "precioVenta": 18000.00,
+    "precioCosto": 12000.00,
+    "porcentajeIVA": 21,
+    "stockMinimo": 10
+}
+
+
+### =============================================
+### TABLAS AUXILIARES
+### =============================================
+
+### Condiciones IVA
+GET {{baseUrl}}/api/condicionesiva
+
+
+### Vendedores
+GET {{baseUrl}}/api/vendedores
+
+
+### Crear vendedor
+POST {{baseUrl}}/api/vendedores
+Content-Type: application/json
+
+{
+    "nombre": "Carlos",
+    "apellido": "González",
+    "telefono": "11-4444-5555",
+    "email": "cgonzalez@spc.com",
+    "porcentajeComision": 5
+}
+
+
+### Zonas de Venta
+GET {{baseUrl}}/api/zonasventas
+
+
+### Rubros
+GET {{baseUrl}}/api/rubros
+
+
+### Depósitos
+GET {{baseUrl}}/api/depositos

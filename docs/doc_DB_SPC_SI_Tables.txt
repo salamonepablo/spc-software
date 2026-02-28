@@ -1,0 +1,2636 @@
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 1
+Tabla: Clientes
+Columnas
+Nombre
+Tipo
+Tamaño
+IDCliente
+Entero largo
+RazonSocial
+Texto corto
+NombreFantasia
+Texto corto
+CUIT
+Texto corto
+Domicilio
+Texto corto
+Localidad
+Texto corto
+IdPais
+Entero largo
+Pais
+Texto corto
+Prov
+Texto corto
+CP
+Texto corto
+Tel
+Texto corto
+Cel
+Texto corto
+email
+Texto corto
+PorcentajeDescuento
+Doble
+CondicionIva
+Texto corto
+ZonaVenta
+Entero largo
+Vendedor
+Texto corto
+LimiteCredito
+Doble
+Observaciones
+Texto largo
+Relaciones
+ClientesConsignacionesC
+Clientes
+ConsignacionesC
+IDCliente
+IdCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 2
+Tabla: Clientes
+ClientesDomiciliosClientes
+Clientes
+DomiciliosClientes
+
+1
+IDCliente
+IDCliente
+Attributes: 
+Forzado; Actualizaciones en cascada
+RelationshipType: 
+Uno a varios
+ClientesFacturaC
+Clientes
+FacturaC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ClientesPagoC
+Clientes
+PagoC
+IDCliente
+IDCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ClientesPresupuestoC
+Clientes
+PresupuestoC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ClientesRecibosC
+Clientes
+RecibosC
+IDCliente
+IDCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 3
+Tabla: Clientes
+ClientesRemitoC
+Clientes
+RemitoC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ClientesRemitoTempC
+Clientes
+RemitoTempC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+CondicionIvaClientes
+CondicionIva
+Clientes
+
+1
+IDCondicionIVA
+CondicionIva
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+EmpleadosClientes
+Empleados
+Clientes
+Legajo
+Vendedor
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+PaisesClientes
+Paises
+Clientes
+
+1
+IDPais
+IdPais
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 4
+Tabla: Clientes
+Índices de tabla
+Nombre
+Número de campos
+CondicionIvaClientes
+1
+Campos:
+Ascendente
+CondicionIva
+PaisesClientes
+1
+Campos:
+Ascendente
+IdPais
+PrimaryKey
+1
+Campos:
+Ascendente
+IDCliente
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 5
+Tabla: CodPago
+Columnas
+Nombre
+Tipo
+Tamaño
+IDPago
+Texto corto
+Descripcion
+Texto corto
+Relaciones
+CodPagoPagoD
+CodPago
+PagoD
+
+1
+IDPago
+FormaPago
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IDPago
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 6
+Tabla: CondicionIva
+Columnas
+Nombre
+Tipo
+Tamaño
+IDCondicionIVA
+Texto corto
+Descripcion
+Texto corto
+Relaciones
+CondicionIvaClientes
+CondicionIva
+Clientes
+
+1
+IDCondicionIVA
+CondicionIva
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IndiceDescripcion
+1
+Campos:
+Ascendente
+Descripcion
+PrimaryKey
+1
+Campos:
+Ascendente
+IDCondicionIVA
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 7
+Tabla: CondicionVenta
+Columnas
+Nombre
+Tipo
+Tamaño
+IdCV
+Entero largo
+CondicionVenta
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IdCV
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 8
+Tabla: ConsignacionesC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroConsignacion
+Entero largo
+FechaC
+Fecha con hora
+IdCliente
+Entero largo
+CodVendedor
+Texto corto
+Relaciones
+ConsignacionesCConsignacionesD
+ConsignacionesC
+ConsignacionesD
+
+1
+NroConsignacion
+NroConsignacion
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+ClientesConsignacionesC
+Clientes
+ConsignacionesC
+IDCliente
+IdCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+NroConsignacion
+SecondaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 9
+Tabla: ConsignacionesC
+Campos:
+Ascendente
+IdCliente
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 10
+Tabla: ConsignacionesD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroConsignacion
+Entero largo
+ItemConsignacion
+Entero largo
+IdCodProd
+Texto corto
+UnidadMedida
+Texto corto
+Cantidad
+Doble
+Relaciones
+ConsignacionesCConsignacionesD
+ConsignacionesC
+ConsignacionesD
+
+1
+NroConsignacion
+NroConsignacion
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+ProductosConsignacionesD
+Productos
+ConsignacionesD
+CodProd
+IdCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+{9A15327D-F976-4BA8-B0B4-4D6CBBDFABB1}
+1
+Campos:
+Ascendente
+NroConsignacion
+IdCodProd
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 11
+Tabla: ConsignacionesD
+Campos:
+Ascendente
+IdCodProd
+PrimaryKey
+2
+Campos:
+Ascendente
+NroConsignacion
+Ascendente
+ItemConsignacion
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 12
+Tabla: CtaCte
+Columnas
+Nombre
+Tipo
+Tamaño
+IDCliente
+Entero largo
+SaldoL1
+Doble
+SaldoL2
+Doble
+SaldoTotal
+Doble
+FechaActSaldo
+Fecha con hora
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IDCliente
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 13
+Tabla: Depositos
+Columnas
+Nombre
+Tipo
+Tamaño
+IdDeposito
+Texto corto
+Descripcion
+Texto corto
+VendedorAsociado
+Texto corto
+Relaciones
+DepositosMovIntStockC
+Depositos
+MovIntStockC
+IdDeposito
+IdDepoOrigen
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+DepositosMovIntStockC
+Depositos
+MovIntStockC
+IdDeposito
+IdDepoDest
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+DepositosStock
+Depositos
+Stock
+IdDeposito
+IdDeposito
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IndDesc
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 14
+Tabla: Depositos
+Campos:
+Ascendente
+Descripcion
+IndXVendedor
+1
+Campos:
+Ascendente
+VendedorAsociado
+PrimaryKey
+1
+Campos:
+Ascendente
+IdDeposito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 15
+Tabla: DomiciliosClientes
+Columnas
+Nombre
+Tipo
+Tamaño
+IDCliente
+Entero largo
+Item
+Entero largo
+Domicilio
+Texto corto
+Localidad
+Texto corto
+Pais
+Texto corto
+Prov
+Texto corto
+CP
+Texto corto
+Tel
+Texto corto
+Cel
+Texto corto
+email
+Texto corto
+Observaciones
+Texto largo
+Relaciones
+ClientesDomiciliosClientes
+Clientes
+DomiciliosClientes
+
+1
+IDCliente
+IDCliente
+Attributes: 
+Forzado; Actualizaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+ClientesDomiciliosClientes
+1
+Campos:
+Ascendente
+IDCliente
+PrimaryKey
+2
+Campos:
+Ascendente
+IDCliente
+Ascendente
+Item
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 16
+Tabla: Empleados
+Columnas
+Nombre
+Tipo
+Tamaño
+Legajo
+Texto corto
+Nombre
+Texto corto
+CUIL
+Texto corto
+Domicilio
+Texto corto
+Localidad
+Texto corto
+Pais
+Texto corto
+Prov
+Texto corto
+CP
+Texto corto
+DNI
+Texto corto
+Tel
+Texto corto
+Cel
+Texto corto
+emaill
+Texto corto
+FechaNacimiento
+Fecha con hora
+FechaIngreso
+Fecha con hora
+IDPuesto
+Entero largo
+Comision
+Doble
+Observaciones
+Texto corto
+Relaciones
+EmpleadosClientes
+Empleados
+Clientes
+Legajo
+Vendedor
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IDPuesto
+1
+Campos:
+Ascendente
+IDPuesto
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 17
+Tabla: Empleados
+IndiceNombre
+1
+Campos:
+Ascendente
+Nombre
+PrimaryKey
+1
+Campos:
+Ascendente
+Legajo
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 18
+Tabla: Empresa
+Columnas
+Nombre
+Tipo
+Tamaño
+IDEmpresa
+Entero largo
+RazSocial
+Texto corto
+Nombre
+Texto corto
+Cuit
+Texto corto
+Domicilio
+Texto corto
+Localidad
+Texto corto
+Provincia
+Texto corto
+CodPost
+Texto corto
+Pais
+Texto corto
+Tel
+Texto corto
+Email
+Texto corto
+Web
+Texto corto
+logo
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IDEmpresa
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 19
+Tabla: FacturaC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroFactura
+Entero largo
+TipoFactura
+Texto corto
+FechaFactura
+Fecha con hora
+TotalFactura
+Doble
+PorcentajeIVA
+Doble
+SubTotalFactura
+Doble
+TotalIVA
+Doble
+AlicuotaIIBB
+Doble
+ImportePercepIIBB
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+CodVendedor
+Texto corto
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+Cancelada
+Sí/No
+IdSucursal
+Entero largo
+NroRemito
+Entero largo
+Cae
+Texto corto
+FechaVC
+Fecha con hora
+CondicionVenta
+Texto corto
+AclaracionFactura
+Texto corto
+Relaciones
+ClientesFacturaC
+Clientes
+FacturaC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 20
+Tabla: FacturaC
+FacturaCFacturaD
+FacturaC
+FacturaD
+NroFactura
+NroFactura
+TipoFactura
+TipoFactura
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+Campos:
+Ascendente
+IdSucursal
+PrimaryKey
+2
+Campos:
+Ascendente
+TipoFactura
+Ascendente
+NroFactura
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 21
+Tabla: FacturaD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroFactura
+Entero largo
+TipoFactura
+Texto corto
+ItemFactura
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+ImporteDescuento
+Doble
+Relaciones
+FacturaCFacturaD
+FacturaC
+FacturaD
+NroFactura
+NroFactura
+TipoFactura
+TipoFactura
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ProductosFacturaD
+Productos
+FacturaD
+CodProd
+IDCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 22
+Tabla: FacturaD
+Campos:
+Ascendente
+IDCodProd
+PK
+2
+Campos:
+Ascendente
+NroFactura
+Ascendente
+TipoFactura
+PrimaryKey
+3
+Campos:
+Ascendente
+TipoFactura
+Ascendente
+NroFactura
+Ascendente
+ItemFactura
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 23
+Tabla: Iva
+Columnas
+Nombre
+Tipo
+Tamaño
+Iva
+Doble
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+Iva
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 24
+Tabla: Localidades
+Columnas
+Nombre
+Tipo
+Tamaño
+IDLocalidad
+Entero largo
+IDProv
+Entero largo
+Descripcion
+Texto corto
+Relaciones
+ProvinciasLocalidades
+Provincias
+Localidades
+IDProv
+IDProv
+Attributes: 
+No forzado
+RelationshipType: 
+Indeterminado
+Índices de tabla
+Nombre
+Número de campos
+IndiceDescripcion
+1
+Campos:
+Ascendente
+Descripcion
+LocalidadesIDProv
+1
+Campos:
+Ascendente
+IDProv
+PrimaryKey
+1
+Campos:
+Ascendente
+IDLocalidad
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 25
+Tabla: MovimientosCtaCte
+Columnas
+Nombre
+Tipo
+Tamaño
+Fecha
+Fecha con hora
+IDCliente
+Doble
+TipoDoc
+Texto corto
+NroDoc
+Doble
+ImporteLinea1
+Doble
+ImporteLinea2
+Doble
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+4
+Campos:
+Ascendente
+Fecha
+Ascendente
+IDCliente
+Ascendente
+TipoDoc
+Ascendente
+NroDoc
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 26
+Tabla: MovIntStockC
+Columnas
+Nombre
+Tipo
+Tamaño
+IdMovIntStock
+Entero largo
+FechaMovInt
+Fecha con hora
+IdDepoOrigen
+Texto corto
+IdDepoDest
+Texto corto
+Relaciones
+DepositosMovIntStockC
+Depositos
+MovIntStockC
+IdDeposito
+IdDepoOrigen
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+DepositosMovIntStockC
+Depositos
+MovIntStockC
+IdDeposito
+IdDepoDest
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+MovIntStockCMovIntStockD
+MovIntStockC
+MovIntStockD
+
+1
+IdMovIntStock
+IdMovInt
+Attributes: 
+Forzado; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdDepoDest
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 27
+Tabla: MovIntStockC
+Campos:
+Ascendente
+IdDepoDest
+IdDepoOrigen
+1
+Campos:
+Ascendente
+FechaMovInt
+PrimaryKey
+1
+Campos:
+Ascendente
+IdMovIntStock
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 28
+Tabla: MovIntStockD
+Columnas
+Nombre
+Tipo
+Tamaño
+IdMovInt
+Entero largo
+ItemMov
+Entero largo
+IdCodProd
+Texto corto
+Cantidad
+Doble
+Relaciones
+MovIntStockCMovIntStockD
+MovIntStockC
+MovIntStockD
+
+1
+IdMovIntStock
+IdMovInt
+Attributes: 
+Forzado; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdProd
+1
+Campos:
+Ascendente
+IdCodProd
+MovIntStockCMovIntStockD
+1
+Campos:
+Ascendente
+IdMovInt
+PrimaryKey
+2
+Campos:
+Ascendente
+IdMovInt
+Ascendente
+ItemMov
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 29
+Tabla: NotaCreditoC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroNotaCredito
+Entero largo
+TipoNotaCredito
+Texto corto
+FechaNotaCredito
+Fecha con hora
+TotalNotaCredito
+Doble
+PorcentajeIVA
+Doble
+SubTotalNotaCredito
+Doble
+TotalIVA
+Doble
+AlicuotaIIBB
+Doble
+ImportePercepIIBB
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+CodVendedor
+Texto corto
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+Cancelada
+Sí/No
+CAE
+Texto corto
+FechaVC
+Fecha con hora
+CondicionVenta
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+FacturaCNroFactura
+1
+Campos:
+Ascendente
+NroNotaCredito
+PrimaryKey
+2
+Campos:
+Ascendente
+TipoNotaCredito
+Ascendente
+NroNotaCredito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 30
+Tabla: NotaCreditoD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroNotaCredito
+Entero largo
+TipoNotaCredito
+Texto corto
+ItemNotaCredito
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+ImporteDescuento
+Doble
+Índices de tabla
+Nombre
+Número de campos
+FacturaDNroFactura
+1
+Campos:
+Ascendente
+NroNotaCredito
+IDCodProd
+1
+Campos:
+Ascendente
+IDCodProd
+PrimaryKey
+3
+Campos:
+Ascendente
+TipoNotaCredito
+Ascendente
+NroNotaCredito
+Ascendente
+ItemNotaCredito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 31
+Tabla: NotaDebitoC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroDebito
+Entero largo
+TipoDebito
+Texto corto
+FechaDebito
+Fecha con hora
+TotalDebito
+Doble
+PorcentajeIVA
+Doble
+SubTotalDebito
+Doble
+TotalIVA
+Doble
+AlicuotaIIBB
+Doble
+ImportePercepIIBB
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+CodVendedor
+Texto corto
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+Cancelada
+Sí/No
+NroRemito
+Entero largo
+Cae
+Texto corto
+FechaVC
+Fecha con hora
+CondicionVenta
+Texto corto
+Relaciones
+NotaDebitoCNotaDebitoD
+NotaDebitoC
+NotaDebitoD
+NroDebito
+NroDebito
+TipoDebito
+TipoDebito
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 32
+Tabla: NotaDebitoC
+Campos:
+Ascendente
+TipoDebito
+Ascendente
+NroDebito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 33
+Tabla: NotaDebitoD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroDebito
+Entero largo
+TipoDebito
+Texto corto
+ItemDebito
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+ImporteDescuento
+Doble
+Relaciones
+NotaDebitoCNotaDebitoD
+NotaDebitoC
+NotaDebitoD
+NroDebito
+NroDebito
+TipoDebito
+TipoDebito
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+Campos:
+Ascendente
+IDCodProd
+PK
+2
+Campos:
+Ascendente
+NroDebito
+Ascendente
+TipoDebito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 34
+Tabla: NotaDebitoD
+PrimaryKey
+3
+Campos:
+Ascendente
+TipoDebito
+Ascendente
+NroDebito
+Ascendente
+ItemDebito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 35
+Tabla: NotaDebitoIC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroDebitoI
+Entero largo
+TipoDebitoI
+Texto corto
+FechaDebitoI
+Fecha con hora
+TotalDebitoI
+Doble
+PorcentajeIVA
+Doble
+SubTotalDebitoI
+Doble
+TotalIVA
+Doble
+AlicuotaIIBB
+Doble
+ImportePercepIIBB
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+CodVendedor
+Texto corto
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+Cancelada
+Sí/No
+NroRemito
+Entero largo
+Cae
+Texto corto
+FechaVC
+Fecha con hora
+CondicionVenta
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+2
+Campos:
+Ascendente
+TipoDebitoI
+Ascendente
+NroDebitoI
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 36
+Tabla: NotaDebitoID
+Columnas
+Nombre
+Tipo
+Tamaño
+NroDebitoI
+Entero largo
+TipoDebitoI
+Texto corto
+ItemDebitoI
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+ImporteDescuento
+Doble
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+Campos:
+Ascendente
+IDCodProd
+PK
+2
+Campos:
+Ascendente
+NroDebitoI
+Ascendente
+TipoDebitoI
+PrimaryKey
+3
+Campos:
+Ascendente
+TipoDebitoI
+Ascendente
+NroDebitoI
+Ascendente
+ItemDebitoI
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 37
+Tabla: Padron
+Columnas
+Nombre
+Tipo
+Tamaño
+Regimen
+Texto corto
+FPub
+Texto corto
+FVigDde
+Texto corto
+FVigHta
+Texto corto
+CUIT
+Texto corto
+TipoContrInsc
+Texto corto
+MarcaAltaBajaSujeto
+Texto corto
+MCbioAlicuota
+Texto corto
+AlicuotaPercepcion
+Simple
+NroGrupoPercepcion
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+CUIT
+1
+Campos:
+Ascendente
+CUIT
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 38
+Tabla: PagoC
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroPago
+Doble
+FechaPago
+Fecha con hora
+IDCliente
+Entero largo
+TotalAbonado
+Doble
+Anulado
+Texto corto
+Corresponde
+Texto corto
+Relaciones
+ClientesPagoC
+Clientes
+PagoC
+IDCliente
+IDCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+PagoCPagoD
+PagoC
+PagoD
+
+1
+NroPago
+NroPago
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+Campos:
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 39
+Tabla: PagoC
+PagoCIDCliente
+1
+Campos:
+Ascendente
+IDCliente
+PrimaryKey
+2
+Campos:
+Ascendente
+NroPago
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 40
+Tabla: PagoD
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroPago
+Doble
+LineaPago
+Entero largo
+FormaPago
+Texto corto
+ImportePago
+Doble
+Observaciones
+Texto largo
+Relaciones
+CodPagoPagoD
+CodPago
+PagoD
+
+1
+IDPago
+FormaPago
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+PagoCPagoD
+PagoC
+PagoD
+
+1
+NroPago
+NroPago
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+CodPagoPagoD
+1
+Campos:
+Ascendente
+FormaPago
+IdSucursal
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 41
+Tabla: PagoD
+Campos:
+Ascendente
+IdSucursal
+PagoCPagoD
+2
+Campos:
+Ascendente
+NroPago
+Ascendente
+IdSucursal
+PrimaryKey
+3
+Campos:
+Ascendente
+NroPago
+Ascendente
+LineaPago
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 42
+Tabla: Paises
+Columnas
+Nombre
+Tipo
+Tamaño
+IDPais
+Entero largo
+Descripcion
+Texto corto
+Relaciones
+PaisesClientes
+Paises
+Clientes
+
+1
+IDPais
+IdPais
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+PaisesProvincias
+Paises
+Provincias
+
+1
+IDPais
+IDPais
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IndiceDescripcion
+1
+Campos:
+Ascendente
+Descripcion
+PrimaryKey
+1
+Campos:
+Ascendente
+IDPais
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 43
+Tabla: PresupuestoC
+Columnas
+Nombre
+Tipo
+Tamaño
+NroPresu
+Entero largo
+FechaPresu
+Fecha con hora
+TotalPresu
+Doble
+SubTotalPresu
+Doble
+CodCliente
+Entero largo
+PorcentajeDesc
+Doble
+ImporteDesc
+Doble
+FormaPago
+Entero largo
+UnidadNegocio
+Texto corto
+CodVendedor
+Texto corto
+Anulado
+Texto corto
+Relaciones
+ClientesPresupuestoC
+Clientes
+PresupuestoC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+PresupuestoCPresupuestoD
+PresupuestoC
+PresupuestoD
+NroPresu
+NroPresu
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 44
+Tabla: PresupuestoC
+Campos:
+Ascendente
+NroPresu
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 45
+Tabla: PresupuestoD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroPresu
+Entero largo
+ItemPresu
+Entero largo
+CodProd
+Texto corto
+Cantidad
+Entero largo
+PrecioUnitario
+Doble
+PorcentajeDescuento
+Entero largo
+ImporteDescuento
+Doble
+TotalLinea
+Doble
+UnidadMedida
+Texto corto
+Relaciones
+PresupuestoCPresupuestoD
+PresupuestoC
+PresupuestoD
+NroPresu
+NroPresu
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ProductosPresupuestoD
+Productos
+PresupuestoD
+CodProd
+CodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+Campos:
+Ascendente
+CodProd
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 46
+Tabla: PresupuestoD
+PresupuestoDNroPresu
+1
+Campos:
+Ascendente
+NroPresu
+PrimaryKey
+2
+Campos:
+Ascendente
+NroPresu
+Ascendente
+ItemPresu
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 47
+Tabla: Productos
+Columnas
+Nombre
+Tipo
+Tamaño
+CodProd
+Texto corto
+Descripcion
+Texto corto
+Stock
+Doble
+PuntoPedido
+Texto corto
+Tamaño
+Texto corto
+UnidadMedida
+Texto corto
+PrecioUnitarioFactura
+Doble
+PrecioUnitarioPresupuesto
+Doble
+Rubro
+Texto corto
+CodBarra
+Texto corto
+Promo
+Texto corto
+Observaciones
+Texto corto
+Relaciones
+ProductosConsignacionesD
+Productos
+ConsignacionesD
+CodProd
+IdCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ProductosFacturaD
+Productos
+FacturaD
+CodProd
+IDCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 48
+Tabla: Productos
+ProductosPresupuestoD
+Productos
+PresupuestoD
+CodProd
+CodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+ProductosRemitoD
+Productos
+RemitoD
+CodProd
+IDCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+CodProd
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 49
+Tabla: Provincias
+Columnas
+Nombre
+Tipo
+Tamaño
+IDPais
+Entero largo
+IDProv
+Entero largo
+Descripcion
+Texto corto
+Relaciones
+PaisesProvincias
+Paises
+Provincias
+
+1
+IDPais
+IDPais
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+ProvinciasLocalidades
+Provincias
+Localidades
+IDProv
+IDProv
+Attributes: 
+No forzado
+RelationshipType: 
+Indeterminado
+Índices de tabla
+Nombre
+Número de campos
+IndiceDescripcion
+1
+Campos:
+Ascendente
+Descripcion
+PaisesProvincias
+1
+Campos:
+Ascendente
+IDPais
+PrimaryKey
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 50
+Tabla: Provincias
+Campos:
+Ascendente
+IDPais
+Ascendente
+IDProv
+ProvinciasIDProv
+1
+Campos:
+Ascendente
+IDProv
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 51
+Tabla: Puestos
+Columnas
+Nombre
+Tipo
+Tamaño
+IDPuesto
+Entero largo
+Descripcion
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IDPuesto
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 52
+Tabla: RecibosC
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroPago
+Doble
+FechaPago
+Fecha con hora
+IDCliente
+Entero largo
+TotalAbonado
+Doble
+Anulado
+Texto corto
+Corresponde
+Texto corto
+Relaciones
+ClientesRecibosC
+Clientes
+RecibosC
+IDCliente
+IDCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+RecibosCRecibosD
+RecibosC
+RecibosD
+
+1
+NroPago
+NroPago
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+Campos:
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 53
+Tabla: RecibosC
+PagoCIDCliente
+1
+Campos:
+Ascendente
+IDCliente
+PrimaryKey
+2
+Campos:
+Ascendente
+NroPago
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 54
+Tabla: RecibosD
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroPago
+Doble
+LineaPago
+Entero largo
+FormaPago
+Texto corto
+ImportePago
+Doble
+Observaciones
+Texto largo
+Relaciones
+RecibosCRecibosD
+RecibosC
+RecibosD
+
+1
+NroPago
+NroPago
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado; Actualizaciones en cascada; Eliminaciones en cascada
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IdSucursal
+1
+Campos:
+Ascendente
+IdSucursal
+PrimaryKey
+3
+Campos:
+Ascendente
+NroPago
+Ascendente
+LineaPago
+Ascendente
+IdSucursal
+RecibosCRecibosD
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 55
+Tabla: RecibosD
+Campos:
+Ascendente
+NroPago
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 56
+Tabla: RemitoC
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroRemito
+Entero largo
+FechaRemito
+Fecha con hora
+CodCliente
+Entero largo
+UnidadNegocio
+Texto corto
+CodVendedor
+Texto corto
+NroFactura
+Entero largo
+TipoFactura
+Texto corto
+Item
+Entero largo
+AclaracionRemito
+Texto corto
+Relaciones
+ClientesRemitoC
+Clientes
+RemitoC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+RemitoCRemitoD
+RemitoC
+RemitoD
+
+1
+IdSucursal
+IdSucursal
+
+1
+NroRemito
+NroRemito
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 57
+Tabla: RemitoC
+Campos:
+Ascendente
+IdSucursal
+Ascendente
+NroRemito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 58
+Tabla: RemitoD
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroRemito
+Entero largo
+ItemRemito
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+UnidadMedida
+Texto corto
+Relaciones
+ProductosRemitoD
+Productos
+RemitoD
+CodProd
+IDCodProd
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+RemitoCRemitoD
+RemitoC
+RemitoD
+
+1
+IdSucursal
+IdSucursal
+
+1
+NroRemito
+NroRemito
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+Campos:
+Ascendente
+IDCodProd
+PrimaryKey
+3
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 59
+Tabla: RemitoD
+Campos:
+Ascendente
+IdSucursal
+Ascendente
+NroRemito
+Ascendente
+ItemRemito
+RemitoCRemitoD
+2
+Campos:
+Ascendente
+IdSucursal
+Ascendente
+NroRemito
+RemitoDNroremito
+1
+Campos:
+Ascendente
+NroRemito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 60
+Tabla: RemitoTempC
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NroRemito
+Texto corto
+FechaRemito
+Fecha con hora
+CodCliente
+Entero largo
+NombreCliente
+Texto corto
+UnidadNegocio
+Texto corto
+CodVendedor
+Texto corto
+NroFactura
+Entero largo
+TipoFactura
+Texto corto
+Item
+Entero largo
+Relaciones
+ClientesRemitoTempC
+Clientes
+RemitoTempC
+IDCliente
+CodCliente
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+RemitoTempCRemitoTempD
+RemitoTempC
+RemitoTempD
+NroRemito
+NroRemito
+Attributes: 
+No forzado
+RelationshipType: 
+Indeterminado
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 61
+Tabla: RemitoTempC
+SucursalesRemitoTempC
+Sucursales
+RemitoTempC
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+Primarykey
+2
+Campos:
+Ascendente
+IdSucursal
+Ascendente
+NroRemito
+RemitoTempCNroRemito
+1
+Campos:
+Ascendente
+NroRemito
+SucursalesRemitoTempC
+1
+Campos:
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 62
+Tabla: RemitoTempD
+Columnas
+Nombre
+Tipo
+Tamaño
+NroRemito
+Texto corto
+ItemRemito
+Entero largo
+IDCodProd
+Texto corto
+Cantidad
+Entero largo
+UnidadMedida
+Texto corto
+Relaciones
+RemitoTempCRemitoTempD
+RemitoTempC
+RemitoTempD
+NroRemito
+NroRemito
+Attributes: 
+No forzado
+RelationshipType: 
+Indeterminado
+Índices de tabla
+Nombre
+Número de campos
+IDCodProd
+1
+Campos:
+Ascendente
+IDCodProd
+PrimaryKey
+2
+Campos:
+Ascendente
+NroRemito
+Ascendente
+ItemRemito
+RemitoDNroremito
+1
+Campos:
+Ascendente
+NroRemito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 63
+Tabla: Rubros
+Columnas
+Nombre
+Tipo
+Tamaño
+IdRubro
+Texto corto
+Descripcion
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IdRubro
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 64
+Tabla: Stock
+Columnas
+Nombre
+Tipo
+Tamaño
+CodProd
+Texto corto
+IdDeposito
+Texto corto
+Cantidad
+Doble
+FechaUM
+Fecha con hora
+Relaciones
+DepositosStock
+Depositos
+Stock
+IdDeposito
+IdDeposito
+Attributes: 
+No forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+IndDeposito
+1
+Campos:
+Ascendente
+IdDeposito
+IndFecha
+1
+Campos:
+Ascendente
+FechaUM
+IndProd
+1
+Campos:
+Ascendente
+CodProd
+PrimaryKey
+2
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 65
+Tabla: Stock
+Campos:
+Ascendente
+CodProd
+Ascendente
+IdDeposito
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 66
+Tabla: Sucursales
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+NombreSucursal
+Texto corto
+Relaciones
+SucursalesRemitoTempC
+Sucursales
+RemitoTempC
+
+1
+IdSucursal
+IdSucursal
+Attributes: 
+Forzado
+RelationshipType: 
+Uno a varios
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 67
+Tabla: tAuxiliarVentas
+Columnas
+Nombre
+Tipo
+Tamaño
+IdProducto
+Texto corto
+Descripcion
+Texto corto
+Cantidad
+Doble
+Importe
+Doble
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IdProducto
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 68
+Tabla: UltimosNumeros
+Columnas
+Nombre
+Tipo
+Tamaño
+IdSucursal
+Entero largo
+IDTabla
+Texto corto
+UltimoNumero
+Doble
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+2
+Campos:
+Ascendente
+IDTabla
+Ascendente
+IdSucursal
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 69
+Tabla: UnidadesMedida
+Columnas
+Nombre
+Tipo
+Tamaño
+IdUnidadMedida
+Texto corto
+Descripcion
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IdUnidadMedida
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 70
+Tabla: UsuarioFunciones
+Columnas
+Nombre
+Tipo
+Tamaño
+IDUsuario
+Entero largo
+NombreMenu
+Texto corto
+TipoConsulta
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+PrimaryKey
+1
+Campos:
+Ascendente
+IDUsuario
+
+C:\TrabajosActivos\SPC-Core\DB_SPC_SI.mdb
+sábado, 28 de febrero de 2026
+Página: 71
+Tabla: Usuarios
+Columnas
+Nombre
+Tipo
+Tamaño
+IDUsuario
+Texto corto
+NombreDescripcion
+Texto corto
+Clave
+Texto corto
+Permisos
+Texto corto
+UnidadNegocio
+Texto corto
+Índices de tabla
+Nombre
+Número de campos
+Clave
+1
+Campos:
+Ascendente
+Clave
+ID
+1
+Campos:
+Ascendente
+IDUsuario
+PrimaryKey
+1
+Campos:
+Ascendente
+NombreDescripcion
