@@ -9,6 +9,12 @@ using SPC.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar JSON para ignorar referencias circulares
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
+
 // Configurar Entity Framework con SQLite
 // En producción cambiarías a SQL Server
 builder.Services.AddDbContext<SPCDbContext>(options =>
