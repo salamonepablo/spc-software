@@ -1,6 +1,6 @@
 # Current Session Context
 
-**Last Updated:** 2026-02-28 21:45
+**Last Updated:** 2026-02-28 22:10
 **Branch:** develop
 **Version:** 0.1.0
 
@@ -8,7 +8,7 @@
 
 ## Session Summary
 
-Setting up project infrastructure, documentation, Git workflow, and testing API.
+Full session: infrastructure setup, documentation, Git workflow, API testing, bug fixes, and Swagger integration.
 
 ## What Was Done Today
 
@@ -20,46 +20,44 @@ Setting up project infrastructure, documentation, Git workflow, and testing API.
 2. **Documentation Created**
    - `README.md` - Project documentation
    - `CHANGELOG.md` - Version history (SemVer)
-   - `CLAUDE.md` - AI guidelines with:
-     - Architecture diagrams
-     - SOLID principles
-     - Clean Architecture
-     - TDD approach
-     - Security (OWASP Top 10)
-     - Windows Authentication strategy
-     - Git Flow workflow
-     - Conventional Commits
+   - `CLAUDE.md` - AI guidelines (SOLID, Clean Architecture, TDD, OWASP, Git Flow)
 
 3. **Git Flow Implemented**
    - `main` branch - production (tagged v0.1.0)
    - `develop` branch - integration (current)
-   - Documented feature/release/hotfix workflow
 
 4. **Context System**
    - Created `context/` folder for session recovery
-   - This file + daily backups
+   - `current_session.md` + daily backups
 
-5. **API Testing**
+5. **API Testing & Fixes**
    - Ran API successfully (`dotnet run`)
    - EF Core created SQLite database with all tables
-   - Seed data inserted (CondicionesIva, Rubros, etc.)
-   - Created first customer "Baterías del Norte SRL"
-   - Fixed circular reference bug in JSON serialization
+   - Seed data inserted (CondicionesIva, Rubros, UnidadesMedida, Depositos)
+   - Created customer "Baterías del Norte SRL" (ID=1)
+   - Created product "Batería 12V 75Ah Auto" (ID=1)
+   - **Bug fixed**: Circular reference in JSON serialization (ReferenceHandler.IgnoreCycles)
+
+6. **Swagger/OpenAPI Added**
+   - Installed `Swashbuckle.AspNetCore` package
+   - Swagger UI available at `/swagger`
+   - OpenAPI spec at `/openapi/v1.json`
 
 ## Current State
 
-- Project compiles and runs
-- API has basic CRUD for Customers
+- API running on `http://localhost:5233`
+- Swagger UI at `http://localhost:5233/swagger`
+- SQLite database created with seed data
+- 1 customer, 1 product in database
 - Blazor Web has template pages only
-- Using SQLite for development
-- No tests yet
+- No automated tests yet
 
 ## Pending / Next Steps
 
-1. [ ] Delete old folder `C:\Programmes\C#\SPC` (was locked)
-2. [ ] Test that API runs correctly
-3. [ ] Start first feature branch
-4. [ ] Implement Blazor UI for Customers
+1. [ ] Delete old folder `C:\Programmes\C#\SPC` (was locked by process)
+2. [ ] Add automated tests (xUnit) - TDD approach
+3. [ ] Implement Blazor UI for Customers
+4. [ ] Start first feature branch
 
 ## Important Decisions Made
 

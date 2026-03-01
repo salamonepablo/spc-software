@@ -31,7 +31,22 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Swagger/OpenAPI para documentación
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
+
+// Habilitar Swagger UI en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "SPC API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
 // Crear base de datos y aplicar datos iniciales
 using (var scope = app.Services.CreateScope())
