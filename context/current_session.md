@@ -1,6 +1,6 @@
 # Current Session Context
 
-**Last Updated:** 2026-02-28 18:30
+**Last Updated:** 2026-02-28 21:45
 **Branch:** develop
 **Version:** 0.1.0
 
@@ -8,7 +8,7 @@
 
 ## Session Summary
 
-Setting up project infrastructure, documentation, and Git workflow.
+Setting up project infrastructure, documentation, Git workflow, and testing API.
 
 ## What Was Done Today
 
@@ -38,6 +38,13 @@ Setting up project infrastructure, documentation, and Git workflow.
 4. **Context System**
    - Created `context/` folder for session recovery
    - This file + daily backups
+
+5. **API Testing**
+   - Ran API successfully (`dotnet run`)
+   - EF Core created SQLite database with all tables
+   - Seed data inserted (CondicionesIva, Rubros, etc.)
+   - Created first customer "Baterías del Norte SRL"
+   - Fixed circular reference bug in JSON serialization
 
 ## Current State
 
