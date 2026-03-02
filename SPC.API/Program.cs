@@ -5,6 +5,8 @@
 
 using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
+using SPC.API.Services;
+using SPC.Shared.Licensing;
 using SPC.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,10 +17,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-// Configurar Entity Framework con SQLite
-// En producción cambiarías a SQL Server
+// Configurar Licensing (feature flags)
+builder.Services.Configure<LicensingOptions>(
+    builder.Configuration.GetSection(LicensingOptions.SectionName));
+builder.Services.AddSingleton<ILicenseService, LicenseService>();
+
+// Configurar Entity Framework con SQL Server (LocalDB en desarrollo)
 builder.Services.AddDbContext<SPCDbContext>(options =>
-    options.UseSqlite("Data Source=SPC.db"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Habilitar CORS para que Blazor pueda consumir la API
 builder.Services.AddCors(options =>
@@ -48,23 +54,44 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Crear base de datos y aplicar datos iniciales
+// Aplicar migraciones pendientes automaticamente
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.UseCors("AllowBlazor");
 
 // =============================================
-// ENDPOINT RAÍZ
+// ENDPOINT RAIZ
 // =============================================
-app.MapGet("/", () => new 
+app.MapGet("/", (ILicenseService license) => new 
 { 
-    sistema = "SPC - Sistema de Gestión Comercial",
+    sistema = "SPC - Sistema de Gestion Comercial",
     version = "1.0",
-    endpoints = new[] { "/api/clientes", "/api/productos", "/api/condicionesiva" }
+    license = license.GetLicenseInfo().Tier,
+    endpoints = new[] { "/api/clientes", "/api/productos", "/api/condicionesiva", "/api/license" }
+});
+
+// =============================================
+// ENDPOINTS - LICENSE INFO
+// =============================================
+app.MapGet("/api/license", (ILicenseService license) =>
+{
+    var info = license.GetLicenseInfo();
+    return Results.Ok(new
+    {
+        tier = info.Tier,
+        customerId = info.CustomerId,
+        isValid = info.IsValid,
+        expiresAt = info.ExpiresAt,
+        features = new
+        {
+            dualLineCurrentAccount = license.IsFeatureEnabled(Features.DualLineCurrentAccount),
+            multiBranch = license.IsFeatureEnabled(Features.MultiBranch)
+        }
+    });
 });
 
 

@@ -4,11 +4,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Factura - Cabecera (FacturaC en Access)
+/// Factura - Cabecera (FacturaC en Access).
+/// Documento fiscal que genera saldo en Billing (Linea 1).
 /// </summary>
 public class Factura
 {
     public int Id { get; set; }
+    
+    /// <summary>Sucursal que emite</summary>
+    public int BranchId { get; set; }
+    public Branch? Branch { get; set; }
     
     [Required]
     [StringLength(1)]
@@ -20,19 +25,36 @@ public class Factura
     
     public DateTime FechaFactura { get; set; } = DateTime.Now;
     
-    // Relación con Cliente
+    // Relacion con Cliente
     public int ClienteId { get; set; }
     public Cliente Cliente { get; set; } = null!;
+    
+    // Vendedor
+    public int? VendedorId { get; set; }
+    public Vendedor? Vendedor { get; set; }
     
     // Totales
     [Column(TypeName = "decimal(18,2)")]
     public decimal Subtotal { get; set; } = 0;
     
+    /// <summary>Porcentaje IVA aplicado</summary>
+    public decimal PorcentajeIVA { get; set; } = 21;
+    
     [Column(TypeName = "decimal(18,2)")]
     public decimal ImporteIVA { get; set; } = 0;
     
+    /// <summary>Alicuota IIBB (percepciones)</summary>
+    public decimal AlicuotaIIBB { get; set; } = 0;
+    
     [Column(TypeName = "decimal(18,2)")]
     public decimal ImportePercepcionIIBB { get; set; } = 0;
+    
+    /// <summary>Porcentaje descuento</summary>
+    public decimal PorcentajeDescuento { get; set; } = 0;
+    
+    /// <summary>Importe descuento</summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal ImporteDescuento { get; set; } = 0;
     
     [Column(TypeName = "decimal(18,2)")]
     public decimal Total { get; set; } = 0;
@@ -43,12 +65,32 @@ public class Factura
     
     public DateTime? FechaVencimientoCAE { get; set; }
     
+    /// <summary>Condicion de venta</summary>
+    [StringLength(50)]
+    public string? CondicionVenta { get; set; }
+    
+    /// <summary>Forma de pago</summary>
+    public int? FormaPago { get; set; }
+    
+    /// <summary>Unidad de negocio</summary>
+    [StringLength(50)]
+    public string? UnidadNegocio { get; set; }
+    
+    /// <summary>Remito asociado</summary>
+    public int? RemitoId { get; set; }
+    
+    /// <summary>Aclaracion en factura</summary>
+    [StringLength(200)]
+    public string? Aclaracion { get; set; }
+    
     // Estado
     public bool Anulada { get; set; } = false;
     
     [StringLength(500)]
     public string? Observaciones { get; set; }
     
-    // Navegación
+    // Navegacion
     public List<FacturaDetalle> Detalles { get; set; } = new();
+    public List<Remito> Remitos { get; set; } = new();
+    public List<CreditNote> CreditNotes { get; set; } = new();
 }

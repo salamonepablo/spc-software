@@ -65,7 +65,12 @@ public class Cliente
     
     public DateTime FechaAlta { get; set; } = DateTime.Now;
     
-    // Navegación: un cliente tiene muchas facturas, remitos, etc.
+    // Navegacion: un cliente tiene muchas facturas, remitos, etc.
     public List<Factura> Facturas { get; set; } = new();
     public List<Remito> Remitos { get; set; } = new();
+    public List<CustomerAddress> DeliveryAddresses { get; set; } = new();
+    public List<Quote> Quotes { get; set; } = new();
+    public List<CreditNote> CreditNotes { get; set; } = new();
+    public List<DebitNote> DebitNotes { get; set; } = new();
+    public List<Payment> Payments { get; set; } = new();
 }

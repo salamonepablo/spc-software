@@ -63,5 +63,8 @@ appsettings.*.local.json
 *.pfx
 *.key
 
+# Private documentation (licensing, internal notes)
+*.local.md
+
 # JetBrains
 *.sln.iml
