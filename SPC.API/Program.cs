@@ -54,9 +54,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Aplicar migraciones pendientes automaticamente
-using (var scope = app.Services.CreateScope())
+// Aplicar migraciones pendientes automaticamente (solo para bases de datos relacionales)
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
     db.Database.Migrate();
 }
@@ -316,3 +317,6 @@ app.MapGet("/api/depositos", async (SPCDbContext db) =>
 
 
 app.Run();
+
+// Make Program accessible to integration tests
+public partial class Program { }
