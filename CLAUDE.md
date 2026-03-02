@@ -479,12 +479,88 @@ dotnet restore
 # Build entire solution
 dotnet build
 
+# Run tests
+dotnet test
+
+# Run tests with details
+dotnet test --logger "console;verbosity=detailed"
+
 # Create migration
 cd SPC.API && dotnet ef migrations add MigrationName
 
 # Apply migrations
 dotnet ef database update
 ```
+
+---
+
+## Testing
+
+### Test Project Structure
+
+```
+SPC.Tests/
+├── Infrastructure/
+│   └── SPCWebApplicationFactory.cs  # Custom factory for integration tests
+├── Integration/
+│   ├── ClientesEndpointsTests.cs    # 10 tests
+│   ├── ProductosEndpointsTests.cs   # 7 tests
+│   ├── AuxiliaryEndpointsTests.cs   # 10 tests
+│   └── LicenseEndpointTests.cs      # 3 tests
+└── Unit/
+    └── LicenseServiceTests.cs       # 9 tests
+```
+
+### Test Stack
+
+- **xUnit** - Test framework
+- **FluentAssertions** - Readable assertions
+- **Moq** - Mocking framework
+- **Microsoft.AspNetCore.Mvc.Testing** - Integration test support
+- **Microsoft.EntityFrameworkCore.InMemory** - In-memory database for tests
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~ClientesEndpointsTests"
+
+# Run with coverage (requires coverlet)
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+### Writing New Tests (TDD)
+
+1. **RED** - Write a failing test first
+2. **GREEN** - Write minimal code to pass
+3. **REFACTOR** - Improve code quality
+
+Example:
+```csharp
+[Fact]
+public async Task GetCliente_ReturnsNotFound_WhenDoesNotExist()
+{
+    // Arrange - nothing to arrange
+    
+    // Act
+    var response = await _client.GetAsync("/api/clientes/99999");
+    
+    // Assert
+    response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+}
+```
+
+### Test Database
+
+Tests use InMemory database (not SQL Server) for:
+- Speed (no database startup)
+- Isolation (fresh DB per test class)
+- No external dependencies
+
+Seed data is added manually in `SPCWebApplicationFactory.CreateHost()`
 
 ---
 
@@ -657,8 +733,31 @@ This project serves dual purpose:
 
 ## Pending Tasks
 
-- [ ] Complete models: Quote, CreditNote, Payments, CurrentAccount
-- [ ] Blazor UI for Customer and Product management
+### Phase 1 (Infrastructure) - In Progress
+- [x] Configure SQL Server LocalDB
+- [x] Create entity models (26 total)
+- [x] Create enums and DTOs
+- [x] Configure DbContext with relationships
+- [x] Add test suite (39 tests)
+- [ ] Data migration script (Access -> SQL Server)
+
+### Phase 2 (UI & Queries)
+- [ ] Blazor UI for Customer management
+- [ ] Blazor UI for Product management
+- [ ] Stock query interface
+- [ ] Basic reports
+
+### Phase 3 (Operations)
 - [ ] Invoice endpoints with stock logic
+- [ ] Quote management
+- [ ] Delivery notes
+
+### Phase 4 (Invoicing)
+- [ ] AFIP integration
+- [ ] Credit/Debit notes
+- [ ] IIBB withholdings
+
+### Phase 5 (Finalization)
 - [ ] Authentication and authorization
-- [ ] Data migration from Access
+- [ ] Current account management
+- [ ] Payments and receipts

@@ -13,9 +13,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- SQL Server LocalDB migration (from SQLite)
+- 12 new entity models:
+  - Branch (sucursales)
+  - CustomerAddress (multiple delivery addresses)
+  - PaymentMethod (cash, check, transfer, barter)
+  - Quote / QuoteDetail (presupuestos)
+  - CreditNote / CreditNoteDetail (notas de credito)
+  - DebitNote / DebitNoteDetail (notas de debito fiscal)
+  - InternalDebitNote / InternalDebitNoteDetail (debitos internos)
+  - Payment / PaymentDetail (pagos)
+  - CurrentAccount / CurrentAccountMovement (cuenta corriente dual)
+  - Consignment / ConsignmentDetail (consignaciones)
+  - CasualDeliveryNote / CasualDeliveryNoteDetail (remitos temporales)
+  - StockMovement / StockMovementDetail (movimientos de stock)
+- Enums: VoucherType, DocumentType, AccountLineType, AddressType, PaymentMethodType
+- Licensing system with feature flags (DualLineCurrentAccount, MultiBranch)
+- License API endpoint (/api/license)
+- Comprehensive test suite (39 tests):
+  - Integration tests for all API endpoints
+  - Unit tests for LicenseService
+  - SPCWebApplicationFactory for isolated testing
+- Seed data for Branches and PaymentMethods
+
+### Changed
+- Updated Cliente model with navigation to new documents
+- Updated Vendedor model with Legajo, CUIL, personal data
+- Updated Deposito model with VendedorAsociado (for trucks)
+- Updated Factura model with Branch, discounts, Remitos navigation
+- Updated Remito model with Branch, UnidadNegocio
+- DbContext now includes all entity configurations with decimal precision
+
+### Technical
+- Switched from SQLite to SQL Server LocalDB
+- Added Microsoft.EntityFrameworkCore.SqlServer
+- EF Core migrations for SQL Server
+- InMemory database for test isolation
+
 ### Planned
-- SQL Server migration
-- Complete Blazor UI for Customers and Products
+- Data migration script (Access -> SQL Server)
+- Blazor UI for Customers and Products
 - Invoice endpoints with stock logic
 - AFIP electronic invoicing integration
 - Windows Authentication implementation
@@ -66,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.0 | (unreleased) | SQL Server migration, 26 models, 39 tests |
 | 0.1.0 | 2026-02-28 | Initial release - Project structure and basic CRUD |
 
 ---
