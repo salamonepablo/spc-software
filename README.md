@@ -252,15 +252,33 @@ Examples:
 
 ---
 
-## Future Work
+## Current Status
 
-Planned improvements:
+### Implemented
 
-* Blazor UI modules
-* Authentication and role management
-* Multi-company support
-* REST API expansion
-* Docker deployment
+- REST API with full CRUD for Customers and Products
+- Blazor Server UI for Customer management (list, create, edit, delete)
+- Clean Architecture with Services, DTOs and modular Endpoints
+- Integration and Unit tests (43 tests passing)
+- Architecture Decision Records (ADRs)
+
+### In Progress
+
+- Blazor UI for Products
+- Data migration from Access database
+
+### Planned
+
+- Authentication and role management
+- Invoicing module with ARCA integration
+- Stock management
+- Docker deployment
+
+---
+
+## Screenshots
+
+*(Coming soon)*
 
 ---
 
@@ -272,18 +290,7 @@ Proprietary – All rights reserved.
 
 ## Author
 
-**Pablo Salamone**
-Software Developer
+**Pablo Salamone**  
+Software Developer  
 GitHub: [https://github.com/salamonepablo](https://github.com/salamonepablo)
-
-````
-
----
-
-## Screenshots
-````
-
-con 2-3 imágenes.
-
----
 
