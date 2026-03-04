@@ -278,7 +278,11 @@ Examples:
 
 ## Screenshots
 
-*(Coming soon)*
+Init page
+![alt text](image.png)
+
+Customer list
+
 
 ---
 
