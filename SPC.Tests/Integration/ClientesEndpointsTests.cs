@@ -1,9 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using SPC.API.Data;
-using SPC.Shared.Models;
+using SPC.API.Contracts.Clientes;
 using SPC.Tests.Infrastructure;
 
 namespace SPC.Tests.Integration;
@@ -31,7 +29,7 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var clientes = await response.Content.ReadFromJsonAsync<List<Cliente>>();
+        var clientes = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
         clientes.Should().NotBeNull();
         // List may contain data from other tests in same class (shared factory)
     }
@@ -40,7 +38,7 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     public async Task PostCliente_CreatesCliente_ReturnsCreated()
     {
         // Arrange
-        var nuevoCliente = new Cliente
+        var nuevoCliente = new CreateClienteRequest
         {
             RazonSocial = "Test Company SRL",
             CUIT = "30-12345678-9",
@@ -55,7 +53,7 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var clienteCreado = await response.Content.ReadFromJsonAsync<Cliente>();
+        var clienteCreado = await response.Content.ReadFromJsonAsync<ClienteResponse>();
         clienteCreado.Should().NotBeNull();
         clienteCreado!.Id.Should().BeGreaterThan(0);
         clienteCreado.RazonSocial.Should().Be("Test Company SRL");
@@ -67,21 +65,21 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     public async Task GetClienteById_ReturnsCliente_WhenExists()
     {
         // Arrange - Create a cliente first
-        var nuevoCliente = new Cliente
+        var nuevoCliente = new CreateClienteRequest
         {
             RazonSocial = "Get By Id Test SRL",
             CUIT = "30-11111111-1",
             CondicionIvaId = 1
         };
         var createResponse = await _client.PostAsJsonAsync("/api/clientes", nuevoCliente);
-        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<Cliente>();
+        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<ClienteResponse>();
 
         // Act
         var response = await _client.GetAsync($"/api/clientes/{clienteCreado!.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var cliente = await response.Content.ReadFromJsonAsync<Cliente>();
+        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>();
         cliente.Should().NotBeNull();
         cliente!.RazonSocial.Should().Be("Get By Id Test SRL");
     }
@@ -99,24 +97,25 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     [Fact]
     public async Task BuscarClientes_ReturnsMatchingClientes_WhenSearchByName()
     {
-        // Arrange - Create clientes
-        var cliente1 = new Cliente { RazonSocial = "Baterias Norte SRL", CUIT = "30-22222222-2", CondicionIvaId = 1 };
-        var cliente2 = new Cliente { RazonSocial = "Baterias Sur SA", CUIT = "30-33333333-3", CondicionIvaId = 2 };
-        var cliente3 = new Cliente { RazonSocial = "Accesorios Auto", CUIT = "30-44444444-4", CondicionIvaId = 3 };
+        // Arrange - Create clientes with unique prefix
+        var prefix = Guid.NewGuid().ToString()[..8];
+        var cliente1 = new CreateClienteRequest { RazonSocial = $"{prefix} Baterias Norte SRL", CUIT = "30-22222222-2", CondicionIvaId = 1 };
+        var cliente2 = new CreateClienteRequest { RazonSocial = $"{prefix} Baterias Sur SA", CUIT = "30-33333333-3", CondicionIvaId = 2 };
+        var cliente3 = new CreateClienteRequest { RazonSocial = $"{prefix} Accesorios Auto", CUIT = "30-44444444-4", CondicionIvaId = 3 };
 
         await _client.PostAsJsonAsync("/api/clientes", cliente1);
         await _client.PostAsJsonAsync("/api/clientes", cliente2);
         await _client.PostAsJsonAsync("/api/clientes", cliente3);
 
-        // Act
-        var response = await _client.GetAsync("/api/clientes/buscar?nombre=Baterias");
+        // Act - Search by unique prefix + Baterias
+        var response = await _client.GetAsync($"/api/clientes/buscar?nombre={prefix}%20Baterias");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var clientes = await response.Content.ReadFromJsonAsync<List<Cliente>>();
+        var clientes = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
         clientes.Should().NotBeNull();
         clientes.Should().HaveCount(2);
-        clientes.Should().OnlyContain(c => c.RazonSocial.Contains("Baterias"));
+        clientes.Should().OnlyContain(c => c.RazonSocial.Contains($"{prefix} Baterias"));
     }
 
     [Fact]
@@ -133,25 +132,30 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     public async Task PutCliente_UpdatesCliente_ReturnsOk()
     {
         // Arrange - Create a cliente
-        var nuevoCliente = new Cliente
+        var nuevoCliente = new CreateClienteRequest
         {
             RazonSocial = "Original Name SRL",
             CUIT = "30-55555555-5",
             CondicionIvaId = 1
         };
         var createResponse = await _client.PostAsJsonAsync("/api/clientes", nuevoCliente);
-        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<Cliente>();
+        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<ClienteResponse>();
 
-        // Modify
-        clienteCreado!.RazonSocial = "Updated Name SA";
-        clienteCreado.Telefono = "11-4444-5555";
+        // Modify with UpdateClienteRequest
+        var updateRequest = new UpdateClienteRequest
+        {
+            RazonSocial = "Updated Name SA",
+            CUIT = clienteCreado!.CUIT,
+            Telefono = "11-4444-5555",
+            CondicionIvaId = clienteCreado.CondicionIvaId
+        };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/clientes/{clienteCreado.Id}", clienteCreado);
+        var response = await _client.PutAsJsonAsync($"/api/clientes/{clienteCreado.Id}", updateRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var clienteActualizado = await response.Content.ReadFromJsonAsync<Cliente>();
+        var clienteActualizado = await response.Content.ReadFromJsonAsync<ClienteResponse>();
         clienteActualizado!.RazonSocial.Should().Be("Updated Name SA");
         clienteActualizado.Telefono.Should().Be("11-4444-5555");
     }
@@ -160,10 +164,10 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     public async Task PutCliente_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var cliente = new Cliente { RazonSocial = "Ghost SRL", CondicionIvaId = 1 };
+        var updateRequest = new UpdateClienteRequest { RazonSocial = "Ghost SRL" };
 
         // Act
-        var response = await _client.PutAsJsonAsync("/api/clientes/99999", cliente);
+        var response = await _client.PutAsJsonAsync("/api/clientes/99999", updateRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -173,14 +177,14 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     public async Task DeleteCliente_SoftDeletes_ReturnsNoContent()
     {
         // Arrange - Create a cliente
-        var nuevoCliente = new Cliente
+        var nuevoCliente = new CreateClienteRequest
         {
             RazonSocial = "To Delete SRL",
             CUIT = "30-66666666-6",
             CondicionIvaId = 1
         };
         var createResponse = await _client.PostAsJsonAsync("/api/clientes", nuevoCliente);
-        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<Cliente>();
+        var clienteCreado = await createResponse.Content.ReadFromJsonAsync<ClienteResponse>();
 
         // Act
         var response = await _client.DeleteAsync($"/api/clientes/{clienteCreado!.Id}");
@@ -188,9 +192,9 @@ public class ClientesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Verify soft delete - cliente should not appear in list
+        // Verify soft delete - cliente should not appear in list (filtered by Activo=true)
         var listResponse = await _client.GetAsync("/api/clientes");
-        var clientes = await listResponse.Content.ReadFromJsonAsync<List<Cliente>>();
+        var clientes = await listResponse.Content.ReadFromJsonAsync<List<ClienteResponse>>();
         clientes.Should().NotContain(c => c.Id == clienteCreado.Id);
     }
 

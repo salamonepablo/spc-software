@@ -5,28 +5,33 @@
 
 using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
+using SPC.API.Endpoints;
 using SPC.API.Services;
 using SPC.Shared.Licensing;
 using SPC.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar JSON para ignorar referencias circulares
+// Configure JSON to ignore circular references
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-// Configurar Licensing (feature flags)
+// Configure Licensing (feature flags)
 builder.Services.Configure<LicensingOptions>(
     builder.Configuration.GetSection(LicensingOptions.SectionName));
 builder.Services.AddSingleton<ILicenseService, LicenseService>();
 
-// Configurar Entity Framework con SQL Server (LocalDB en desarrollo)
+// Configure Entity Framework with SQL Server (LocalDB in development)
 builder.Services.AddDbContext<SPCDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Habilitar CORS para que Blazor pueda consumir la API
+// Register business services
+builder.Services.AddScoped<IClientesService, ClientesService>();
+builder.Services.AddScoped<IProductosService, ProductosService>();
+
+// Enable CORS for Blazor to consume the API
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
@@ -37,13 +42,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Swagger/OpenAPI para documentación
+// Swagger/OpenAPI for documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Habilitar Swagger UI en desarrollo
+// Enable Swagger UI in development
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -54,7 +59,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Aplicar migraciones pendientes automaticamente (solo para bases de datos relacionales)
+// Apply pending migrations automatically (only for relational databases)
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
@@ -65,7 +70,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseCors("AllowBlazor");
 
 // =============================================
-// ENDPOINT RAIZ
+// ROOT ENDPOINT
 // =============================================
 app.MapGet("/", (ILicenseService license) => new 
 { 
@@ -76,7 +81,7 @@ app.MapGet("/", (ILicenseService license) => new
 });
 
 // =============================================
-// ENDPOINTS - LICENSE INFO
+// LICENSE ENDPOINT
 // =============================================
 app.MapGet("/api/license", (ILicenseService license) =>
 {
@@ -95,169 +100,14 @@ app.MapGet("/api/license", (ILicenseService license) =>
     });
 });
 
+// =============================================
+// BUSINESS ENDPOINTS (modular)
+// =============================================
+app.MapClientesEndpoints();
+app.MapProductosEndpoints();
 
 // =============================================
-// ENDPOINTS - CLIENTES
-// =============================================
-
-// GET /api/clientes - Listar todos
-app.MapGet("/api/clientes", async (SPCDbContext db) =>
-{
-    var clientes = await db.Clientes
-        .Include(c => c.CondicionIva)
-        .Include(c => c.Vendedor)
-        .Include(c => c.ZonaVenta)
-        .Where(c => c.Activo)
-        .OrderBy(c => c.RazonSocial)
-        .ToListAsync();
-    
-    return Results.Ok(clientes);
-});
-
-// GET /api/clientes/{id} - Obtener uno
-app.MapGet("/api/clientes/{id}", async (int id, SPCDbContext db) =>
-{
-    var cliente = await db.Clientes
-        .Include(c => c.CondicionIva)
-        .Include(c => c.Vendedor)
-        .Include(c => c.ZonaVenta)
-        .FirstOrDefaultAsync(c => c.Id == id);
-    
-    return cliente != null 
-        ? Results.Ok(cliente) 
-        : Results.NotFound(new { error = "Cliente no encontrado" });
-});
-
-// GET /api/clientes/buscar?nombre=xxx - Buscar por nombre
-app.MapGet("/api/clientes/buscar", async (string? nombre, SPCDbContext db) =>
-{
-    if (string.IsNullOrWhiteSpace(nombre))
-        return Results.BadRequest(new { error = "Debe proporcionar un nombre para buscar" });
-    
-    var clientes = await db.Clientes
-        .Include(c => c.CondicionIva)
-        .Where(c => c.Activo && 
-               (c.RazonSocial.Contains(nombre) || 
-                (c.NombreFantasia != null && c.NombreFantasia.Contains(nombre))))
-        .OrderBy(c => c.RazonSocial)
-        .ToListAsync();
-    
-    return Results.Ok(clientes);
-});
-
-// POST /api/clientes - Crear nuevo
-app.MapPost("/api/clientes", async (Cliente cliente, SPCDbContext db) =>
-{
-    cliente.FechaAlta = DateTime.Now;
-    cliente.Activo = true;
-    
-    db.Clientes.Add(cliente);
-    await db.SaveChangesAsync();
-    
-    return Results.Created($"/api/clientes/{cliente.Id}", cliente);
-});
-
-// PUT /api/clientes/{id} - Actualizar
-app.MapPut("/api/clientes/{id}", async (int id, Cliente clienteActualizado, SPCDbContext db) =>
-{
-    var cliente = await db.Clientes.FindAsync(id);
-    
-    if (cliente == null)
-        return Results.NotFound(new { error = "Cliente no encontrado" });
-    
-    // Actualizar propiedades
-    cliente.RazonSocial = clienteActualizado.RazonSocial;
-    cliente.NombreFantasia = clienteActualizado.NombreFantasia;
-    cliente.CUIT = clienteActualizado.CUIT;
-    cliente.Direccion = clienteActualizado.Direccion;
-    cliente.Localidad = clienteActualizado.Localidad;
-    cliente.Provincia = clienteActualizado.Provincia;
-    cliente.CodigoPostal = clienteActualizado.CodigoPostal;
-    cliente.Telefono = clienteActualizado.Telefono;
-    cliente.Celular = clienteActualizado.Celular;
-    cliente.Email = clienteActualizado.Email;
-    cliente.CondicionIvaId = clienteActualizado.CondicionIvaId;
-    cliente.VendedorId = clienteActualizado.VendedorId;
-    cliente.ZonaVentaId = clienteActualizado.ZonaVentaId;
-    cliente.PorcentajeDescuento = clienteActualizado.PorcentajeDescuento;
-    cliente.LimiteCredito = clienteActualizado.LimiteCredito;
-    cliente.Observaciones = clienteActualizado.Observaciones;
-    
-    await db.SaveChangesAsync();
-    
-    return Results.Ok(cliente);
-});
-
-// DELETE /api/clientes/{id} - Eliminar (soft delete)
-app.MapDelete("/api/clientes/{id}", async (int id, SPCDbContext db) =>
-{
-    var cliente = await db.Clientes.FindAsync(id);
-    
-    if (cliente == null)
-        return Results.NotFound(new { error = "Cliente no encontrado" });
-    
-    // Soft delete - no eliminamos, marcamos como inactivo
-    cliente.Activo = false;
-    await db.SaveChangesAsync();
-    
-    return Results.NoContent();
-});
-
-
-// =============================================
-// ENDPOINTS - PRODUCTOS
-// =============================================
-
-app.MapGet("/api/productos", async (SPCDbContext db) =>
-{
-    var productos = await db.Productos
-        .Include(p => p.Rubro)
-        .Include(p => p.UnidadMedida)
-        .Where(p => p.Activo)
-        .OrderBy(p => p.Descripcion)
-        .ToListAsync();
-    
-    return Results.Ok(productos);
-});
-
-app.MapGet("/api/productos/{id}", async (int id, SPCDbContext db) =>
-{
-    var producto = await db.Productos
-        .Include(p => p.Rubro)
-        .Include(p => p.UnidadMedida)
-        .FirstOrDefaultAsync(p => p.Id == id);
-    
-    return producto != null 
-        ? Results.Ok(producto) 
-        : Results.NotFound(new { error = "Producto no encontrado" });
-});
-
-app.MapGet("/api/productos/buscar", async (string? descripcion, SPCDbContext db) =>
-{
-    if (string.IsNullOrWhiteSpace(descripcion))
-        return Results.BadRequest(new { error = "Debe proporcionar una descripción" });
-    
-    var productos = await db.Productos
-        .Include(p => p.Rubro)
-        .Where(p => p.Activo && 
-               (p.Descripcion.Contains(descripcion) || p.Codigo.Contains(descripcion)))
-        .OrderBy(p => p.Descripcion)
-        .ToListAsync();
-    
-    return Results.Ok(productos);
-});
-
-app.MapPost("/api/productos", async (Producto producto, SPCDbContext db) =>
-{
-    producto.Activo = true;
-    db.Productos.Add(producto);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/productos/{producto.Id}", producto);
-});
-
-
-// =============================================
-// ENDPOINTS - TABLAS AUXILIARES
+// AUXILIARY TABLE ENDPOINTS
 // =============================================
 
 // Condiciones IVA
