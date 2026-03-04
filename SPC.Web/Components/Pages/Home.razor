@@ -1,7 +1,122 @@
-﻿@page "/"
+@page "/"
+@inject IApiService Api
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SPC - Sistema de Gestión</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Bienvenido a SPC</h2>
+            <p class="text-muted">Sistema de Gestión Integral para distribución de baterías</p>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span class="bi bi-people-fill me-2"></span>
+                        Clientes
+                    </h5>
+                    <p class="card-text">Gestión de clientes, condiciones comerciales y datos de contacto.</p>
+                    @if (clientesCount.HasValue)
+                    {
+                        <p class="h3 text-primary">@clientesCount</p>
+                        <small class="text-muted">clientes activos</small>
+                    }
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="/clientes" class="btn btn-primary">Ir a Clientes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span class="bi bi-box-seam me-2"></span>
+                        Productos
+                    </h5>
+                    <p class="card-text">Catálogo de productos, precios y control de stock.</p>
+                    <p class="h3 text-secondary">--</p>
+                    <small class="text-muted">próximamente</small>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-secondary" disabled>Próximamente</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span class="bi bi-receipt me-2"></span>
+                        Facturación
+                    </h5>
+                    <p class="card-text">Emisión de facturas electrónicas, notas de crédito y débito.</p>
+                    <p class="h3 text-secondary">--</p>
+                    <small class="text-muted">próximamente</small>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-secondary" disabled>Próximamente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Estado del Sistema</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>API:</strong>
+                            @if (apiStatus == true)
+                            {
+                                <span class="badge bg-success ms-2">Conectado</span>
+                            }
+                            else if (apiStatus == false)
+                            {
+                                <span class="badge bg-danger ms-2">Desconectado</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary ms-2">Verificando...</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Versión:</strong> <span class="text-muted">1.0.0-dev</span>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Fecha:</strong> <span class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int? clientesCount;
+    private bool? apiStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var clientes = await Api.GetClientesAsync();
+            clientesCount = clientes.Count;
+            apiStatus = true;
+        }
+        catch
+        {
+            apiStatus = false;
+        }
+    }
+}

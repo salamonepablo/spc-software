@@ -1,6 +1,10 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+@* Navigation menu for SPC ERP *@
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SPC.Web</a>
+        <a class="navbar-brand" href="">
+            <strong>SPC</strong> <small>ERP</small>
+        </a>
     </div>
 </div>
 
@@ -10,21 +14,48 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3 nav-section">
+            <span class="nav-section-title">Ventas</span>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="clientes">
+                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> Clientes
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="productos">
+                <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Productos
+            </NavLink>
+        </div>
+
+        @* Future menu items - commented for now
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="facturas">
+                <span class="bi bi-receipt-nav-menu" aria-hidden="true"></span> Facturas
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="remitos">
+                <span class="bi bi-truck-nav-menu" aria-hidden="true"></span> Remitos
             </NavLink>
         </div>
+
+        <div class="nav-item px-3 nav-section">
+            <span class="nav-section-title">Stock</span>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="stock">
+                <span class="bi bi-clipboard-data-nav-menu" aria-hidden="true"></span> Consulta Stock
+            </NavLink>
+        </div>
+        *@
     </nav>
 </div>
-

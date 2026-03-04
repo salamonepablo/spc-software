@@ -1,0 +1,296 @@
+@page "/clientes/editar/{Id:int}"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Editar Cliente - SPC</PageTitle>
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/clientes">Clientes</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando cliente..." />
+    }
+    else if (notFound)
+    {
+        <div class="alert alert-warning">
+            <h4>Cliente no encontrado</h4>
+            <p>El cliente solicitado no existe o fue eliminado.</p>
+            <a href="/clientes" class="btn btn-primary">Volver a Clientes</a>
+        </div>
+    }
+    else
+    {
+        <h3 class="mb-4">Editar Cliente: @originalName</h3>
+
+        @if (errorMessage != null)
+        {
+            <AlertMessage Message="@errorMessage" 
+                          Type="AlertMessage.AlertType.Error" 
+                          OnDismiss="() => errorMessage = null" />
+        }
+
+        @if (successMessage != null)
+        {
+            <AlertMessage Message="@successMessage" 
+                          Type="AlertMessage.AlertType.Success" 
+                          OnDismiss="() => successMessage = null" />
+        }
+
+        <div class="card">
+            <div class="card-body">
+                <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="EditCliente">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Datos Principales</h5>
+                            
+                            <div class="mb-3">
+                                <label for="razonSocial" class="form-label">Razón Social *</label>
+                                <InputText id="razonSocial" class="form-control" @bind-Value="cliente.RazonSocial" />
+                                <ValidationMessage For="() => cliente.RazonSocial" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="nombreFantasia" class="form-label">Nombre Fantasía</label>
+                                <InputText id="nombreFantasia" class="form-control" @bind-Value="cliente.NombreFantasia" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="cuit" class="form-label">CUIT</label>
+                                <InputText id="cuit" class="form-control" @bind-Value="cliente.CUIT" placeholder="XX-XXXXXXXX-X" />
+                                <ValidationMessage For="() => cliente.CUIT" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="condicionIva" class="form-label">Condición IVA</label>
+                                <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.CondicionIvaId">
+                                    <option value="">-- Seleccionar --</option>
+                                    @foreach (var cond in condicionesIva)
+                                    {
+                                        <option value="@cond.Id">@cond.Descripcion (@cond.TipoFactura)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <InputText id="email" type="email" class="form-control" @bind-Value="cliente.Email" />
+                                <ValidationMessage For="() => cliente.Email" class="text-danger" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Dirección y Contacto</h5>
+
+                            <div class="mb-3">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <InputText id="direccion" class="form-control" @bind-Value="cliente.Direccion" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="localidad" class="form-label">Localidad</label>
+                                    <InputText id="localidad" class="form-control" @bind-Value="cliente.Localidad" />
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="codigoPostal" class="form-label">CP</label>
+                                    <InputText id="codigoPostal" class="form-control" @bind-Value="cliente.CodigoPostal" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="provincia" class="form-label">Provincia</label>
+                                <InputText id="provincia" class="form-control" @bind-Value="cliente.Provincia" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="telefono" class="form-label">Teléfono</label>
+                                    <InputText id="telefono" class="form-control" @bind-Value="cliente.Telefono" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="celular" class="form-label">Celular</label>
+                                    <InputText id="celular" class="form-control" @bind-Value="cliente.Celular" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Comercial</h5>
+
+                            <div class="mb-3">
+                                <label for="vendedor" class="form-label">Vendedor</label>
+                                <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.VendedorId">
+                                    <option value="">-- Sin asignar --</option>
+                                    @foreach (var v in vendedores)
+                                    {
+                                        <option value="@v.Id">@v.Nombre</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="zonaVenta" class="form-label">Zona de Venta</label>
+                                <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.ZonaVentaId">
+                                    <option value="">-- Sin asignar --</option>
+                                    @foreach (var z in zonasVenta)
+                                    {
+                                        <option value="@z.Id">@z.Nombre</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="descuento" class="form-label">% Descuento</label>
+                                    <InputNumber id="descuento" class="form-control" @bind-Value="cliente.PorcentajeDescuento" />
+                                    <ValidationMessage For="() => cliente.PorcentajeDescuento" class="text-danger" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="limiteCredito" class="form-label">Límite Crédito</label>
+                                    <InputNumber id="limiteCredito" class="form-control" @bind-Value="cliente.LimiteCredito" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Observaciones</h5>
+                            
+                            <div class="mb-3">
+                                <InputTextArea id="observaciones" class="form-control" rows="5" @bind-Value="cliente.Observaciones" />
+                                <ValidationMessage For="() => cliente.Observaciones" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/clientes" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary" disabled="@saving">
+                            @if (saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private UpdateClienteDto cliente = new();
+    private List<CondicionIvaDto> condicionesIva = new();
+    private List<VendedorDto> vendedores = new();
+    private List<ZonaVentaDto> zonasVenta = new();
+    
+    private bool loading = true;
+    private bool notFound = false;
+    private bool saving = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private string originalName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load dropdown data and cliente in parallel
+        var condicionesTask = Api.GetCondicionesIvaAsync();
+        var vendedoresTask = Api.GetVendedoresAsync();
+        var zonasTask = Api.GetZonasVentaAsync();
+        var clienteTask = Api.GetClienteAsync(Id);
+
+        await Task.WhenAll(condicionesTask, vendedoresTask, zonasTask, clienteTask);
+
+        condicionesIva = await condicionesTask;
+        vendedores = await vendedoresTask;
+        zonasVenta = await zonasTask;
+
+        var clienteData = await clienteTask;
+
+        if (clienteData == null)
+        {
+            notFound = true;
+        }
+        else
+        {
+            originalName = clienteData.RazonSocial;
+            MapToUpdateDto(clienteData);
+        }
+
+        loading = false;
+    }
+
+    private void MapToUpdateDto(ClienteDto source)
+    {
+        cliente = new UpdateClienteDto
+        {
+            RazonSocial = source.RazonSocial,
+            NombreFantasia = source.NombreFantasia,
+            CUIT = source.CUIT,
+            Direccion = source.Direccion,
+            Localidad = source.Localidad,
+            Provincia = source.Provincia,
+            CodigoPostal = source.CodigoPostal,
+            Telefono = source.Telefono,
+            Celular = source.Celular,
+            Email = source.Email,
+            CondicionIvaId = source.CondicionIvaId,
+            VendedorId = source.VendedorId,
+            ZonaVentaId = source.ZonaVentaId,
+            PorcentajeDescuento = source.PorcentajeDescuento,
+            LimiteCredito = source.LimiteCredito,
+            Observaciones = source.Observaciones
+        };
+    }
+
+    private async Task HandleSubmit()
+    {
+        saving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var success = await Api.UpdateClienteAsync(Id, cliente);
+
+            if (success)
+            {
+                successMessage = "Cliente actualizado correctamente.";
+                originalName = cliente.RazonSocial;
+            }
+            else
+            {
+                errorMessage = "Error al actualizar el cliente. Verifique los datos e intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}
