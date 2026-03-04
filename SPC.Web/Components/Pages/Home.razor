@@ -33,17 +33,20 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-secondary">
+            <div class="card h-100 border-primary">
                 <div class="card-body">
                     <h5 class="card-title fw-bold fs-5">
                         Productos
                     </h5>
                     <p class="card-text">Catálogo de productos, precios y control de stock.</p>
-                    <p class="h3 text-secondary">--</p>
-                    <small class="text-muted">próximamente</small>
+                    @if (productosCount.HasValue)
+                    {
+                        <p class="h3 text-primary">@productosCount</p>
+                        <small class="text-muted">productos activos</small>
+                    }
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-secondary" disabled>Próximamente</button>
+                    <a href="/productos" class="btn btn-primary">Ir a Productos</a>
                 </div>
             </div>
         </div>
@@ -101,14 +104,20 @@
 
 @code {
     private int? clientesCount;
+    private int? productosCount;
     private bool? apiStatus;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var clientes = await Api.GetClientesAsync();
-            clientesCount = clientes.Count;
+            var clientesTask = Api.GetClientesAsync();
+            var productosTask = Api.GetProductosAsync();
+            
+            await Task.WhenAll(clientesTask, productosTask);
+            
+            clientesCount = (await clientesTask).Count;
+            productosCount = (await productosTask).Count;
             apiStatus = true;
         }
         catch

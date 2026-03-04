@@ -1,0 +1,252 @@
+@page "/productos/editar/{Id:int}"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Editar Producto - SPC</PageTitle>
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/productos">Productos</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando producto..." />
+    }
+    else if (notFound)
+    {
+        <div class="alert alert-warning">
+            <h4>Producto no encontrado</h4>
+            <p>El producto solicitado no existe o fue eliminado.</p>
+            <a href="/productos" class="btn btn-primary">Volver a Productos</a>
+        </div>
+    }
+    else
+    {
+        <h4 class="fw-bold mb-4">Editar Producto: @originalCodigo</h4>
+
+        @if (errorMessage != null)
+        {
+            <AlertMessage Message="@errorMessage" 
+                          Type="AlertMessage.AlertType.Error" 
+                          OnDismiss="() => errorMessage = null" />
+        }
+
+        @if (successMessage != null)
+        {
+            <AlertMessage Message="@successMessage" 
+                          Type="AlertMessage.AlertType.Success" 
+                          OnDismiss="() => successMessage = null" />
+        }
+
+        <div class="card">
+            <div class="card-body">
+                <EditForm Model="producto" OnValidSubmit="HandleSubmit" FormName="EditProducto">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Datos del Producto</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="codigo" class="form-label">Código *</label>
+                                    <InputText id="codigo" class="form-control" @bind-Value="producto.Codigo" />
+                                    <ValidationMessage For="() => producto.Codigo" class="text-danger" />
+                                </div>
+                                <div class="col-md-8 mb-3">
+                                    <label for="codigoProveedor" class="form-label">Código Proveedor</label>
+                                    <InputText id="codigoProveedor" class="form-control" @bind-Value="producto.CodigoProveedor" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción *</label>
+                                <InputText id="descripcion" class="form-control" @bind-Value="producto.Descripcion" />
+                                <ValidationMessage For="() => producto.Descripcion" class="text-danger" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="rubro" class="form-label">Rubro</label>
+                                    <InputSelect id="rubro" class="form-select" @bind-Value="producto.RubroId">
+                                        <option value="">-- Seleccionar --</option>
+                                        @foreach (var rubro in rubros)
+                                        {
+                                            <option value="@rubro.Id">@rubro.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="unidadMedida" class="form-label">Unidad de Medida</label>
+                                    <InputSelect id="unidadMedida" class="form-select" @bind-Value="producto.UnidadMedidaId">
+                                        <option value="">-- Seleccionar --</option>
+                                        @foreach (var um in unidadesMedida)
+                                        {
+                                            <option value="@um.Id">@um.Nombre (@um.Codigo)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Precios y Stock</h5>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="precioCosto" class="form-label">Precio Costo</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber id="precioCosto" class="form-control" @bind-Value="producto.PrecioCosto" />
+                                    </div>
+                                    <ValidationMessage For="() => producto.PrecioCosto" class="text-danger" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="precioVenta" class="form-label">Precio Venta</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <InputNumber id="precioVenta" class="form-control" @bind-Value="producto.PrecioVenta" />
+                                    </div>
+                                    <ValidationMessage For="() => producto.PrecioVenta" class="text-danger" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="porcentajeIva" class="form-label">% IVA</label>
+                                    <div class="input-group">
+                                        <InputNumber id="porcentajeIva" class="form-control" @bind-Value="producto.PorcentajeIVA" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <ValidationMessage For="() => producto.PorcentajeIVA" class="text-danger" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="stockMinimo" class="form-label">Stock Mínimo</label>
+                                    <InputNumber id="stockMinimo" class="form-control" @bind-Value="producto.StockMinimo" />
+                                    <ValidationMessage For="() => producto.StockMinimo" class="text-danger" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">Observaciones</label>
+                                <InputTextArea id="observaciones" class="form-control" rows="3" @bind-Value="producto.Observaciones" />
+                                <ValidationMessage For="() => producto.Observaciones" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/productos" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary" disabled="@saving">
+                            @if (saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private UpdateProductoDto producto = new();
+    private List<RubroDto> rubros = new();
+    private List<UnidadMedidaDto> unidadesMedida = new();
+    
+    private bool loading = true;
+    private bool notFound = false;
+    private bool saving = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private string originalCodigo = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load dropdown data and producto in parallel
+        var rubrosTask = Api.GetRubrosAsync();
+        var unidadesTask = Api.GetUnidadesMedidaAsync();
+        var productoTask = Api.GetProductoAsync(Id);
+
+        await Task.WhenAll(rubrosTask, unidadesTask, productoTask);
+
+        rubros = await rubrosTask;
+        unidadesMedida = await unidadesTask;
+
+        var productoData = await productoTask;
+
+        if (productoData == null)
+        {
+            notFound = true;
+        }
+        else
+        {
+            originalCodigo = productoData.Codigo;
+            MapToUpdateDto(productoData);
+        }
+
+        loading = false;
+    }
+
+    private void MapToUpdateDto(ProductoDto source)
+    {
+        producto = new UpdateProductoDto
+        {
+            Codigo = source.Codigo,
+            Descripcion = source.Descripcion,
+            CodigoProveedor = source.CodigoProveedor,
+            RubroId = source.RubroId,
+            UnidadMedidaId = source.UnidadMedidaId,
+            PrecioVenta = source.PrecioVenta,
+            PrecioCosto = source.PrecioCosto,
+            PorcentajeIVA = source.PorcentajeIVA,
+            StockMinimo = source.StockMinimo,
+            Observaciones = source.Observaciones
+        };
+    }
+
+    private async Task HandleSubmit()
+    {
+        saving = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var success = await Api.UpdateProductoAsync(Id, producto);
+
+            if (success)
+            {
+                successMessage = "Producto actualizado correctamente.";
+                originalCodigo = producto.Codigo;
+            }
+            else
+            {
+                errorMessage = "Error al actualizar el producto. Verifique los datos e intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

@@ -1,0 +1,227 @@
+@page "/productos"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Productos - SPC</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Productos</h4>
+        <a href="/productos/nuevo" class="btn btn-primary">
+            Nuevo Producto
+        </a>
+    </div>
+
+    @if (alertMessage != null)
+    {
+        <AlertMessage Message="@alertMessage" 
+                      Type="@alertType" 
+                      OnDismiss="() => alertMessage = null" />
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Buscar por código o descripción..."
+                               @bind="searchTerm"
+                               @bind:event="oninput"
+                               @onkeyup="HandleSearchKeyUp" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="Search">
+                            Buscar
+                        </button>
+                        @if (!string.IsNullOrEmpty(searchTerm))
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                                Limpiar
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6 text-end text-muted">
+                    @if (productos != null)
+                    {
+                        <span>@productos.Count producto(s) encontrado(s)</span>
+                    }
+                </div>
+            </div>
+
+            @if (loading)
+            {
+                <LoadingSpinner Message="Cargando productos..." />
+            }
+            else if (productos == null || productos.Count == 0)
+            {
+                <div class="alert alert-info">
+                    @if (string.IsNullOrEmpty(searchTerm))
+                    {
+                        <span>No hay productos registrados. <a href="/productos/nuevo">Crear el primero</a></span>
+                    }
+                    else
+                    {
+                        <span>No se encontraron productos con el término "@searchTerm"</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Rubro</th>
+                                <th class="text-end">Precio Venta</th>
+                                <th class="text-end">IVA %</th>
+                                <th style="width: 150px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var producto in productos)
+                            {
+                                <tr>
+                                    <td><strong>@producto.Codigo</strong></td>
+                                    <td>
+                                        @producto.Descripcion
+                                        @if (!string.IsNullOrEmpty(producto.CodigoProveedor))
+                                        {
+                                            <br /><small class="text-muted">Prov: @producto.CodigoProveedor</small>
+                                        }
+                                    </td>
+                                    <td>@(producto.RubroNombre ?? "-")</td>
+                                    <td class="text-end">@producto.PrecioVenta.ToString("C2")</td>
+                                    <td class="text-end">@producto.PorcentajeIVA.ToString("0.##")%</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/productos/editar/@producto.Id" 
+                                               class="btn btn-outline-primary" 
+                                               title="Editar">
+                                                Editar
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    title="Eliminar"
+                                                    @onclick="() => ShowDeleteConfirm(producto)">
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<ConfirmDialog Title="Eliminar Producto"
+               Message="@deleteConfirmMessage"
+               ConfirmText="Eliminar"
+               IsVisible="showDeleteConfirm"
+               OnClose="HandleDeleteConfirm" />
+
+@code {
+    private List<ProductoDto>? productos;
+    private bool loading = true;
+    private string searchTerm = "";
+    
+    // Alert state
+    private string? alertMessage;
+    private AlertMessage.AlertType alertType;
+    
+    // Delete confirmation state
+    private bool showDeleteConfirm;
+    private ProductoDto? productoToDelete;
+    private string deleteConfirmMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductos();
+    }
+
+    private async Task LoadProductos()
+    {
+        loading = true;
+        try
+        {
+            productos = await Api.GetProductosAsync();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await LoadProductos();
+            return;
+        }
+
+        loading = true;
+        try
+        {
+            productos = await Api.BuscarProductosAsync(searchTerm);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchTerm = "";
+        await LoadProductos();
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+    private void ShowDeleteConfirm(ProductoDto producto)
+    {
+        productoToDelete = producto;
+        deleteConfirmMessage = $"¿Está seguro que desea eliminar el producto \"{producto.Codigo} - {producto.Descripcion}\"? Esta acción no se puede deshacer.";
+        showDeleteConfirm = true;
+    }
+
+    private async Task HandleDeleteConfirm(bool confirmed)
+    {
+        showDeleteConfirm = false;
+
+        if (confirmed && productoToDelete != null)
+        {
+            var success = await Api.DeleteProductoAsync(productoToDelete.Id);
+            
+            if (success)
+            {
+                alertMessage = $"Producto \"{productoToDelete.Codigo}\" eliminado correctamente.";
+                alertType = AlertMessage.AlertType.Success;
+                await LoadProductos();
+            }
+            else
+            {
+                alertMessage = "Error al eliminar el producto. Intente nuevamente.";
+                alertType = AlertMessage.AlertType.Error;
+            }
+        }
+
+        productoToDelete = null;
+    }
+}
