@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.OleDb;
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -27,6 +28,8 @@ class Program
     private static readonly Dictionary<string, int> RubroCodigoToId = new();
     private static readonly Dictionary<string, int> UnidadMedidaCodigoToId = new();
     private static readonly Dictionary<string, int> PaymentMethodCodigoToId = new();
+    private static readonly Dictionary<int, int> ZonaVentaAccessIdToSqlId = new();
+    private static readonly Dictionary<int, int> BranchAccessIdToSqlId = new();
     private static readonly Dictionary<int, int> ClienteAccessIdToSqlId = new();
     private static readonly Dictionary<(string tipo, int numero), int> FacturaAccessToSqlId = new();
     private static readonly Dictionary<(int sucursal, int numero), int> RemitoAccessToSqlId = new();
@@ -67,6 +70,27 @@ class Program
             return;
         }
 
+        if (args.Any(a => string.Equals(a, "--csv", StringComparison.OrdinalIgnoreCase)))
+        {
+            Console.WriteLine("Running CSV migration...");
+            Console.WriteLine();
+
+            try
+            {
+                await CsvImporter.RunAsync(db);
+                Console.WriteLine();
+                Console.WriteLine("===========================================");
+                Console.WriteLine("  CSV Migration completed successfully!");
+                Console.WriteLine("===========================================");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR during CSV migration: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+            return;
+        }
+
         // Build Access connection string (ACE for Office 2007+ or JET for older)
         string accessConnectionString = 
             $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={AccessDbPath};";
@@ -87,6 +111,8 @@ class Program
             await MigrateUnidadesMedida(accessConn, db);
             await MigrateRubros(accessConn, db);
             await MigratePaymentMethods(accessConn, db);
+            await MigrateBranches(accessConn, db);
+            await MigrateZonasVenta(db);
             
             // Phase 2: Tables with simple dependencies
             await MigrateVendedores(accessConn, db);
@@ -276,22 +302,26 @@ class Program
         var existing = await db.PaymentMethods.ToListAsync();
         foreach (var e in existing)
         {
-            PaymentMethodCodigoToId[e.Code] = e.Id;
+            PaymentMethodCodigoToId[e.Code.ToUpper()] = e.Id;
         }
 
         using var cmd = new OleDbCommand("SELECT IDPago, Descripcion FROM CodPago", access);
         using var reader = cmd.ExecuteReader();
         
         int count = 0;
+        int added = 0;
         while (reader.Read())
         {
-            var codigo = reader.GetString(0).Trim();
-            var descripcion = reader.GetString(1).Trim();
+            var codigoRaw = GetString(reader, 0) ?? "";
+            var codigo = codigoRaw.Trim().ToUpper();
+            var descripcion = GetString(reader, 1) ?? codigo;
+            
+            if (string.IsNullOrWhiteSpace(codigo)) continue;
             
             if (!PaymentMethodCodigoToId.ContainsKey(codigo))
             {
                 // Determine type based on code
-                var type = codigo.ToUpper() switch
+                var type = codigo switch
                 {
                     "EF" or "EFECT" or "EFECTIVO" => PaymentMethodType.Cash,
                     "CH" or "CHEQUE" => PaymentMethodType.Check,
@@ -303,22 +333,116 @@ class Program
                     _ => PaymentMethodType.Other
                 };
                 
+                // Truncate code to 10 chars max (column size)
+                if (codigo.Length > 10) codigo = codigo.Substring(0, 10);
+                
                 var entity = new PaymentMethod
                 {
                     Code = codigo,
-                    Description = descripcion,
+                    Description = descripcion.Length > 100 ? descripcion.Substring(0, 100) : descripcion,
                     Type = type,
                     RequiresDetail = type == PaymentMethodType.Check || type == PaymentMethodType.Barter,
                     IsActive = true
                 };
-                db.PaymentMethods.Add(entity);
+                
+                try
+                {
+                    db.PaymentMethods.Add(entity);
+                    await db.SaveChangesAsync();
+                    PaymentMethodCodigoToId[codigo] = entity.Id;
+                    added++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"\n  Warning: Could not add payment method '{codigo}': {ex.Message}");
+                    db.Entry(entity).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+                }
+            }
+            count++;
+        }
+        
+        Console.WriteLine($"OK ({count} records, {added} new)");
+    }
+
+    static async Task MigrateBranches(OleDbConnection access, SPCDbContext db)
+    {
+        Console.Write("Migrating Branches (Sucursales)... ");
+        
+        // Map existing seeded branches
+        var existing = await db.Branches.ToListAsync();
+        foreach (var e in existing)
+        {
+            // Map by PointOfSale since that's the IdSucursal in Access
+            BranchAccessIdToSqlId[e.PointOfSale] = e.Id;
+        }
+
+        using var cmd = new OleDbCommand("SELECT IdSucursal, NombreSucursal FROM Sucursales", access);
+        using var reader = cmd.ExecuteReader();
+        
+        int count = 0;
+        while (reader.Read())
+        {
+            var idSucursal = reader.GetInt32(0);
+            var nombre = GetString(reader, 1) ?? $"Sucursal {idSucursal}";
+            
+            if (!BranchAccessIdToSqlId.ContainsKey(idSucursal))
+            {
+                var entity = new Branch
+                {
+                    Code = $"SUC{idSucursal}",
+                    Name = nombre,
+                    PointOfSale = idSucursal,
+                    IsActive = true
+                };
+                db.Branches.Add(entity);
                 await db.SaveChangesAsync();
-                PaymentMethodCodigoToId[codigo] = entity.Id;
+                BranchAccessIdToSqlId[idSucursal] = entity.Id;
             }
             count++;
         }
         
         Console.WriteLine($"OK ({count} records)");
+    }
+
+    static async Task MigrateZonasVenta(SPCDbContext db)
+    {
+        Console.Write("Migrating ZonasVenta... ");
+        
+        // Create ZonasVenta based on known values from Access
+        // Values found in qListadoClientesVendedor: 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 100
+        var zonasAccess = new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 100 };
+        
+        // Map existing
+        var existing = await db.ZonasVenta.ToListAsync();
+        foreach (var e in existing)
+        {
+            // Try to extract the zone number from the name
+            var nombre = e.Nombre;
+            if (nombre.StartsWith("Zona ") && int.TryParse(nombre.Substring(5).Trim(), out var num))
+            {
+                ZonaVentaAccessIdToSqlId[num] = e.Id;
+            }
+        }
+        
+        int count = 0;
+        foreach (var zonaId in zonasAccess)
+        {
+            if (!ZonaVentaAccessIdToSqlId.ContainsKey(zonaId))
+            {
+                var entity = new ZonaVenta
+                {
+                    Nombre = $"Zona {zonaId:D2}",
+                    Descripcion = $"Zona de venta {zonaId}",
+                    Activa = true
+                };
+                db.ZonasVenta.Add(entity);
+                await db.SaveChangesAsync();
+                ZonaVentaAccessIdToSqlId[zonaId] = entity.Id;
+                count++;
+            }
+        }
+        
+        Console.WriteLine($"OK ({count} new records)");
     }
 
     #endregion
@@ -329,13 +453,28 @@ class Program
     {
         Console.Write("Migrating Vendedores (Empleados)... ");
         
+        // Load existing vendedores first
+        var existingVendedores = await db.Vendedores.ToListAsync();
+        foreach (var v in existingVendedores)
+        {
+            VendedorLegajoToId[v.Legajo] = v.Id;
+        }
+        
+        if (existingVendedores.Count > 0)
+        {
+            Console.WriteLine($"SKIP ({existingVendedores.Count} already exist)");
+            return;
+        }
+        
         using var cmd = new OleDbCommand(@"
             SELECT Legajo, Nombre, CUIL, Domicilio, Localidad, Prov, CP, 
                    DNI, Tel, Cel, emaill, FechaNacimiento, FechaIngreso, Comision, Observaciones
             FROM Empleados", access);
         using var reader = cmd.ExecuteReader();
         
-        int count = 0;
+        var allVendedores = new List<Vendedor>();
+        var legajoList = new List<string>();
+        
         while (reader.Read())
         {
             var legajo = GetString(reader, 0);
@@ -361,13 +500,21 @@ class Program
                 Activo = true
             };
             
-            db.Vendedores.Add(entity);
-            await db.SaveChangesAsync();
-            VendedorLegajoToId[legajo] = entity.Id;
-            count++;
+            allVendedores.Add(entity);
+            legajoList.Add(legajo);
         }
         
-        Console.WriteLine($"OK ({count} records)");
+        if (allVendedores.Count > 0)
+        {
+            await db.BulkInsertAsync(allVendedores, new BulkConfig { SetOutputIdentity = true });
+            
+            for (int i = 0; i < allVendedores.Count; i++)
+            {
+                VendedorLegajoToId[legajoList[i]] = allVendedores[i].Id;
+            }
+        }
+        
+        Console.WriteLine($"OK ({allVendedores.Count} records)");
     }
 
     static async Task MigrateDepositos(OleDbConnection access, SPCDbContext db)
@@ -420,13 +567,28 @@ class Program
     {
         Console.Write("Migrating Productos... ");
         
+        // Load existing productos first
+        var existingProductos = await db.Productos.ToListAsync();
+        foreach (var p in existingProductos)
+        {
+            ProductoCodigoToId[p.Codigo] = p.Id;
+        }
+        
+        if (existingProductos.Count > 0)
+        {
+            Console.WriteLine($"SKIP ({existingProductos.Count} already exist)");
+            return;
+        }
+        
         using var cmd = new OleDbCommand(@"
             SELECT CodProd, Descripcion, PrecioUnitarioFactura, PrecioUnitarioPresupuesto, 
                    Rubro, UnidadMedida, PuntoPedido, Observaciones
             FROM Productos", access);
         using var reader = cmd.ExecuteReader();
         
-        int count = 0;
+        var allProductos = new List<Producto>();
+        var codigoList = new List<string>(); // Track codes in same order
+        
         while (reader.Read())
         {
             var codigo = GetString(reader, 0);
@@ -453,18 +615,50 @@ class Program
                 Activo = true
             };
             
-            db.Productos.Add(entity);
-            await db.SaveChangesAsync();
-            ProductoCodigoToId[codigo] = entity.Id;
-            count++;
+            allProductos.Add(entity);
+            codigoList.Add(codigo);
         }
         
-        Console.WriteLine($"OK ({count} records)");
+        Console.Write($"({allProductos.Count} records to insert)... ");
+        
+        // Bulk insert all at once
+        await db.BulkInsertAsync(allProductos, new BulkConfig { SetOutputIdentity = true });
+        
+        // Map codes to new SQL Server IDs
+        for (int i = 0; i < allProductos.Count; i++)
+        {
+            ProductoCodigoToId[codigoList[i]] = allProductos[i].Id;
+        }
+        
+        Console.WriteLine($"OK ({allProductos.Count} records)");
     }
 
     static async Task MigrateClientes(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating Clientes... ");
+        
+        // Load existing clientes first - we need to map Access IDs
+        // Since we don't store the Access ID, we'll use a query to check count
+        var existingCount = await db.Clientes.CountAsync();
+        if (existingCount > 0)
+        {
+            // Load all clientes to map them (we use position-based mapping since Access IDs aren't stored)
+            // For now, skip if any exist
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            
+            // Still need to load them for FK mapping - assume same order
+            using var cmdCheck = new OleDbCommand("SELECT IDCliente FROM Clientes ORDER BY IDCliente", access);
+            using var readerCheck = cmdCheck.ExecuteReader();
+            var existingClientes = await db.Clientes.OrderBy(c => c.Id).ToListAsync();
+            int idx = 0;
+            while (readerCheck.Read() && idx < existingClientes.Count)
+            {
+                var accessId = readerCheck.GetInt32(0);
+                ClienteAccessIdToSqlId[accessId] = existingClientes[idx].Id;
+                idx++;
+            }
+            return;
+        }
         
         using var cmd = new OleDbCommand(@"
             SELECT IDCliente, RazonSocial, NombreFantasia, CUIT, Domicilio, Localidad, 
@@ -473,45 +667,76 @@ class Program
             FROM Clientes", access);
         using var reader = cmd.ExecuteReader();
         
-        int count = 0;
+        var allClientes = new List<Cliente>();
+        var accessIdList = new List<int>(); // Track Access IDs in same order
+        
         while (reader.Read())
         {
             var accessId = reader.GetInt32(0);
             var condicionIva = GetString(reader, 11);
             var vendedorLegajo = GetString(reader, 12);
+            var zonaVentaAccess = GetInt(reader, 13);
+            
+            // Clamp percentages to valid range
+            var porcentajeDescuento = GetDecimal(reader, 14);
+            if (porcentajeDescuento > 100) porcentajeDescuento = 100;
+            if (porcentajeDescuento < 0) porcentajeDescuento = 0;
+            
+            // Clamp limite credito to reasonable range
+            var limiteCredito = GetDecimal(reader, 15);
+            if (limiteCredito > 999999999999m) limiteCredito = 999999999999m;
+            if (limiteCredito < 0) limiteCredito = 0;
             
             var entity = new Cliente
             {
-                RazonSocial = GetString(reader, 1) ?? "Sin Nombre",
-                NombreFantasia = GetString(reader, 2),
-                CUIT = GetString(reader, 3),
-                Direccion = GetString(reader, 4),
-                Localidad = GetString(reader, 5),
-                Provincia = GetString(reader, 6),
-                CodigoPostal = GetString(reader, 7),
-                Telefono = GetString(reader, 8),
-                Celular = GetString(reader, 9),
-                Email = GetString(reader, 10),
+                RazonSocial = TruncateString(GetString(reader, 1) ?? "Sin Nombre", 200),
+                NombreFantasia = TruncateString(GetString(reader, 2), 200),
+                CUIT = TruncateString(GetString(reader, 3), 13),
+                Direccion = TruncateString(GetString(reader, 4), 300),
+                Localidad = TruncateString(GetString(reader, 5), 100),
+                Provincia = TruncateString(GetString(reader, 6), 100),
+                CodigoPostal = TruncateString(GetString(reader, 7), 10),
+                Telefono = TruncateString(GetString(reader, 8), 50),
+                Celular = TruncateString(GetString(reader, 9), 50),
+                Email = TruncateString(GetString(reader, 10), 200),
                 CondicionIvaId = !string.IsNullOrEmpty(condicionIva) && CondicionIvaCodigoToId.ContainsKey(condicionIva) 
                     ? CondicionIvaCodigoToId[condicionIva] 
                     : null,
                 VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
                     ? VendedorLegajoToId[vendedorLegajo] 
                     : null,
-                PorcentajeDescuento = GetDecimal(reader, 14),
-                LimiteCredito = GetDecimal(reader, 15),
-                Observaciones = GetString(reader, 16),
+                ZonaVentaId = ZonaVentaAccessIdToSqlId.ContainsKey(zonaVentaAccess) 
+                    ? ZonaVentaAccessIdToSqlId[zonaVentaAccess] 
+                    : null,
+                PorcentajeDescuento = porcentajeDescuento,
+                LimiteCredito = limiteCredito,
+                Observaciones = TruncateString(GetString(reader, 16), 500),
                 Activo = true,
                 FechaAlta = DateTime.Now
             };
             
-            db.Clientes.Add(entity);
-            await db.SaveChangesAsync();
-            ClienteAccessIdToSqlId[accessId] = entity.Id;
-            count++;
+            allClientes.Add(entity);
+            accessIdList.Add(accessId);
         }
         
-        Console.WriteLine($"OK ({count} records)");
+        Console.Write($"({allClientes.Count} records to insert)... ");
+        
+        // Bulk insert all at once - much faster than SaveChangesAsync per record
+        await db.BulkInsertAsync(allClientes, new BulkConfig { SetOutputIdentity = true });
+        
+        // Map Access IDs to new SQL Server IDs
+        for (int i = 0; i < allClientes.Count; i++)
+        {
+            ClienteAccessIdToSqlId[accessIdList[i]] = allClientes[i].Id;
+        }
+        
+        Console.WriteLine($"OK ({allClientes.Count} records)");
+    }
+    
+    static string? TruncateString(string? value, int maxLength)
+    {
+        if (value == null) return null;
+        return value.Length > maxLength ? value.Substring(0, maxLength) : value;
     }
 
     static async Task MigrateCustomerAddresses(OleDbConnection access, SPCDbContext db)
@@ -596,7 +821,20 @@ class Program
     {
         Console.Write("Migrating Facturas... ");
         
-        // Headers
+        var existingCount = await db.Facturas.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            // Load for FK mapping
+            var existing = await db.Facturas.ToListAsync();
+            foreach (var f in existing)
+            {
+                FacturaAccessToSqlId[(f.TipoFactura, (int)f.NumeroFactura)] = f.Id;
+            }
+            return;
+        }
+        
+        // Headers - collect all first
         using var cmdH = new OleDbCommand(@"
             SELECT TipoFactura, NroFactura, FechaFactura, CodCliente, CodVendedor,
                    SubTotalFactura, PorcentajeIVA, TotalIVA, AlicuotaIIBB, ImportePercepIIBB,
@@ -606,7 +844,9 @@ class Program
             ORDER BY TipoFactura, NroFactura", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allFacturas = new List<Factura>();
+        var facturaKeys = new List<(string tipo, int numero)>();
+        
         while (readerH.Read())
         {
             var tipoFactura = GetString(readerH, 0) ?? "B";
@@ -618,9 +858,10 @@ class Program
             var vendedorLegajo = GetString(readerH, 4);
             var idSucursal = GetInt(readerH, 19);
             
-            // Map sucursal to branch (2=Calle, 5=Distribuidora)
-            var branchId = idSucursal == 5 ? 2 : 1;
-            var puntoVenta = idSucursal == 5 ? 5 : 2;
+            var branchId = BranchAccessIdToSqlId.ContainsKey(idSucursal) 
+                ? BranchAccessIdToSqlId[idSucursal] 
+                : 1;
+            var puntoVenta = idSucursal > 0 ? idSucursal : 2;
             
             var entity = new Factura
             {
@@ -650,13 +891,28 @@ class Program
                 Aclaracion = GetString(readerH, 21)
             };
             
-            db.Facturas.Add(entity);
-            await db.SaveChangesAsync();
-            FacturaAccessToSqlId[(tipoFactura, nroFactura)] = entity.Id;
-            countH++;
+            allFacturas.Add(entity);
+            facturaKeys.Add((tipoFactura, nroFactura));
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allFacturas.Count} headers)... ");
+        
+        // Insert in batches to avoid timeout
+        const int batchSize = 2000;
+        for (int batch = 0; batch < allFacturas.Count; batch += batchSize)
+        {
+            var batchItems = allFacturas.Skip(batch).Take(batchSize).ToList();
+            await db.BulkInsertAsync(batchItems, new BulkConfig { SetOutputIdentity = true, BatchSize = batchSize });
+            
+            // Map the IDs for this batch
+            for (int i = 0; i < batchItems.Count; i++)
+            {
+                FacturaAccessToSqlId[facturaKeys[batch + i]] = batchItems[i].Id;
+            }
+            Console.Write(".");
+        }
+        
+        Console.WriteLine(" OK");
         
         // Details
         Console.Write("Migrating FacturaDetalles... ");
@@ -667,7 +923,8 @@ class Program
             ORDER BY TipoFactura, NroFactura, ItemFactura", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetalles = new List<FacturaDetalle>();
+        
         while (readerD.Read())
         {
             var tipoFactura = GetString(readerD, 0) ?? "B";
@@ -689,12 +946,20 @@ class Program
                 Subtotal = GetDecimal(readerD, 7)
             };
             
-            db.FacturaDetalles.Add(entity);
-            countD++;
+            allDetalles.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetalles.Count} details)... ");
+        
+        // Insert in batches
+        for (int batch = 0; batch < allDetalles.Count; batch += batchSize)
+        {
+            var batchItems = allDetalles.Skip(batch).Take(batchSize).ToList();
+            await db.BulkInsertAsync(batchItems, new BulkConfig { BatchSize = batchSize });
+            Console.Write(".");
+        }
+        
+        Console.WriteLine(" OK");
     }
 
     static async Task MigrateRemitos(OleDbConnection access, SPCDbContext db)
@@ -708,7 +973,9 @@ class Program
             ORDER BY IdSucursal, NroRemito", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allRemitos = new List<Remito>();
+        var remitoKeys = new List<(int sucursal, int numero)>();
+        
         while (readerH.Read())
         {
             var idSucursal = readerH.GetInt32(0);
@@ -721,8 +988,10 @@ class Program
             var nroFactura = GetInt(readerH, 6);
             var tipoFactura = GetString(readerH, 7);
             
-            var branchId = idSucursal == 5 ? 2 : 1;
-            var puntoVenta = idSucursal == 5 ? 5 : 2;
+            var branchId = BranchAccessIdToSqlId.ContainsKey(idSucursal) 
+                ? BranchAccessIdToSqlId[idSucursal] 
+                : 1;
+            var puntoVenta = idSucursal > 0 ? idSucursal : 2;
             
             int? facturaId = null;
             if (nroFactura > 0 && !string.IsNullOrEmpty(tipoFactura) && FacturaAccessToSqlId.ContainsKey((tipoFactura, nroFactura)))
@@ -748,13 +1017,22 @@ class Program
                 Anulado = false
             };
             
-            db.Remitos.Add(entity);
-            await db.SaveChangesAsync();
-            RemitoAccessToSqlId[(idSucursal, nroRemito)] = entity.Id;
-            countH++;
+            allRemitos.Add(entity);
+            remitoKeys.Add((idSucursal, nroRemito));
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allRemitos.Count} headers)... ");
+        
+        if (allRemitos.Count > 0)
+        {
+            await db.BulkInsertAsync(allRemitos, new BulkConfig { SetOutputIdentity = true });
+            for (int i = 0; i < allRemitos.Count; i++)
+            {
+                RemitoAccessToSqlId[remitoKeys[i]] = allRemitos[i].Id;
+            }
+        }
+        
+        Console.WriteLine("OK");
         
         // Details
         Console.Write("Migrating RemitoDetalles... ");
@@ -764,7 +1042,8 @@ class Program
             ORDER BY IdSucursal, NroRemito, ItemRemito", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetalles = new List<RemitoDetalle>();
+        
         while (readerD.Read())
         {
             var idSucursal = readerD.GetInt32(0);
@@ -782,12 +1061,17 @@ class Program
                 Cantidad = GetDecimal(readerD, 4)
             };
             
-            db.RemitoDetalles.Add(entity);
-            countD++;
+            allDetalles.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetalles.Count} details)... ");
+        
+        if (allDetalles.Count > 0)
+        {
+            await db.BulkInsertAsync(allDetalles);
+        }
+        
+        Console.WriteLine("OK");
     }
 
     static async Task MigratePresupuestos(OleDbConnection access, SPCDbContext db)
@@ -804,7 +1088,9 @@ class Program
             ORDER BY NroPresu", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allQuotes = new List<Quote>();
+        var quoteKeys = new List<int>();
+        
         while (readerH.Read())
         {
             var nroPresu = readerH.GetInt32(0);
@@ -816,7 +1102,7 @@ class Program
             
             var entity = new Quote
             {
-                BranchId = 1, // Default to Calle
+                BranchId = 1,
                 QuoteNumber = nroPresu,
                 QuoteDate = GetDateTime(readerH, 1) ?? DateTime.Now,
                 CustomerId = ClienteAccessIdToSqlId[codCliente],
@@ -831,13 +1117,27 @@ class Program
                 IsVoided = GetString(readerH, 9)?.ToUpper() == "S"
             };
             
-            db.Quotes.Add(entity);
-            await db.SaveChangesAsync();
-            quoteMap[nroPresu] = entity.Id;
-            countH++;
+            allQuotes.Add(entity);
+            quoteKeys.Add(nroPresu);
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allQuotes.Count} headers)... ");
+        
+        // Insert in batches to avoid timeout
+        const int batchSize = 2000;
+        for (int batch = 0; batch < allQuotes.Count; batch += batchSize)
+        {
+            var batchItems = allQuotes.Skip(batch).Take(batchSize).ToList();
+            await db.BulkInsertAsync(batchItems, new BulkConfig { SetOutputIdentity = true, BatchSize = batchSize });
+            
+            for (int i = 0; i < batchItems.Count; i++)
+            {
+                quoteMap[quoteKeys[batch + i]] = batchItems[i].Id;
+            }
+            Console.Write(".");
+        }
+        
+        Console.WriteLine(" OK");
         
         // Details
         Console.Write("Migrating PresupuestoDetalles (QuoteDetails)... ");
@@ -848,7 +1148,8 @@ class Program
             ORDER BY NroPresu, ItemPresu", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetails = new List<QuoteDetail>();
+        
         while (readerD.Read())
         {
             var nroPresu = readerD.GetInt32(0);
@@ -869,12 +1170,20 @@ class Program
                 Subtotal = GetDecimal(readerD, 7)
             };
             
-            db.QuoteDetails.Add(entity);
-            countD++;
+            allDetails.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetails.Count} details)... ");
+        
+        // Insert in batches
+        for (int batch = 0; batch < allDetails.Count; batch += batchSize)
+        {
+            var batchItems = allDetails.Skip(batch).Take(batchSize).ToList();
+            await db.BulkInsertAsync(batchItems, new BulkConfig { BatchSize = batchSize });
+            Console.Write(".");
+        }
+        
+        Console.WriteLine(" OK");
     }
 
     static async Task MigrateNotasCredito(OleDbConnection access, SPCDbContext db)
@@ -891,7 +1200,9 @@ class Program
             ORDER BY TipoNotaCredito, NroNotaCredito", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allNotes = new List<CreditNote>();
+        var noteKeys = new List<(string tipo, int numero)>();
+        
         while (readerH.Read())
         {
             var tipoNC = GetString(readerH, 0) ?? "B";
@@ -928,13 +1239,22 @@ class Program
                 IsVoided = GetString(readerH, 16)?.ToUpper() == "S" || GetBool(readerH, 16)
             };
             
-            db.CreditNotes.Add(entity);
-            await db.SaveChangesAsync();
-            ncMap[(tipoNC, nroNC)] = entity.Id;
-            countH++;
+            allNotes.Add(entity);
+            noteKeys.Add((tipoNC, nroNC));
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allNotes.Count} headers)... ");
+        
+        if (allNotes.Count > 0)
+        {
+            await db.BulkInsertAsync(allNotes, new BulkConfig { SetOutputIdentity = true });
+            for (int i = 0; i < allNotes.Count; i++)
+            {
+                ncMap[noteKeys[i]] = allNotes[i].Id;
+            }
+        }
+        
+        Console.WriteLine("OK");
         
         // Details
         Console.Write("Migrating NotaCreditoDetalles (CreditNoteDetails)... ");
@@ -945,7 +1265,8 @@ class Program
             ORDER BY TipoNotaCredito, NroNotaCredito, ItemNotaCredito", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetails = new List<CreditNoteDetail>();
+        
         while (readerD.Read())
         {
             var tipoNC = GetString(readerD, 0) ?? "B";
@@ -967,12 +1288,17 @@ class Program
                 Subtotal = GetDecimal(readerD, 8)
             };
             
-            db.CreditNoteDetails.Add(entity);
-            countD++;
+            allDetails.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetails.Count} details)... ");
+        
+        if (allDetails.Count > 0)
+        {
+            await db.BulkInsertAsync(allDetails);
+        }
+        
+        Console.WriteLine("OK");
     }
 
     static async Task MigrateNotasDebito(OleDbConnection access, SPCDbContext db)
@@ -989,7 +1315,9 @@ class Program
             ORDER BY TipoDebito, NroDebito", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allNotes = new List<DebitNote>();
+        var noteKeys = new List<(string tipo, int numero)>();
+        
         while (readerH.Read())
         {
             var tipoND = GetString(readerH, 0) ?? "B";
@@ -1026,13 +1354,22 @@ class Program
                 IsVoided = GetString(readerH, 16)?.ToUpper() == "S" || GetBool(readerH, 16)
             };
             
-            db.DebitNotes.Add(entity);
-            await db.SaveChangesAsync();
-            ndMap[(tipoND, nroND)] = entity.Id;
-            countH++;
+            allNotes.Add(entity);
+            noteKeys.Add((tipoND, nroND));
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allNotes.Count} headers)... ");
+        
+        if (allNotes.Count > 0)
+        {
+            await db.BulkInsertAsync(allNotes, new BulkConfig { SetOutputIdentity = true });
+            for (int i = 0; i < allNotes.Count; i++)
+            {
+                ndMap[noteKeys[i]] = allNotes[i].Id;
+            }
+        }
+        
+        Console.WriteLine("OK");
         
         // Details
         Console.Write("Migrating NotaDebitoDetalles (DebitNoteDetails)... ");
@@ -1043,7 +1380,8 @@ class Program
             ORDER BY TipoDebito, NroDebito, ItemDebito", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetails = new List<DebitNoteDetail>();
+        
         while (readerD.Read())
         {
             var tipoND = GetString(readerD, 0) ?? "B";
@@ -1065,12 +1403,16 @@ class Program
                 Subtotal = GetDecimal(readerD, 8)
             };
             
-            db.DebitNoteDetails.Add(entity);
-            countD++;
+            allDetails.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetails.Count} details)... ");
+        
+        if (allDetails.Count > 0)
+        {
+            await db.BulkInsertAsync(allDetails);
+        }
+        Console.WriteLine("OK");
     }
 
     static async Task MigrateNotasDebitoInternas(OleDbConnection access, SPCDbContext db)
@@ -1087,7 +1429,9 @@ class Program
             ORDER BY TipoDebitoI, NroDebitoI", access);
         using var readerH = cmdH.ExecuteReader();
         
-        int countH = 0;
+        var allNotes = new List<InternalDebitNote>();
+        var noteKeys = new List<(string tipo, int numero)>();
+        
         while (readerH.Read())
         {
             var tipoNDI = GetString(readerH, 0) ?? "I";
@@ -1117,13 +1461,22 @@ class Program
                 IsVoided = GetString(readerH, 11)?.ToUpper() == "S" || GetBool(readerH, 11)
             };
             
-            db.InternalDebitNotes.Add(entity);
-            await db.SaveChangesAsync();
-            ndiMap[(tipoNDI, nroNDI)] = entity.Id;
-            countH++;
+            allNotes.Add(entity);
+            noteKeys.Add((tipoNDI, nroNDI));
         }
         
-        Console.WriteLine($"OK ({countH} headers)");
+        Console.Write($"({allNotes.Count} headers)... ");
+        
+        if (allNotes.Count > 0)
+        {
+            await db.BulkInsertAsync(allNotes, new BulkConfig { SetOutputIdentity = true });
+            for (int i = 0; i < allNotes.Count; i++)
+            {
+                ndiMap[noteKeys[i]] = allNotes[i].Id;
+            }
+        }
+        
+        Console.WriteLine("OK");
         
         // Details
         Console.Write("Migrating NotaDebitoInternaDetalles (InternalDebitNoteDetails)... ");
@@ -1134,7 +1487,8 @@ class Program
             ORDER BY TipoDebitoI, NroDebitoI, ItemDebitoI", access);
         using var readerD = cmdD.ExecuteReader();
         
-        int countD = 0;
+        var allDetails = new List<InternalDebitNoteDetail>();
+        
         while (readerD.Read())
         {
             var tipoNDI = GetString(readerD, 0) ?? "I";
@@ -1156,12 +1510,17 @@ class Program
                 Subtotal = GetDecimal(readerD, 8)
             };
             
-            db.InternalDebitNoteDetails.Add(entity);
-            countD++;
+            allDetails.Add(entity);
         }
         
-        await db.SaveChangesAsync();
-        Console.WriteLine($"OK ({countD} details)");
+        Console.Write($"({allDetails.Count} details)... ");
+        
+        if (allDetails.Count > 0)
+        {
+            await db.BulkInsertAsync(allDetails);
+        }
+        
+        Console.WriteLine("OK");
     }
 
     static async Task MigrateConsignaciones(OleDbConnection access, SPCDbContext db)
@@ -1264,7 +1623,10 @@ class Program
             
             if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
             
-            var branchId = idSucursal == 5 ? 2 : 1;
+            // Map sucursal to branch using lookup
+            var branchId = BranchAccessIdToSqlId.ContainsKey(idSucursal) 
+                ? BranchAccessIdToSqlId[idSucursal] 
+                : 1;
             var corresponde = GetString(readerH, 6) ?? "";
             
             // Determine which line the payment applies to
@@ -1481,8 +1843,19 @@ class Program
         if (reader.IsDBNull(ordinal)) return 0;
         var value = reader.GetValue(ordinal);
         if (value is decimal dec) return dec;
-        if (value is double d) return (decimal)d;
-        if (value is float f) return (decimal)f;
+        if (value is double d)
+        {
+            // Handle overflow for very large/small doubles
+            if (d > (double)decimal.MaxValue) return decimal.MaxValue;
+            if (d < (double)decimal.MinValue) return decimal.MinValue;
+            if (double.IsNaN(d) || double.IsInfinity(d)) return 0;
+            return (decimal)d;
+        }
+        if (value is float f)
+        {
+            if (float.IsNaN(f) || float.IsInfinity(f)) return 0;
+            return (decimal)f;
+        }
         if (value is int i) return i;
         if (decimal.TryParse(value?.ToString(), out var result)) return result;
         return 0;

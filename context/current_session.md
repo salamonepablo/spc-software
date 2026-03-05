@@ -1,6 +1,6 @@
 # Current Session Context
 
-**Last Updated:** 2026-03-02 08:00
+**Last Updated:** 2026-03-04 19:20
 **Branch:** develop
 **Version:** 0.2.0 (unreleased)
 
@@ -8,48 +8,41 @@
 
 ## Session Summary
 
-Major progress on Phase 1: SQL Server migration complete, all entity models created, comprehensive test suite added (39 tests passing).
+Completed CSV-based bulk migration from Access to SQL Server LocalDB. Added CSV importer, `--csv` switch, and skip logging for rows with missing Tipo/Nro. Data counts now match CSV exports with documented skips.
 
-## What Was Done Today (2026-03-02)
+## What Was Done Today (2026-03-04)
 
-1. **Committed March 1st Work**
-   - All uncommitted changes from previous session reviewed and committed
-   - SQL Server LocalDB configuration
-   - 12 new entity models (Branch, Quote, CreditNote, DebitNote, Payment, etc.)
-   - Enums (VoucherType, DocumentType, AccountLineType)
-   - Licensing/feature flags system
-   - Commit: `d156e1c`
+1. **CSV Migration Flow**
+   - Implemented CSV importer for all document tables
+   - Added `--csv` switch in `SPC.Migration/Program.cs`
+   - Added skip log for rows with missing Tipo/Nro
 
-2. **API Testing**
-   - Ran API successfully on SQL Server LocalDB
-   - Verified all seed data loaded correctly
-   - Tested endpoints via PowerShell
+2. **Data Migration Completed**
+   - Full document, payments, and current account import via CSV
+   - Notas de Crédito now skip rows with missing Tipo/Nro and log them
 
-3. **Test Suite Created (TDD Compliance)**
-   - Created `SPC.Tests` project with xUnit
-   - Added packages: FluentAssertions, Moq, Microsoft.AspNetCore.Mvc.Testing
-   - Created `SPCWebApplicationFactory` for integration testing with InMemory DB
-   - **39 tests total, all passing**
-   - Commit: `d0e7c0c`
+## Migration Counts (SQL Server)
 
-## Test Coverage
-
-| Category | Tests | File |
-|----------|-------|------|
-| Clientes CRUD | 10 | `ClientesEndpointsTests.cs` |
-| Productos CRUD | 7 | `ProductosEndpointsTests.cs` |
-| Auxiliary Tables | 10 | `AuxiliaryEndpointsTests.cs` |
-| License Endpoint | 3 | `LicenseEndpointTests.cs` |
-| License Service (Unit) | 9 | `LicenseServiceTests.cs` |
-| **TOTAL** | **39** | |
+| Table | Records |
+|------|---------|
+| Clientes | 1451 |
+| Productos | 125 |
+| FacturaC / FacturaD | 10875 / 15651 |
+| RemitoC / RemitoD | 9649 / 14386 |
+| PresupuestoC / PresupuestoD | 32238 / 51610 |
+| NotaCreditoC / NotaCreditoD | 689 / 726 |
+| NotaDebitoC / NotaDebitoD | 137 / 253 |
+| NotaDebitoIC / NotaDebitoID | 24 / 24 |
+| ConsignacionesC / ConsignacionesD | 166 / 442 |
+| PagoC / PagoD | 44285 / 59510 |
+| CtaCte | 1438 |
+| MovimientosCtaCte | 89255 |
 
 ## Current State
 
-- **Branch:** develop (d0e7c0c)
+- **Branch:** develop
 - **Database:** SQL Server LocalDB (SPC)
-- **API:** Working on http://localhost:5233
-- **Swagger:** http://localhost:5233/swagger
-- **Tests:** 39 passing
+- **CSV Migration:** Completed with skip log at `SPC.Migration/data/migration_skipped_rows.log`
 
 ### Project Structure
 ```
@@ -73,29 +66,19 @@ spc-software/
 | Create enums | Done |
 | Update DbContext | Done |
 | Apply migration | Done |
-| **Add test suite** | **Done (39 tests)** |
-| Data migration script (Access -> SQL) | Pending |
+| Add test suite | Done |
+| Data migration script (Access -> SQL) | Done (CSV importer) |
 
 ## Phase 2 (Next)
 
-- Blazor UI for Customers
-- Blazor UI for Products
-- More tests as features are added (TDD)
+- Validate skipped rows and fix export
+- Verify data in Blazor UI
 
 ## Useful Commands
 
 ```bash
-# Run API
-cd SPC.API && dotnet run
-
-# Run Tests
-dotnet test
-
-# Run Tests with details
-dotnet test --logger "console;verbosity=detailed"
-
-# Build solution
-dotnet build
+# Run CSV migration
+dotnet run --project SPC.Migration -- --csv
 ```
 
 ## Important Decisions Made

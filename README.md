@@ -261,11 +261,12 @@ Examples:
 - Clean Architecture with Services, DTOs and modular Endpoints
 - Integration and Unit tests (43 tests passing)
 - Architecture Decision Records (ADRs)
+- CSV-based data migration tool with bulk inserts and skip logging
 
 ### In Progress
 
 - Blazor UI for Products
-- Data migration from Access database
+- Review skipped migration rows and fix source export
 
 ### Planned
 
