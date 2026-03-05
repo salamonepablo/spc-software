@@ -8,7 +8,7 @@
 
 ## Session Summary
 
-Completed CSV-based bulk migration from Access to SQL Server LocalDB. Added CSV importer, `--csv` switch, and skip logging for rows with missing Tipo/Nro. Data counts now match CSV exports with documented skips.
+Completed CSV-based bulk migration from Access to SQL Server LocalDB. Added CSV importer, `--csv` switch, and skip logging for rows with missing Tipo/Nro. Updated CSV export to skip rows with missing Tipo/Nro and log them.
 
 ## What Was Done Today (2026-03-04)
 
@@ -17,7 +17,11 @@ Completed CSV-based bulk migration from Access to SQL Server LocalDB. Added CSV 
    - Added `--csv` switch in `SPC.Migration/Program.cs`
    - Added skip log for rows with missing Tipo/Nro
 
-2. **Data Migration Completed**
+2. **CSV Export Validation**
+   - Updated `export_access.py` to skip rows missing Tipo/Nro
+   - Added `export_skipped_rows.log` for export audit
+
+3. **Data Migration Completed**
    - Full document, payments, and current account import via CSV
    - Notas de Crédito now skip rows with missing Tipo/Nro and log them
 
@@ -43,6 +47,7 @@ Completed CSV-based bulk migration from Access to SQL Server LocalDB. Added CSV 
 - **Branch:** develop
 - **Database:** SQL Server LocalDB (SPC)
 - **CSV Migration:** Completed with skip log at `SPC.Migration/data/migration_skipped_rows.log`
+- **CSV Export:** Skips missing Tipo/Nro rows with log at `SPC.Migration/data/export_skipped_rows.log`
 
 ### Project Structure
 ```
@@ -71,7 +76,7 @@ spc-software/
 
 ## Phase 2 (Next)
 
-- Validate skipped rows and fix export
+- Re-export CSVs and confirm no skips
 - Verify data in Blazor UI
 
 ## Useful Commands
