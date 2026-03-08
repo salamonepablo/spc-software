@@ -468,5 +468,40 @@ public class ApiService : IApiService
         public int Total { get; set; }
     }
 
+    public async Task<FacturaCompletaDto?> CreateFacturaAsync(CreateFacturaDto factura)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("/api/facturas", factura);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<FacturaCompletaDto>();
+            }
+            
+            _logger.LogWarning("Failed to create factura. Status: {Status}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating factura");
+            return null;
+        }
+    }
+
+    public async Task<List<SucursalDto>> GetSucursalesAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<SucursalDto>>("/api/sucursales");
+            return result ?? new List<SucursalDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching sucursales");
+            return new List<SucursalDto>();
+        }
+    }
+
     #endregion
 }

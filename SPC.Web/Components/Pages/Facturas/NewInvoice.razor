@@ -1,0 +1,504 @@
+@page "/facturas/nueva"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using Microsoft.AspNetCore.Components.Web
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nueva Factura - SPC</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>Nueva Factura</h3>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="Cancelar">Cancelar</button>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando datos..." />
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Datos de la Factura</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo</label>
+                                <select class="form-select" @bind="factura.TipoFactura" @bind:after="OnTipoFacturaChanged">
+                                    <option value="A">A - Responsable Inscripto</option>
+                                    <option value="B">B - Consumidor Final</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Sucursal</label>
+                                <select class="form-select" @bind="factura.BranchId">
+                                    @foreach (var s in sucursales)
+                                    {
+                                        <option value="@s.Id">@s.Name (PtoVta: @s.PointOfSale)</option>
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-5">
+                                <label class="form-label">Cliente</label>
+                                <select class="form-select" @bind="factura.ClienteId" @bind:after="OnClienteChanged">
+                                    <option value="0">Seleccionar cliente...</option>
+                                    @foreach (var c in clientes)
+                                    {
+                                        <option value="@c.Id">@c.RazonSocial</option>
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Vendedor</label>
+                                <select class="form-select" @bind="factura.VendedorId">
+                                    <option value="@(null)">Sin vendedor</option>
+                                    @foreach (var v in vendedores)
+                                    {
+                                        <option value="@v.Id">@v.Nombre</option>
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Condición de Venta</label>
+                                <select class="form-select" @bind="factura.CondicionVenta">
+                                    <option value="Contado">Contado</option>
+                                    <option value="Cuenta Corriente">Cuenta Corriente</option>
+                                    <option value="Tarjeta">Tarjeta</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Descuento (%)</label>
+                                <input type="number" class="form-control" step="0.01" min="0" max="100" 
+                                       @bind="factura.PorcentajeDescuento">
+                                <small class="text-muted">Descuento general</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Items</h5>
+                        <button class="btn btn-primary btn-sm" @onclick="AgregarItem">+ Agregar Item</button>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (factura.Detalles.Count == 0)
+                        {
+                            <div class="text-center text-muted p-4">
+                                No hay items agregados. Haga clic en "Agregar Item" para comenzar.
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40%;">Producto</th>
+                                        <th class="text-end">Cant.</th>
+                                        <th class="text-end">Precio</th>
+                                        <th class="text-end">Dto %</th>
+                                        <th class="text-end">Subtotal</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < factura.Detalles.Count; i++)
+                                    {
+                                        var index = i;
+                                        <tr>
+                                            <td>
+                                                <select class="form-select form-select-sm" 
+                                                        @onchange="(e) => OnProductoSelected(index, e)">
+                                                    <option value="0">Seleccionar...</option>
+                                                    @foreach (var p in productos)
+                                                    {
+                                                        <option value="@p.Id">@p.Codigo - @p.Descripcion</option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       step="1" min="1" 
+                                                       @bind="factura.Detalles[index].Cantidad"
+                                                       @bind:event="oninput">
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       step="0.01" min="0" 
+                                                       @bind="factura.Detalles[index].PrecioUnitario"
+                                                       @bind:event="oninput">
+                                            </td>
+                                            <td>
+                                                <input type="number" class="form-control form-control-sm text-end" 
+                                                       step="0.01" min="0" max="100" 
+                                                       @bind="factura.Detalles[index].PorcentajeDescuento"
+                                                       @bind:event="oninput">
+                                            </td>
+                                            <td class="text-end fw-bold">
+                                                @CalcularSubtotalLinea(index).ToString("C2")
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-danger btn-sm" 
+                                                        @onclick="() => EliminarItem(index)"
+                                                        title="Eliminar">
+                                                    &times;
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" rows="2" 
+                                  @bind="factura.Observaciones"
+                                  placeholder="Observaciones adicionales (opcional)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Totales</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span>@subtotal.ToString("C2")</span>
+                        </div>
+                        
+                        @if (factura.PorcentajeDescuento > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-danger">
+                                <span>Descuento (@factura.PorcentajeDescuento%):</span>
+                                <span>-@descuento.ToString("C2")</span>
+                            </div>
+                        }
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal Neto:</span>
+                            <span>@subtotalNeto.ToString("C2")</span>
+                        </div>
+                        
+                        @if (factura.TipoFactura == "A")
+                        {
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>IVA (@ivaPorcentaje%):</span>
+                                <span>@iva.ToString("C2")</span>
+                            </div>
+                            
+                            @if (iibb > 0)
+                            {
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>IIBB (@iibbDefaultPorcentaje%):</span>
+                                    <span>@iibb.ToString("C2")</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                <span>IVA Contenido:</span>
+                                <span>@ivaContenido.ToString("C2")</span>
+                            </div>
+                        }
+                        
+                        <hr />
+                        <div class="d-flex justify-content-between">
+                            <h5>TOTAL:</h5>
+                            <h5 class="text-primary">@total.ToString("C2")</h5>
+                        </div>
+                        
+                        @if (factura.TipoFactura == "A")
+                        {
+                            <hr />
+                            <small class="text-muted">
+                                <strong>Factura A:</strong> Precio neto + IVA discriminado
+                            </small>
+                        }
+                        else
+                        {
+                            <hr />
+                            <small class="text-muted">
+                                <strong>Factura B:</strong> Precio final (IVA incluido)
+                            </small>
+                        }
+                    </div>
+                </div>
+
+                @if (clienteSeleccionado != null)
+                {
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Cliente Seleccionado</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>@clienteSeleccionado.RazonSocial</strong></p>
+                            <p class="mb-1"><small>CUIT: @clienteSeleccionado.CUIT</small></p>
+                            <p class="mb-1"><small>Cond. IVA: @clienteSeleccionado.CondicionIvaCodigo</small></p>
+                            @if (clienteSeleccionado.PorcentajeDescuento > 0)
+                            {
+                                <p class="mb-0"><small class="text-success">Descuento cliente: @clienteSeleccionado.PorcentajeDescuento%</small></p>
+                            }
+                        </div>
+                    </div>
+                }
+                
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-success btn-lg" 
+                            disabled="@(!puedeGuardar)"
+                            @onclick="Guardar">
+                        @(guardando ? "Guardando..." : "Guardar Factura")
+                    </button>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger mt-3">@mensajeError</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private CreateFacturaDto factura = new();
+    private List<ClienteDto> clientes = new();
+    private List<ProductoDto> productos = new();
+    private List<VendedorDto> vendedores = new();
+    private List<SucursalDto> sucursales = new();
+    private ClienteDto? clienteSeleccionado;
+    private bool loading = true;
+    private bool guardando = false;
+    private string mensajeError = "";
+    
+    private const decimal ivaPorcentaje = 21m;
+    private const decimal iibbDefaultPorcentaje = 3m;
+
+    private void OnTipoFacturaChanged()
+    {
+        for (int i = 0; i < factura.Detalles.Count; i++)
+        {
+            if (factura.Detalles[i].ProductoId > 0)
+            {
+                OnProductoChanged(i);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var clientesTask = Api.GetClientesAsync();
+        var productosTask = Api.GetProductosAsync();
+        var vendedoresTask = Api.GetVendedoresAsync();
+        var sucursalesTask = Api.GetSucursalesAsync();
+
+        await Task.WhenAll(clientesTask, productosTask, vendedoresTask, sucursalesTask);
+
+        clientes = await clientesTask;
+        productos = await productosTask;
+        vendedores = await vendedoresTask;
+        sucursales = await sucursalesTask;
+
+        if (sucursales.Any())
+        {
+            factura.BranchId = sucursales.First().Id;
+        }
+        
+        loading = false;
+    }
+
+    private void SetFacturaType(string type)
+    {
+        if (factura.TipoFactura != type)
+        {
+            factura.TipoFactura = type;
+            for (int i = 0; i < factura.Detalles.Count; i++)
+            {
+                if (factura.Detalles[i].ProductoId > 0)
+                {
+                    OnProductoChanged(i);
+                }
+            }
+        }
+    }
+
+    private void OnClienteChanged()
+    {
+        if (factura.ClienteId > 0)
+        {
+            clienteSeleccionado = clientes.FirstOrDefault(c => c.Id == factura.ClienteId);
+        }
+        else
+        {
+            clienteSeleccionado = null;
+        }
+    }
+
+    private void OnProductoSelected(int index, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int productoId))
+        {
+            factura.Detalles[index].ProductoId = productoId;
+            OnProductoChanged(index);
+        }
+    }
+
+    private void OnProductoChanged(int index)
+    {
+        var productoId = factura.Detalles[index].ProductoId;
+        if (productoId > 0)
+        {
+            var producto = productos.FirstOrDefault(p => p.Id == productoId);
+            if (producto != null)
+            {
+                if (factura.TipoFactura == "A")
+                {
+                    factura.Detalles[index].PrecioUnitario = producto.PrecioFactura;
+                }
+                else
+                {
+                    factura.Detalles[index].PrecioUnitario = producto.PrecioPresupuesto;
+                }
+            }
+        }
+    }
+
+    private void AgregarItem()
+    {
+        factura.Detalles.Add(new CreateFacturaDetalleDto
+        {
+            Cantidad = 1,
+            PorcentajeDescuento = 0
+        });
+    }
+
+    private void EliminarItem(int index)
+    {
+        if (index >= 0 && index < factura.Detalles.Count)
+        {
+            factura.Detalles.RemoveAt(index);
+        }
+    }
+
+    private decimal CalcularSubtotalLinea(int index)
+    {
+        if (index < 0 || index >= factura.Detalles.Count) return 0;
+        
+        var item = factura.Detalles[index];
+        if (item.ProductoId == 0 || item.Cantidad <= 0) return 0;
+
+        var precio = item.PrecioUnitario ?? 0;
+        var cantidad = item.Cantidad;
+        var descuento = item.PorcentajeDescuento;
+
+        var subtotal = precio * cantidad;
+        var montoDescuento = subtotal * (descuento / 100);
+
+        return subtotal - montoDescuento;
+    }
+
+    private decimal subtotal
+    {
+        get
+        {
+            decimal total = 0;
+            for (int i = 0; i < factura.Detalles.Count; i++)
+            {
+                total += CalcularSubtotalLinea(i);
+            }
+            return total;
+        }
+    }
+    
+    private decimal descuento => subtotal * (factura.PorcentajeDescuento / 100);
+    
+    private decimal subtotalNeto => subtotal - descuento;
+    
+    private decimal iva => subtotalNeto * (ivaPorcentaje / 100);
+    
+    private decimal ivaContenido => factura.TipoFactura == "B" 
+        ? subtotalNeto * ivaPorcentaje / (100 + ivaPorcentaje)
+        : 0;
+    
+    private decimal iibb => subtotalNeto > 0 && clienteSeleccionado?.AlicuotaIIBB > 0
+        ? (subtotalNeto + iva) * (clienteSeleccionado.AlicuotaIIBB / 100)
+        : 0;
+    
+    private decimal total => factura.TipoFactura == "A"
+        ? subtotalNeto + iva + iibb
+        : subtotalNeto;
+
+    private bool puedeGuardar => factura.ClienteId > 0 
+        && factura.Detalles.Count > 0 
+        && factura.Detalles.Any(d => d.ProductoId > 0)
+        && !guardando;
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensajeError = "";
+
+        try
+        {
+            var itemsValidos = factura.Detalles
+                .Where(d => d.ProductoId > 0 && d.Cantidad > 0)
+                .ToList();
+            
+            if (!itemsValidos.Any())
+            {
+                mensajeError = "Debe agregar al menos un producto";
+                guardando = false;
+                return;
+            }
+
+            factura.Detalles = itemsValidos;
+
+            var result = await Api.CreateFacturaAsync(factura);
+            
+            if (result != null)
+            {
+                Navigation.NavigateTo("/facturas");
+            }
+            else
+            {
+                mensajeError = "Error al guardar la factura";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/facturas");
+    }
+}

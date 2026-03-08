@@ -18,6 +18,7 @@ public class FacturaDto
     public string? VendedorNombre { get; set; }
     public decimal Subtotal { get; set; }
     public decimal ImporteIVA { get; set; }
+    public decimal IVAContenido { get; set; }
     public decimal ImportePercepcionIIBB { get; set; }
     public decimal ImporteDescuento { get; set; }
     public decimal Total { get; set; }

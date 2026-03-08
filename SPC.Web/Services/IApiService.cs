@@ -45,4 +45,8 @@ public interface IApiService
     Task<List<FacturaDto>> GetFacturasByFechaAsync(DateTime desde, DateTime hasta);
     Task<FacturacionResumenDto?> GetFacturacionResumenAsync();
     Task<int> GetFacturasCountAsync();
+    Task<FacturaCompletaDto?> CreateFacturaAsync(CreateFacturaDto factura);
+    
+    // Sucursales
+    Task<List<SucursalDto>> GetSucursalesAsync();
 }

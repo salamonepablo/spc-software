@@ -11,6 +11,8 @@ public class ProductoDto
     public string? CodigoProveedor { get; set; }
     public decimal PrecioVenta { get; set; }
     public decimal PrecioCosto { get; set; }
+    public decimal PrecioFactura { get; set; }  // Net price for Factura A
+    public decimal PrecioPresupuesto { get; set; }  // Final price with VAT for Factura B
     public decimal PorcentajeIVA { get; set; }
     public int StockMinimo { get; set; }
     public string? Observaciones { get; set; }

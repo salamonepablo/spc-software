@@ -129,6 +129,7 @@ app.MapFacturasEndpoints();
 app.MapPresupuestosEndpoints();
 app.MapNotasCreditoEndpoints();
 app.MapNotasDebitoEndpoints();
+app.MapSucursalesEndpoints();
 
 // =============================================
 // AUXILIARY TABLE ENDPOINTS

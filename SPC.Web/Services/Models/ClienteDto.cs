@@ -25,7 +25,12 @@ public class ClienteDto
     // Related entity info (flattened)
     public int? CondicionIvaId { get; set; }
     public string? CondicionIvaDescripcion { get; set; }
+    public string? CondicionIvaCodigo { get; set; }
     public string? TipoFactura { get; set; }
+    
+    // IIBB data from AFIP padrón
+    public decimal AlicuotaIIBB { get; set; }
+    public string? ProvinciaPadronIIBB { get; set; }
     
     public int? VendedorId { get; set; }
     public string? VendedorNombre { get; set; }
