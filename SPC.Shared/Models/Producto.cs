@@ -29,6 +29,26 @@ public class Producto
     public int? UnidadMedidaId { get; set; }
     public UnidadMedida? UnidadMedida { get; set; }
     
+    /// <summary>
+    /// Precio para facturas (sin IVA incluido por convención).
+    /// Este precio se usa al crear facturas, notas de crédito y débito.
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]
+    public decimal PrecioFactura { get; set; } = 0;
+    
+    /// <summary>
+    /// Precio para presupuestos (con IVA incluido por convención).
+    /// Este precio se usa al crear presupuestos/cotizaciones.
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]
+    public decimal PrecioPresupuesto { get; set; } = 0;
+    
+    /// <summary>
+    /// Precio de venta legacy (se mantiene para compatibilidad).
+    /// Usar PrecioFactura o PrecioPresupuesto según el documento.
+    /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]
     public decimal PrecioVenta { get; set; } = 0;

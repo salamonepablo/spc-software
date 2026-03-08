@@ -70,6 +70,8 @@ public class SPCDbContext : DbContext
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<Deposito> Depositos => Set<Deposito>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
+    public DbSet<TaxSetting> TaxSettings => Set<TaxSetting>();
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +83,7 @@ public class SPCDbContext : DbContext
         {
             entity.Property(c => c.LimiteCredito).HasPrecision(18, 2);
             entity.Property(c => c.PorcentajeDescuento).HasPrecision(5, 2);
+            entity.Property(c => c.AlicuotaIIBB).HasPrecision(5, 2);
         });
 
         modelBuilder.Entity<Vendedor>(entity =>
@@ -273,6 +276,12 @@ public class SPCDbContext : DbContext
             .HasIndex(p => p.Code)
             .IsUnique();
 
+        modelBuilder.Entity<TaxSetting>(entity =>
+        {
+            entity.Property(t => t.Rate).HasPrecision(5, 2);
+            entity.HasIndex(t => new { t.TaxCode, t.EffectiveFrom }).IsUnique();
+        });
+
         // ===========================================
         // RELACIONES
         // ===========================================
@@ -351,6 +360,15 @@ public class SPCDbContext : DbContext
             new PaymentMethod { Id = 5, Code = "TD", Description = "Tarjeta de Debito", Type = PaymentMethodType.Card, IsActive = true },
             new PaymentMethod { Id = 6, Code = "RZ", Description = "Rezago (Baterias usadas)", Type = PaymentMethodType.Barter, RequiresDetail = true, IsActive = true },
             new PaymentMethod { Id = 7, Code = "ME", Description = "Mercaderia (Canje)", Type = PaymentMethodType.Barter, RequiresDetail = true, IsActive = true }
+        );
+
+        // Tax Settings (IVA y percepciones)
+        modelBuilder.Entity<TaxSetting>().HasData(
+            new TaxSetting { Id = 1, TaxCode = "VAT", Description = "IVA General", Rate = 21.00m, IsDefault = true, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 2, TaxCode = "VAT_REDUCED", Description = "IVA Reducido", Rate = 10.50m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 3, TaxCode = "VAT_EXEMPT", Description = "IVA Exento", Rate = 0.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 4, TaxCode = "IIBB_BA", Description = "IIBB Buenos Aires", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 5, TaxCode = "IIBB_CABA", Description = "IIBB CABA", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) }
         );
     }
 }

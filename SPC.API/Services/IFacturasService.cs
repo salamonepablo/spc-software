@@ -3,10 +3,14 @@ using SPC.API.Contracts.Facturas;
 namespace SPC.API.Services;
 
 /// <summary>
-/// Facturas service interface for invoice queries
+/// Facturas service interface for invoice operations
 /// </summary>
 public interface IFacturasService
 {
+    // ===========================================
+    // QUERIES
+    // ===========================================
+    
     /// <summary>Get all invoices (paginated)</summary>
     Task<IEnumerable<FacturaResponse>> GetAllAsync(int skip = 0, int take = 50);
     
@@ -27,4 +31,24 @@ public interface IFacturasService
     
     /// <summary>Get total count of invoices</summary>
     Task<int> GetCountAsync();
+    
+    // ===========================================
+    // COMMANDS
+    // ===========================================
+    
+    /// <summary>
+    /// Creates a new invoice with full business rule calculations.
+    /// - Resolves customer default discount
+    /// - Calculates line items with individual discounts
+    /// - Applies document-level discount
+    /// - Calculates VAT from configuration (not hardcoded)
+    /// - Calculates IIBB perception if applicable
+    /// - Stores VAT percentage in document for historical immutability
+    /// </summary>
+    Task<FacturaCompletaResponse> CreateAsync(CreateFacturaRequest request);
+    
+    /// <summary>
+    /// Voids an invoice (soft delete, marks as Anulada).
+    /// </summary>
+    Task<bool> AnularAsync(int id, string motivo);
 }

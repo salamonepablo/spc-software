@@ -58,6 +58,25 @@ public class Cliente
     
     public decimal LimiteCredito { get; set; } = 0;
     
+    // ===================================
+    // IIBB Perception (from AFIP/ARCA padrón)
+    // ===================================
+    
+    /// <summary>
+    /// Alícuota de percepción IIBB para este cliente.
+    /// Viene del padrón de ARBA/AGIP/etc según la provincia.
+    /// Valor 0 = Exento o no aplica.
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "Alícuota IIBB debe estar entre 0 y 100")]
+    public decimal AlicuotaIIBB { get; set; } = 0;
+    
+    /// <summary>
+    /// Código de provincia del padrón IIBB que aplica a este cliente.
+    /// Ej: "BA" (Buenos Aires/ARBA), "CABA" (AGIP), etc.
+    /// </summary>
+    [StringLength(10)]
+    public string? ProvinciaPadronIIBB { get; set; }
+    
     [StringLength(500)]
     public string? Observaciones { get; set; }
     

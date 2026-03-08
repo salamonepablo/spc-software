@@ -131,6 +131,81 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
             );
         }
         
+        // Tax Settings (for tax configuration service)
+        if (!db.TaxSettings.Any())
+        {
+            db.TaxSettings.AddRange(
+                new TaxSetting { Id = 1, TaxCode = "VAT", Description = "IVA General", Rate = 21.00m, IsDefault = true, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+                new TaxSetting { Id = 2, TaxCode = "VAT_REDUCED", Description = "IVA Reducido", Rate = 10.50m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+                new TaxSetting { Id = 3, TaxCode = "VAT_EXEMPT", Description = "IVA Exento", Rate = 0.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+                new TaxSetting { Id = 4, TaxCode = "IIBB_BA", Description = "IIBB Buenos Aires", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) }
+            );
+        }
+        
+        // Company Settings (for IIBB/IVA agent status)
+        if (!db.CompanySettings.Any())
+        {
+            db.CompanySettings.Add(new CompanySettings
+            {
+                Id = 1,
+                CompanyName = "SPC Baterias",
+                CUIT = "30-70843254-3",
+                IsIIBBPerceptionAgent = true,  // Company is ARBA perception agent
+                IsIVAWithholdingAgent = false,
+                IIBBProvince = "Buenos Aires",
+                IIBBRegistrationNumber = "30708432543",
+                FiscalActivityStartDate = new DateTime(2020, 1, 1),
+                IsActive = true
+            });
+        }
+        
+        // Add a test customer with discount for testing
+        if (!db.Clientes.Any())
+        {
+            db.Clientes.Add(new Cliente 
+            { 
+                Id = 1, 
+                RazonSocial = "Cliente Test", 
+                CUIT = "20-12345678-9",
+                CondicionIvaId = 1, 
+                PorcentajeDescuento = 10m, // 10% default discount
+                LimiteCredito = 50000m,
+                Activo = true,
+                FechaAlta = DateTime.Now
+            });
+        }
+        
+        // Add test products with dual pricing
+        if (!db.Productos.Any())
+        {
+            db.Productos.AddRange(
+                new Producto 
+                { 
+                    Id = 1, 
+                    Codigo = "BAT001", 
+                    Descripcion = "Bateria 12V 65AH", 
+                    PrecioFactura = 1000m,  // Invoice price (without VAT)
+                    PrecioPresupuesto = 1210m,  // Quote price (with VAT included)
+                    PrecioVenta = 1000m,
+                    PorcentajeIVA = 21m,
+                    RubroId = 1,
+                    Activo = true 
+                },
+                new Producto 
+                { 
+                    Id = 2, 
+                    Codigo = "BAT002", 
+                    Descripcion = "Bateria 12V 75AH", 
+                    PrecioFactura = 1500m,
+                    PrecioPresupuesto = 1815m,
+                    PrecioVenta = 1500m,
+                    PorcentajeIVA = 21m,
+                    RubroId = 1,
+                    Activo = true 
+                }
+            );
+        }
+        
         db.SaveChanges();
     }
 }

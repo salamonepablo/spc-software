@@ -2,7 +2,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Server-512BD4)](https://blazor.net/)
-[![Tests](https://img.shields.io/badge/Tests-39%20tests%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-111%20tests%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## Overview
@@ -238,6 +238,53 @@ dotnet test --logger "console;verbosity=detailed"
 
 ---
 
+### Invoices (Facturas)
+
+| Method | Endpoint                      | Description              |
+| ------ | ----------------------------- | ------------------------ |
+| GET    | `/api/facturas`               | List invoices            |
+| GET    | `/api/facturas/{id}`          | Get invoice by ID        |
+| GET    | `/api/facturas/buscar`        | Search invoices          |
+| GET    | `/api/facturas/cliente/{id}`  | Get by customer          |
+| GET    | `/api/facturas/fecha`         | Get by date range        |
+| POST   | `/api/facturas`               | Create invoice           |
+| POST   | `/api/facturas/{id}/anular`   | Void invoice             |
+
+---
+
+### Quotes (Presupuestos)
+
+| Method | Endpoint                      | Description        |
+| ------ | ----------------------------- | ------------------ |
+| GET    | `/api/presupuestos`           | List quotes        |
+| GET    | `/api/presupuestos/{id}`      | Get quote by ID    |
+| POST   | `/api/presupuestos`           | Create quote       |
+| POST   | `/api/presupuestos/{id}/anular` | Void quote      |
+
+---
+
+### Credit Notes (Notas de Crédito)
+
+| Method | Endpoint                         | Description           |
+| ------ | -------------------------------- | --------------------- |
+| GET    | `/api/notas-credito`            | List credit notes     |
+| GET    | `/api/notas-credito/{id}`       | Get credit note by ID |
+| POST   | `/api/notas-credito`            | Create credit note    |
+| POST   | `/api/notas-credito/{id}/anular` | Void credit note   |
+
+---
+
+### Debit Notes (Notas de Débito)
+
+| Method | Endpoint                       | Description          |
+| ------ | ------------------------------ | -------------------- |
+| GET    | `/api/notas-debito`           | List debit notes     |
+| GET    | `/api/notas-debito/{id}`      | Get debit note by ID |
+| POST   | `/api/notas-debito`           | Create debit note    |
+| POST   | `/api/notas-debito/{id}/anular` | Void debit note   |
+
+---
+
 ## Architecture Decisions
 
 Key architectural decisions are documented in **docs/adr**.
@@ -256,23 +303,26 @@ Examples:
 
 ### Implemented
 
-- REST API with full CRUD for Customers and Products
+- REST API with full CRUD for Customers, Products
+- Full CRUD for Invoices (Facturas), Quotes (Presupuestos), Credit Notes, Debit Notes
+- Business rules: Factura A vs B, IIBB perception, multi-level discounts, VAT immutability
 - Blazor Server UI for Customer management (list, create, edit, delete)
 - Clean Architecture with Services, DTOs and modular Endpoints
-- Integration and Unit tests (43 tests passing)
+- Integration and Unit tests (111 tests passing)
 - Architecture Decision Records (ADRs)
 - CSV-based data migration tool with bulk inserts and skip logging
 
 ### In Progress
 
-- Blazor UI for Products
-- Review skipped migration rows and fix source export
+- Blazor UI for Products and Invoicing
+- Stock management integration
+- Current account updates on document creation
 
 ### Planned
 
 - Authentication and role management
-- Invoicing module with ARCA integration
-- Stock management
+- Invoicing module with ARCA (AFIP) integration
+- PDF generation with QR codes
 - Docker deployment
 
 ---

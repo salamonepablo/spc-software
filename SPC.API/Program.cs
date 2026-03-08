@@ -32,6 +32,12 @@ builder.Services.AddScoped<IClientesService, ClientesService>();
 builder.Services.AddScoped<IProductosService, ProductosService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IFacturasService, FacturasService>();
+builder.Services.AddScoped<IPresupuestosService, PresupuestosService>();
+builder.Services.AddScoped<INotasCreditoService, NotasCreditoService>();
+builder.Services.AddScoped<INotasDebitoService, NotasDebitoService>();
+builder.Services.AddScoped<ITaxConfigurationService, TaxConfigurationService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
 
 // Enable CORS for Blazor to consume the API
 builder.Services.AddCors(options =>
@@ -79,7 +85,18 @@ app.MapGet("/", (ILicenseService license) => new
     sistema = "SPC - Sistema de Gestion Comercial",
     version = "1.0",
     license = license.GetLicenseInfo().Tier,
-    endpoints = new[] { "/api/clientes", "/api/productos", "/api/stock", "/api/facturas", "/api/condicionesiva", "/api/license" }
+    endpoints = new[] 
+    { 
+        "/api/clientes", 
+        "/api/productos", 
+        "/api/stock", 
+        "/api/facturas",
+        "/api/presupuestos",
+        "/api/notas-credito",
+        "/api/notas-debito",
+        "/api/condicionesiva", 
+        "/api/license" 
+    }
 });
 
 // =============================================
@@ -109,6 +126,9 @@ app.MapClientesEndpoints();
 app.MapProductosEndpoints();
 app.MapStockEndpoints();
 app.MapFacturasEndpoints();
+app.MapPresupuestosEndpoints();
+app.MapNotasCreditoEndpoints();
+app.MapNotasDebitoEndpoints();
 
 // =============================================
 // AUXILIARY TABLE ENDPOINTS

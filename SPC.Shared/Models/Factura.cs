@@ -40,8 +40,20 @@ public class Factura
     /// <summary>Porcentaje IVA aplicado</summary>
     public decimal PorcentajeIVA { get; set; } = 21;
     
+    /// <summary>
+    /// Importe IVA discriminado (Factura A).
+    /// En Factura B este campo es 0 porque el IVA está contenido en el precio.
+    /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     public decimal ImporteIVA { get; set; } = 0;
+    
+    /// <summary>
+    /// IVA Contenido en el precio final (solo Factura B).
+    /// Requerido por Ley 27.743 - Régimen de Transparencia Fiscal.
+    /// En Factura A este campo es 0.
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal IVAContenido { get; set; } = 0;
     
     /// <summary>Alicuota IIBB (percepciones)</summary>
     public decimal AlicuotaIIBB { get; set; } = 0;

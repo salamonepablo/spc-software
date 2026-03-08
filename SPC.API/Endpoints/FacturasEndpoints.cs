@@ -1,9 +1,10 @@
+using SPC.API.Contracts.Facturas;
 using SPC.API.Services;
 
 namespace SPC.API.Endpoints;
 
 /// <summary>
-/// Endpoint module for Facturas (Invoices) queries
+/// Endpoint module for Facturas (Invoices)
 /// </summary>
 public static class FacturasEndpoints
 {
@@ -11,6 +12,41 @@ public static class FacturasEndpoints
     {
         var group = app.MapGroup("/api/facturas")
             .WithTags("Facturas");
+
+        // ===========================================
+        // CREATE
+        // ===========================================
+
+        // POST /api/facturas - Create new invoice
+        group.MapPost("/", async (CreateFacturaRequest request, IFacturasService service) =>
+        {
+            try
+            {
+                var factura = await service.CreateAsync(request);
+                return Results.Created($"/api/facturas/{factura.Id}", factura);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName("CreateFactura")
+        .WithDescription("Creates a new invoice with full business rule calculations");
+
+        // POST /api/facturas/{id}/anular - Void an invoice
+        group.MapPost("/{id:int}/anular", async (int id, AnularFacturaRequest request, IFacturasService service) =>
+        {
+            var result = await service.AnularAsync(id, request.Motivo);
+            return result
+                ? Results.Ok(new { message = "Factura anulada correctamente" })
+                : Results.NotFound(new { error = "Factura no encontrada o ya anulada" });
+        })
+        .WithName("AnularFactura")
+        .WithDescription("Voids an invoice (soft delete)");
+
+        // ===========================================
+        // QUERIES
+        // ===========================================
 
         // GET /api/facturas - Get all invoices (paginated)
         group.MapGet("/", async (int? skip, int? take, IFacturasService service) =>
