@@ -1,28 +1,28 @@
 @page "/"
+@using SPC.Web.Services.Models
 @inject IApiService Api
 @rendermode InteractiveServer
 
-<PageTitle>SPC - Sistema de Gestión</PageTitle>
+<PageTitle>SPC - Sistema de Gestion</PageTitle>
 
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
             <h4 class="fw-bold">Bienvenido a SPC - Software</h4>
-            <p class="text-muted">Sistema de Gestión Integral</p>
+            <p class="text-muted">Sistema de Gestion Integral - ERP</p>
         </div>
     </div>
 
+    @* Primera fila: Clientes, Productos, Stock *@
     <div class="row g-4">
         <div class="col-md-4">
             <div class="card h-100 border-primary">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">
-                        Clientes
-                    </h5>
-                    <p class="card-text">Gestión de clientes, condiciones comerciales y datos de contacto.</p>
+                    <h5 class="card-title fw-bold fs-5">Clientes</h5>
+                    <p class="card-text">Gestion de clientes, condiciones comerciales y datos de contacto.</p>
                     @if (clientesCount.HasValue)
                     {
-                        <p class="h3 text-primary">@clientesCount</p>
+                        <p class="h3 text-primary">@clientesCount.Value.ToString("N0")</p>
                         <small class="text-muted">clientes activos</small>
                     }
                 </div>
@@ -35,13 +35,11 @@
         <div class="col-md-4">
             <div class="card h-100 border-primary">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">
-                        Productos
-                    </h5>
-                    <p class="card-text">Catálogo de productos, precios y control de stock.</p>
+                    <h5 class="card-title fw-bold fs-5">Productos</h5>
+                    <p class="card-text">Catalogo de productos, precios y categorias.</p>
                     @if (productosCount.HasValue)
                     {
-                        <p class="h3 text-primary">@productosCount</p>
+                        <p class="h3 text-primary">@productosCount.Value.ToString("N0")</p>
                         <small class="text-muted">productos activos</small>
                     }
                 </div>
@@ -52,29 +50,76 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-secondary">
+            <div class="card h-100 border-success">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">
-                        Facturación
-                    </h5>
-                    <p class="card-text">Emisión de facturas electrónicas, notas de crédito y débito.</p>
-                    <p class="h3 text-secondary">--</p>
-                    <small class="text-muted">próximamente</small>
+                    <h5 class="card-title fw-bold fs-5">Stock</h5>
+                    <p class="card-text">Control de inventario por deposito y alertas de stock minimo.</p>
+                    @if (stockValor.HasValue)
+                    {
+                        <p class="h3 text-success">@stockValor.Value.ToString("C0")</p>
+                        <small class="text-muted">valor total en stock</small>
+                    }
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-secondary" disabled>Próximamente</button>
+                    <a href="/stock" class="btn btn-success">Ir a Stock</a>
                 </div>
             </div>
         </div>
     </div>
 
+    @* Segunda fila: Facturacion *@
+    <div class="row g-4 mt-2">
+        <div class="col-md-8">
+            <div class="card h-100 border-warning">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold fs-5">Facturacion</h5>
+                    <p class="card-text">Consulta de facturas emitidas con integracion AFIP.</p>
+                    @if (facturacionResumen != null)
+                    {
+                        <div class="row">
+                            <div class="col-4">
+                                <p class="h4 text-warning mb-0">@facturacionResumen.TotalFacturas.ToString("N0")</p>
+                                <small class="text-muted">facturas totales</small>
+                            </div>
+                            <div class="col-4">
+                                <p class="h4 text-success mb-0">@facturacionResumen.MontoMes.ToString("C0")</p>
+                                <small class="text-muted">este mes</small>
+                            </div>
+                            <div class="col-4">
+                                <p class="h4 text-info mb-0">@facturacionResumen.MontoAnio.ToString("C0")</p>
+                                <small class="text-muted">este ano</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="/facturas" class="btn btn-warning">Ver Facturas</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold fs-5">Cuentas Corrientes</h5>
+                    <p class="card-text">Saldos de clientes y movimientos de cuenta.</p>
+                    <p class="h4 text-secondary">Proximamente</p>
+                    <small class="text-muted">en desarrollo</small>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-secondary" disabled>Proximamente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Estado del sistema *@
     <div class="row mt-5">
         <div class="col-12">
             <div class="card bg-light">
                 <div class="card-body">
                     <h5 class="card-title">Estado del Sistema</h5>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <strong>API:</strong>
                             @if (apiStatus == true)
                             {
@@ -89,10 +134,14 @@
                                 <span class="badge bg-secondary ms-2">Verificando...</span>
                             }
                         </div>
-                        <div class="col-md-4">
-                            <strong>Versión:</strong> <span class="text-muted">1.0.0-dev</span>
+                        <div class="col-md-3">
+                            <strong>Base de Datos:</strong>
+                            <span class="badge bg-info ms-2">SQL Server</span>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <strong>Version:</strong> <span class="text-muted">1.0.0-dev</span>
+                        </div>
+                        <div class="col-md-3">
                             <strong>Fecha:</strong> <span class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
                         </div>
                     </div>
@@ -105,6 +154,8 @@
 @code {
     private int? clientesCount;
     private int? productosCount;
+    private decimal? stockValor;
+    private FacturacionResumenDto? facturacionResumen;
     private bool? apiStatus;
 
     protected override async Task OnInitializedAsync()
@@ -113,11 +164,19 @@
         {
             var clientesTask = Api.GetClientesAsync();
             var productosTask = Api.GetProductosAsync();
+            var stockTask = Api.GetStockResumenAsync();
+            var facturacionTask = Api.GetFacturacionResumenAsync();
             
-            await Task.WhenAll(clientesTask, productosTask);
+            await Task.WhenAll(clientesTask, productosTask, stockTask, facturacionTask);
             
             clientesCount = (await clientesTask).Count;
             productosCount = (await productosTask).Count;
+            
+            var stockList = await stockTask;
+            stockValor = stockList.Sum(s => s.ValorStock);
+            
+            facturacionResumen = await facturacionTask;
+            
             apiStatus = true;
         }
         catch

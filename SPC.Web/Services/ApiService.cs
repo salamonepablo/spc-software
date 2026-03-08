@@ -135,7 +135,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ProductoDto>>($"/api/productos/buscar?q={Uri.EscapeDataString(termino)}");
+            var result = await _http.GetFromJsonAsync<List<ProductoDto>>($"/api/productos/buscar?descripcion={Uri.EscapeDataString(termino)}");
             return result ?? new List<ProductoDto>();
         }
         catch (Exception ex)
@@ -283,6 +283,189 @@ public class ApiService : IApiService
             _logger.LogError(ex, "Error fetching unidades medida");
             return new List<UnidadMedidaDto>();
         }
+    }
+
+    public async Task<List<DepositoDto>> GetDepositosAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<DepositoDto>>("/api/depositos");
+            return result ?? new List<DepositoDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching depositos");
+            return new List<DepositoDto>();
+        }
+    }
+
+    #endregion
+
+    #region Stock
+
+    public async Task<List<StockResumenDto>> GetStockResumenAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<StockResumenDto>>("/api/stock/resumen");
+            return result ?? new List<StockResumenDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching stock resumen");
+            return new List<StockResumenDto>();
+        }
+    }
+
+    public async Task<List<StockResumenDto>> BuscarStockAsync(string termino)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<StockResumenDto>>($"/api/stock/buscar?termino={Uri.EscapeDataString(termino)}");
+            return result ?? new List<StockResumenDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching stock with term: {Termino}", termino);
+            return new List<StockResumenDto>();
+        }
+    }
+
+    public async Task<List<StockResumenDto>> GetStockBajoMinimoAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<StockResumenDto>>("/api/stock/bajominimo");
+            return result ?? new List<StockResumenDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching stock bajo minimo");
+            return new List<StockResumenDto>();
+        }
+    }
+
+    public async Task<List<StockDetalleDto>> GetStockByProductoAsync(int productoId)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<StockDetalleDto>>($"/api/stock/producto/{productoId}");
+            return result ?? new List<StockDetalleDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching stock for producto {Id}", productoId);
+            return new List<StockDetalleDto>();
+        }
+    }
+
+    #endregion
+
+    #region Facturas
+
+    public async Task<List<FacturaDto>> GetFacturasAsync(int skip = 0, int take = 50)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas?skip={skip}&take={take}");
+            return result ?? new List<FacturaDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching facturas");
+            return new List<FacturaDto>();
+        }
+    }
+
+    public async Task<FacturaCompletaDto?> GetFacturaAsync(int id)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<FacturaCompletaDto>($"/api/facturas/{id}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching factura {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<List<FacturaDto>> BuscarFacturasAsync(string termino)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/buscar?termino={Uri.EscapeDataString(termino)}");
+            return result ?? new List<FacturaDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching facturas with term: {Termino}", termino);
+            return new List<FacturaDto>();
+        }
+    }
+
+    public async Task<List<FacturaDto>> GetFacturasByClienteAsync(int clienteId)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/cliente/{clienteId}");
+            return result ?? new List<FacturaDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching facturas for cliente {Id}", clienteId);
+            return new List<FacturaDto>();
+        }
+    }
+
+    public async Task<List<FacturaDto>> GetFacturasByFechaAsync(DateTime desde, DateTime hasta)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
+            return result ?? new List<FacturaDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching facturas by date range");
+            return new List<FacturaDto>();
+        }
+    }
+
+    public async Task<FacturacionResumenDto?> GetFacturacionResumenAsync()
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<FacturacionResumenDto>("/api/facturas/resumen");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching facturacion resumen");
+            return null;
+        }
+    }
+
+    public async Task<int> GetFacturasCountAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<CountResponse>("/api/facturas/count");
+            return result?.Total ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching facturas count");
+            return 0;
+        }
+    }
+
+    private class CountResponse
+    {
+        public int Total { get; set; }
     }
 
     #endregion

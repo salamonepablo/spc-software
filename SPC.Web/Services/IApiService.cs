@@ -29,4 +29,20 @@ public interface IApiService
     Task<List<ZonaVentaDto>> GetZonasVentaAsync();
     Task<List<RubroDto>> GetRubrosAsync();
     Task<List<UnidadMedidaDto>> GetUnidadesMedidaAsync();
+    Task<List<DepositoDto>> GetDepositosAsync();
+    
+    // Stock
+    Task<List<StockResumenDto>> GetStockResumenAsync();
+    Task<List<StockResumenDto>> BuscarStockAsync(string termino);
+    Task<List<StockResumenDto>> GetStockBajoMinimoAsync();
+    Task<List<StockDetalleDto>> GetStockByProductoAsync(int productoId);
+    
+    // Facturas
+    Task<List<FacturaDto>> GetFacturasAsync(int skip = 0, int take = 50);
+    Task<FacturaCompletaDto?> GetFacturaAsync(int id);
+    Task<List<FacturaDto>> BuscarFacturasAsync(string termino);
+    Task<List<FacturaDto>> GetFacturasByClienteAsync(int clienteId);
+    Task<List<FacturaDto>> GetFacturasByFechaAsync(DateTime desde, DateTime hasta);
+    Task<FacturacionResumenDto?> GetFacturacionResumenAsync();
+    Task<int> GetFacturasCountAsync();
 }

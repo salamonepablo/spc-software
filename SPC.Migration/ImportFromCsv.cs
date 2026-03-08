@@ -1,6 +1,8 @@
 using System.Data.OleDb;
 using System.Globalization;
+using System.Text;
 using EFCore.BulkExtensions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -16,6 +18,131 @@ public static class CsvImporter
     private const string DataDir = @"C:\Programmes\spc-software\SPC.Migration\data";
     private const int BatchSize = 2000;
     private static readonly string SkipLogPath = Path.Combine(DataDir, "migration_skipped_rows.log");
+
+    /// <summary>
+    /// Bulk insert with IDENTITY_INSERT ON to preserve original IDs
+    /// Uses raw SQL since EFCore.BulkExtensions 10.x doesn't have KeepIdentity
+    /// </summary>
+    private static async Task BulkInsertWithIdentityAsync<T>(SPCDbContext db, List<T> items, string tableName) where T : class
+    {
+        if (items.Count == 0) return;
+
+        var connectionString = db.Database.GetConnectionString();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var transaction = connection.BeginTransaction();
+        try
+        {
+            // Enable IDENTITY_INSERT
+            await using (var cmd = new SqlCommand($"SET IDENTITY_INSERT [{tableName}] ON", connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Use SqlBulkCopy for fast inserts
+            using var bulkCopy = new SqlBulkCopy(connection, Microsoft.Data.SqlClient.SqlBulkCopyOptions.KeepIdentity, transaction)
+            {
+                DestinationTableName = tableName,
+                BatchSize = BatchSize
+            };
+
+            // Create DataTable from items
+            var dataTable = ToDataTable(items);
+            
+            // Map columns
+            foreach (System.Data.DataColumn column in dataTable.Columns)
+            {
+                bulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+            }
+
+            await bulkCopy.WriteToServerAsync(dataTable);
+
+            // Disable IDENTITY_INSERT
+            await using (var cmd = new SqlCommand($"SET IDENTITY_INSERT [{tableName}] OFF", connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Convert list of entities to DataTable for SqlBulkCopy
+    /// </summary>
+    private static System.Data.DataTable ToDataTable<T>(List<T> items)
+    {
+        var table = new System.Data.DataTable();
+        var properties = typeof(T).GetProperties()
+            .Where(p => p.CanRead && !IsNavigationProperty(p))
+            .ToArray();
+
+        // Add columns
+        foreach (var prop in properties)
+        {
+            var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            
+            // Handle enums
+            if (propType.IsEnum)
+            {
+                propType = typeof(int);
+            }
+            
+            table.Columns.Add(prop.Name, propType);
+        }
+
+        // Add rows
+        foreach (var item in items)
+        {
+            var row = table.NewRow();
+            foreach (var prop in properties)
+            {
+                var value = prop.GetValue(item);
+                
+                // Handle enums
+                if (value != null && prop.PropertyType.IsEnum)
+                {
+                    value = (int)value;
+                }
+                else if (value != null && Nullable.GetUnderlyingType(prop.PropertyType)?.IsEnum == true)
+                {
+                    value = (int)value;
+                }
+                
+                row[prop.Name] = value ?? DBNull.Value;
+            }
+            table.Rows.Add(row);
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// Check if property is a navigation property (should be excluded from bulk insert)
+    /// </summary>
+    private static bool IsNavigationProperty(System.Reflection.PropertyInfo prop)
+    {
+        // Skip collections
+        if (prop.PropertyType != typeof(string) && 
+            typeof(System.Collections.IEnumerable).IsAssignableFrom(prop.PropertyType))
+            return true;
+
+        // Skip navigation properties (reference types except string and common value types)
+        if (prop.PropertyType.IsClass && 
+            prop.PropertyType != typeof(string) &&
+            !prop.PropertyType.IsPrimitive &&
+            prop.PropertyType != typeof(DateTime) &&
+            prop.PropertyType != typeof(decimal))
+            return true;
+
+        return false;
+    }
 
     // Mapping dictionaries
     private static readonly Dictionary<int, int> ClienteMap = new();
@@ -34,11 +161,28 @@ public static class CsvImporter
 
     public static async Task RunAsync(SPCDbContext db)
     {
-        Console.WriteLine("Loading mappings from existing data...");
+        Console.WriteLine("=== CSV Import - Full Database ===");
+        Console.WriteLine();
+
+        // Phase 1: Auxiliary tables
+        await ImportCondicionesIvaAsync(db);
+        await ImportUnidadesMedidaAsync(db);
+        await ImportRubrosAsync(db);
+        await ImportSucursalesAsync(db);
+        await ImportVendedoresAsync(db);
+        await ImportDepositosAsync(db);
+        
+        // Phase 2: Master data (with preserved IDs)
+        await ImportClientesAsync(db);
+        await ImportProductosAsync(db);
+        await ImportStockAsync(db);
+        
+        Console.WriteLine();
+        Console.WriteLine("Loading mappings for documents...");
         await LoadMappingsAsync(db);
         Console.WriteLine();
 
-        // Import documents
+        // Phase 3: Documents
         await ImportFacturasAsync(db);
         await ImportFacturaDetallesAsync(db);
         await ImportRemitosAsync(db);
@@ -59,27 +203,522 @@ public static class CsvImporter
         await ImportMovimientosCtaCteAsync(db);
     }
 
-    private static async Task LoadMappingsAsync(SPCDbContext db)
-    {
-        // Load Clientes - map Access IDCliente -> SQL Id by order
-        var sqlClientes = await db.Clientes.OrderBy(c => c.Id).Select(c => c.Id).ToListAsync();
-        var accessClienteIds = new List<int>();
+    #region Auxiliary Tables
 
-        using (var accessConn = new OleDbConnection($"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={AccessDbPath};"))
+    private static async Task ImportCondicionesIvaAsync(SPCDbContext db)
+    {
+        Console.Write("Importing CondicionesIva... ");
+        var existingCount = await db.CondicionesIva.CountAsync();
+        if (existingCount > 0)
         {
-            await accessConn.OpenAsync();
-            using var cmd = new OleDbCommand("SELECT IDCliente FROM Clientes ORDER BY IDCliente", accessConn);
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (reader.Read())
-            {
-                accessClienteIds.Add(reader.GetInt32(0));
-            }
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
         }
 
-        var mapCount = Math.Min(sqlClientes.Count, accessClienteIds.Count);
-        for (int i = 0; i < mapCount; i++)
+        var csvPath = Path.Combine(DataDir, "condicion_iva.csv");
+        if (!File.Exists(csvPath))
         {
-            ClienteMap[accessClienteIds[i]] = sqlClientes[i];
+            // Use seed data
+            var seeds = new List<CondicionIva>
+            {
+                new() { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoFactura = "A" },
+                new() { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoFactura = "B" },
+                new() { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoFactura = "B" },
+                new() { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoFactura = "B" }
+            };
+            await BulkInsertWithIdentityAsync(db, seeds, "CondicionesIva");
+            Console.WriteLine($"OK ({seeds.Count} seeded)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<CondicionIva>();
+        int id = 1;
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var codigo = SafeStr(row.GetValueOrDefault("IDCondicionIVA"), 10) ?? $"C{id}";
+            var descripcion = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? codigo;
+            var tipoFactura = codigo == "RI" ? "A" : "B";
+
+            items.Add(new CondicionIva
+            {
+                Id = id++,
+                Codigo = codigo,
+                Descripcion = descripcion,
+                TipoFactura = tipoFactura
+            });
+        }
+
+        await BulkInsertWithIdentityAsync(db, items, "CondicionesIva");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    private static async Task ImportUnidadesMedidaAsync(SPCDbContext db)
+    {
+        Console.Write("Importing UnidadesMedida... ");
+        var existingCount = await db.UnidadesMedida.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "unidades_medida.csv");
+        if (!File.Exists(csvPath))
+        {
+            var seeds = new List<UnidadMedida>
+            {
+                new() { Id = 1, Codigo = "UN", Nombre = "Unidades" },
+                new() { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+            };
+            await BulkInsertWithIdentityAsync(db, seeds, "UnidadesMedida");
+            Console.WriteLine($"OK ({seeds.Count} seeded)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<UnidadMedida>();
+        int id = 1;
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            items.Add(new UnidadMedida
+            {
+                Id = id++,
+                Codigo = SafeStr(row.GetValueOrDefault("IdUnidadMedida"), 10) ?? $"U{id}",
+                Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 50) ?? "Sin nombre"
+            });
+        }
+
+        await BulkInsertWithIdentityAsync(db, items, "UnidadesMedida");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    private static async Task ImportRubrosAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Rubros... ");
+        var existingCount = await db.Rubros.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "rubros.csv");
+        if (!File.Exists(csvPath))
+        {
+            var seeds = new List<Rubro>
+            {
+                new() { Id = 1, Nombre = "Nacionales", Activo = true }
+            };
+            await BulkInsertWithIdentityAsync(db, seeds, "Rubros");
+            Console.WriteLine($"OK ({seeds.Count} seeded)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Rubro>();
+        int id = 1;
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            items.Add(new Rubro
+            {
+                Id = id++,
+                Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? "Sin nombre",
+                Activo = true
+            });
+        }
+
+        await BulkInsertWithIdentityAsync(db, items, "Rubros");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    private static async Task ImportSucursalesAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Sucursales (Branches)... ");
+        var existingCount = await db.Branches.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "sucursales.csv");
+        var items = new List<Branch>();
+        
+        // Always add a default branch with ID=1 for records without sucursal
+        items.Add(new Branch
+        {
+            Id = 1,
+            Code = "DEFAULT",
+            Name = "Sin Sucursal",
+            PointOfSale = 1,
+            IsActive = true
+        });
+        
+        if (!File.Exists(csvPath))
+        {
+            // Add default branches if no CSV
+            items.Add(new Branch { Id = 2, Code = "CALLE", Name = "Calle (Vendedores)", PointOfSale = 2, IsActive = true });
+            items.Add(new Branch { Id = 5, Code = "OFICINA", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true });
+            await BulkInsertWithIdentityAsync(db, items, "Branches");
+            Console.WriteLine($"OK ({items.Count} seeded)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var idSucursal = SafeInt(row.GetValueOrDefault("IdSucursal"));
+            if (idSucursal == 0 || idSucursal == 1) continue; // Skip 0 and 1 (we already added default)
+
+            items.Add(new Branch
+            {
+                Id = idSucursal,
+                Code = $"SUC{idSucursal}",
+                Name = SafeStr(row.GetValueOrDefault("NombreSucursal"), 100) ?? $"Sucursal {idSucursal}",
+                PointOfSale = idSucursal,
+                IsActive = true
+            });
+        }
+
+        if (items.Count > 0)
+            await BulkInsertWithIdentityAsync(db, items, "Branches");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    private static async Task ImportVendedoresAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Vendedores (Empleados)... ");
+        var existingCount = await db.Vendedores.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "empleados.csv");
+        if (!File.Exists(csvPath))
+        {
+            Console.WriteLine("SKIP (no CSV file)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Vendedor>();
+        int id = 1;
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var legajo = SafeStr(row.GetValueOrDefault("Legajo"), 20);
+            if (string.IsNullOrEmpty(legajo)) continue;
+
+            items.Add(new Vendedor
+            {
+                Id = id++,
+                Legajo = legajo,
+                Nombre = SafeStr(row.GetValueOrDefault("Nombre"), 100) ?? "Sin Nombre",
+                CUIL = SafeStr(row.GetValueOrDefault("CUIL"), 13),
+                Domicilio = SafeStr(row.GetValueOrDefault("Domicilio"), 200),
+                Localidad = SafeStr(row.GetValueOrDefault("Localidad"), 100),
+                Provincia = SafeStr(row.GetValueOrDefault("Prov"), 100),
+                CodigoPostal = SafeStr(row.GetValueOrDefault("CP"), 10),
+                DNI = SafeStr(row.GetValueOrDefault("DNI"), 10),
+                Telefono = SafeStr(row.GetValueOrDefault("Tel"), 50),
+                Celular = SafeStr(row.GetValueOrDefault("Cel"), 50),
+                Email = SafeStr(row.GetValueOrDefault("emaill"), 200),
+                FechaNacimiento = SafeDate(row.GetValueOrDefault("FechaNacimiento")),
+                FechaIngreso = SafeDate(row.GetValueOrDefault("FechaIngreso")),
+                PorcentajeComision = SafeDecimal(row.GetValueOrDefault("Comision")),
+                Observaciones = SafeStr(row.GetValueOrDefault("Observaciones"), 500),
+                Activo = true
+            });
+        }
+
+        if (items.Count > 0)
+            await BulkInsertWithIdentityAsync(db, items, "Vendedores");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    private static async Task ImportDepositosAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Depositos... ");
+        var existingCount = await db.Depositos.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "depositos.csv");
+        if (!File.Exists(csvPath))
+        {
+            var seeds = new List<Deposito>
+            {
+                new() { Id = 1, Nombre = "Deposito Principal", Activo = true }
+            };
+            await BulkInsertWithIdentityAsync(db, seeds, "Depositos");
+            Console.WriteLine($"OK ({seeds.Count} seeded)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Deposito>();
+        int id = 1;
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            items.Add(new Deposito
+            {
+                Id = id++,
+                Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? "Sin nombre",
+                Activo = true
+            });
+        }
+
+        if (items.Count > 0)
+            await BulkInsertWithIdentityAsync(db, items, "Depositos");
+        Console.WriteLine($"OK ({items.Count} records)");
+    }
+
+    #endregion
+
+    #region Master Data (with preserved IDs)
+
+    private static async Task ImportClientesAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Clientes... ");
+        var existingCount = await db.Clientes.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "clientes.csv");
+        if (!File.Exists(csvPath))
+        {
+            Console.WriteLine("ERROR: clientes.csv not found!");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Cliente>();
+
+        // Load lookups
+        var condicionesIva = await db.CondicionesIva.ToDictionaryAsync(c => c.Codigo, c => c.Id);
+        var vendedores = await db.Vendedores.ToDictionaryAsync(v => v.Legajo, v => v.Id);
+
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var idCliente = SafeInt(row.GetValueOrDefault("IDCliente"));
+            if (idCliente == 0) continue;
+
+            var condIva = SafeStr(row.GetValueOrDefault("CondicionIva"), 10);
+            var vendedor = SafeStr(row.GetValueOrDefault("Vendedor"), 20);
+
+            var porcentajeDesc = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento"));
+            if (porcentajeDesc > 100) porcentajeDesc = 100;
+            if (porcentajeDesc < 0) porcentajeDesc = 0;
+
+            var limiteCredito = SafeDecimal(row.GetValueOrDefault("LimiteCredito"));
+            if (limiteCredito > 999999999999m) limiteCredito = 999999999999m;
+            if (limiteCredito < 0) limiteCredito = 0;
+
+            items.Add(new Cliente
+            {
+                Id = idCliente,  // PRESERVE ORIGINAL ID!
+                RazonSocial = SafeStr(row.GetValueOrDefault("RazonSocial"), 200) ?? "Sin Nombre",
+                NombreFantasia = SafeStr(row.GetValueOrDefault("NombreFantasia"), 200),
+                CUIT = SafeStr(row.GetValueOrDefault("CUIT"), 13),
+                Direccion = SafeStr(row.GetValueOrDefault("Domicilio"), 300),
+                Localidad = SafeStr(row.GetValueOrDefault("Localidad"), 100),
+                Provincia = SafeStr(row.GetValueOrDefault("Prov"), 100),
+                CodigoPostal = SafeStr(row.GetValueOrDefault("CP"), 10),
+                Telefono = SafeStr(row.GetValueOrDefault("Tel"), 50),
+                Celular = SafeStr(row.GetValueOrDefault("Cel"), 50),
+                Email = SafeStr(row.GetValueOrDefault("email"), 200),
+                CondicionIvaId = !string.IsNullOrEmpty(condIva) && condicionesIva.ContainsKey(condIva) 
+                    ? condicionesIva[condIva] : null,
+                VendedorId = !string.IsNullOrEmpty(vendedor) && vendedores.ContainsKey(vendedor) 
+                    ? vendedores[vendedor] : null,
+                PorcentajeDescuento = porcentajeDesc,
+                LimiteCredito = limiteCredito,
+                Observaciones = SafeStr(row.GetValueOrDefault("Observaciones"), 500),
+                Activo = true,
+                FechaAlta = DateTime.Now
+            });
+        }
+
+        Console.Write($"({items.Count} records)... ");
+        
+        // Bulk insert with IDENTITY_INSERT ON to preserve original IDs
+        for (int i = 0; i < items.Count; i += BatchSize)
+        {
+            var batch = items.Skip(i).Take(BatchSize).ToList();
+            await BulkInsertWithIdentityAsync(db, batch, "Clientes");
+            Console.Write(".");
+        }
+
+        Console.WriteLine(" OK");
+    }
+
+    private static async Task ImportProductosAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Productos... ");
+        var existingCount = await db.Productos.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "productos.csv");
+        if (!File.Exists(csvPath))
+        {
+            Console.WriteLine("ERROR: productos.csv not found!");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Producto>();
+
+        // Load lookups
+        var rubros = await db.Rubros.ToDictionaryAsync(r => r.Nombre, r => r.Id);
+        var unidades = await db.UnidadesMedida.ToDictionaryAsync(u => u.Codigo, u => u.Id);
+
+        int id = 1;
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var codigo = SafeStr(row.GetValueOrDefault("CodProd"), 50);
+            if (string.IsNullOrEmpty(codigo)) continue;
+
+            var rubro = SafeStr(row.GetValueOrDefault("Rubro"), 100);
+            var unidad = SafeStr(row.GetValueOrDefault("UnidadMedida"), 10);
+
+            items.Add(new Producto
+            {
+                Id = id++,
+                Codigo = codigo,
+                Descripcion = SafeStr(row.GetValueOrDefault("Descripcion"), 300) ?? codigo,
+                PrecioVenta = SafeDecimal(row.GetValueOrDefault("PrecioUnitarioFactura")),
+                PrecioCosto = SafeDecimal(row.GetValueOrDefault("PrecioUnitarioPresupuesto")),
+                RubroId = !string.IsNullOrEmpty(rubro) && rubros.ContainsKey(rubro) ? rubros[rubro] : null,
+                UnidadMedidaId = !string.IsNullOrEmpty(unidad) && unidades.ContainsKey(unidad) ? unidades[unidad] : null,
+                StockMinimo = SafeInt(row.GetValueOrDefault("PuntoPedido")),
+                Observaciones = SafeStr(row.GetValueOrDefault("Observaciones"), 500),
+                PorcentajeIVA = 21m,
+                Activo = true
+            });
+        }
+
+        Console.Write($"({items.Count} records)... ");
+        await BulkInsertWithIdentityAsync(db, items, "Productos");
+        Console.WriteLine("OK");
+    }
+
+    private static async Task ImportStockAsync(SPCDbContext db)
+    {
+        Console.Write("Importing Stock... ");
+        var existingCount = await db.Stocks.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
+
+        var csvPath = Path.Combine(DataDir, "stock.csv");
+        if (!File.Exists(csvPath))
+        {
+            Console.WriteLine("SKIP (no CSV file)");
+            return;
+        }
+
+        var lines = await File.ReadAllLinesAsync(csvPath);
+        var header = lines[0].Split(';');
+        var items = new List<Stock>();
+
+        // Load lookups
+        var productos = await db.Productos.ToDictionaryAsync(p => p.Codigo, p => p.Id);
+        var depositos = await db.Depositos.ToDictionaryAsync(d => d.Nombre, d => d.Id);
+
+        int id = 1;
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = ParseCsvLine(line);
+            var row = CreateDictionary(header, cols);
+
+            var codProd = SafeStr(row.GetValueOrDefault("CodProd"), 50);
+            var idDeposito = SafeStr(row.GetValueOrDefault("IdDeposito"), 100);
+
+            if (string.IsNullOrEmpty(codProd) || !productos.ContainsKey(codProd)) continue;
+            
+            // Try to find deposito by name or use default
+            var depositoId = 1;
+            if (!string.IsNullOrEmpty(idDeposito) && depositos.ContainsKey(idDeposito))
+            {
+                depositoId = depositos[idDeposito];
+            }
+
+            items.Add(new Stock
+            {
+                Id = id++,
+                ProductoId = productos[codProd],
+                DepositoId = depositoId,
+                Cantidad = SafeDecimal(row.GetValueOrDefault("Cantidad"))
+            });
+        }
+
+        Console.Write($"({items.Count} records)... ");
+        if (items.Count > 0)
+            await BulkInsertWithIdentityAsync(db, items, "Stocks");
+        Console.WriteLine("OK");
+    }
+
+    #endregion
+
+    private static async Task LoadMappingsAsync(SPCDbContext db)
+    {
+        // Load Clientes - IDs are now preserved, so map is 1:1
+        var clientes = await db.Clientes.Select(c => c.Id).ToListAsync();
+        foreach (var id in clientes)
+        {
+            ClienteMap[id] = id;  // ID = ID (preserved from Access)
         }
         Console.WriteLine($"  Clientes: {ClienteMap.Count}");
 

@@ -41,13 +41,17 @@ public class ClientesService : IClientesService
         return cliente != null ? MapToResponse(cliente) : null;
     }
 
-    public async Task<IEnumerable<ClienteResponse>> SearchAsync(string nombre)
+    public async Task<IEnumerable<ClienteResponse>> SearchAsync(string termino)
     {
+        // Try to parse as Id (codigo de cliente)
+        int.TryParse(termino, out var clienteId);
+        
         var clientes = await _db.Clientes
             .Include(c => c.CondicionIva)
             .Where(c => c.Activo &&
-                   (c.RazonSocial.Contains(nombre) ||
-                    (c.NombreFantasia != null && c.NombreFantasia.Contains(nombre))))
+                   (c.Id == clienteId ||
+                    c.RazonSocial.Contains(termino) ||
+                    (c.NombreFantasia != null && c.NombreFantasia.Contains(termino))))
             .OrderBy(c => c.RazonSocial)
             .ToListAsync();
 

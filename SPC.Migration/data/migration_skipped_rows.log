@@ -1,0 +1,5 @@
+Timestamp	File	Line	Reason	Details
+2026-03-04 22:39:03	notas_credito_c.csv	L2	Missing TipoNotaCredito or NroNotaCredito	NroNotaCredito=1 CodCliente=2074
+2026-03-04 22:39:03	notas_credito_c.csv	L3	Missing TipoNotaCredito or NroNotaCredito	NroNotaCredito=18 CodCliente=2074
+2026-03-04 22:39:08	notas_credito_d.csv	L2	Missing TipoNotaCredito or NroNotaCredito	NroNotaCredito=1
+2026-03-04 22:39:08	notas_credito_d.csv	L3	Missing TipoNotaCredito or NroNotaCredito	NroNotaCredito=18

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.OleDb;
 using EFCore.BulkExtensions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -67,6 +68,28 @@ class Program
         catch (Exception ex)
         {
             Console.WriteLine($"ERROR: Cannot connect to SQL Server: {ex.Message}");
+            return;
+        }
+
+        // Clean database option
+        if (args.Any(a => string.Equals(a, "--clean", StringComparison.OrdinalIgnoreCase)))
+        {
+            Console.WriteLine("Cleaning database...");
+            Console.WriteLine();
+
+            try
+            {
+                await CleanDatabaseAsync(db);
+                Console.WriteLine();
+                Console.WriteLine("===========================================");
+                Console.WriteLine("  Database cleanup completed!");
+                Console.WriteLine("===========================================");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR during cleanup: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
             return;
         }
 
@@ -637,25 +660,17 @@ class Program
     {
         Console.Write("Migrating Clientes... ");
         
-        // Load existing clientes first - we need to map Access IDs
-        // Since we don't store the Access ID, we'll use a query to check count
+        // Load existing clientes first
         var existingCount = await db.Clientes.CountAsync();
         if (existingCount > 0)
         {
-            // Load all clientes to map them (we use position-based mapping since Access IDs aren't stored)
-            // For now, skip if any exist
             Console.WriteLine($"SKIP ({existingCount} already exist)");
             
-            // Still need to load them for FK mapping - assume same order
-            using var cmdCheck = new OleDbCommand("SELECT IDCliente FROM Clientes ORDER BY IDCliente", access);
-            using var readerCheck = cmdCheck.ExecuteReader();
-            var existingClientes = await db.Clientes.OrderBy(c => c.Id).ToListAsync();
-            int idx = 0;
-            while (readerCheck.Read() && idx < existingClientes.Count)
+            // Load existing for FK mapping - IDs should match Access IDs now
+            var existingClientes = await db.Clientes.ToListAsync();
+            foreach (var c in existingClientes)
             {
-                var accessId = readerCheck.GetInt32(0);
-                ClienteAccessIdToSqlId[accessId] = existingClientes[idx].Id;
-                idx++;
+                ClienteAccessIdToSqlId[c.Id] = c.Id;
             }
             return;
         }
@@ -664,11 +679,11 @@ class Program
             SELECT IDCliente, RazonSocial, NombreFantasia, CUIT, Domicilio, Localidad, 
                    Prov, CP, Tel, Cel, email, CondicionIva, Vendedor, ZonaVenta,
                    PorcentajeDescuento, LimiteCredito, Observaciones
-            FROM Clientes", access);
+            FROM Clientes
+            ORDER BY IDCliente", access);
         using var reader = cmd.ExecuteReader();
         
         var allClientes = new List<Cliente>();
-        var accessIdList = new List<int>(); // Track Access IDs in same order
         
         while (reader.Read())
         {
@@ -689,6 +704,7 @@ class Program
             
             var entity = new Cliente
             {
+                Id = accessId,  // PRESERVE ORIGINAL ID!
                 RazonSocial = TruncateString(GetString(reader, 1) ?? "Sin Nombre", 200),
                 NombreFantasia = TruncateString(GetString(reader, 2), 200),
                 CUIT = TruncateString(GetString(reader, 3), 13),
@@ -716,21 +732,222 @@ class Program
             };
             
             allClientes.Add(entity);
-            accessIdList.Add(accessId);
+            ClienteAccessIdToSqlId[accessId] = accessId;  // ID = ID (preserved)
         }
         
         Console.Write($"({allClientes.Count} records to insert)... ");
         
-        // Bulk insert all at once - much faster than SaveChangesAsync per record
-        await db.BulkInsertAsync(allClientes, new BulkConfig { SetOutputIdentity = true });
-        
-        // Map Access IDs to new SQL Server IDs
-        for (int i = 0; i < allClientes.Count; i++)
-        {
-            ClienteAccessIdToSqlId[accessIdList[i]] = allClientes[i].Id;
-        }
+        // Bulk insert with IDENTITY_INSERT ON to preserve original IDs
+        await BulkInsertWithIdentityAsync(db, allClientes, "Clientes", 2000);
         
         Console.WriteLine($"OK ({allClientes.Count} records)");
+    }
+
+    /// <summary>
+    /// Bulk insert with IDENTITY_INSERT ON to preserve original IDs
+    /// Uses raw SQL since EFCore.BulkExtensions 10.x doesn't have KeepIdentity
+    /// </summary>
+    static async Task BulkInsertWithIdentityAsync<T>(SPCDbContext db, List<T> items, string tableName, int batchSize = 2000) where T : class
+    {
+        if (items.Count == 0) return;
+
+        var connectionString = db.Database.GetConnectionString();
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        await using var transaction = connection.BeginTransaction();
+        try
+        {
+            // Enable IDENTITY_INSERT
+            await using (var cmd = new SqlCommand($"SET IDENTITY_INSERT [{tableName}] ON", connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            // Use SqlBulkCopy for fast inserts
+            using var bulkCopy = new SqlBulkCopy(connection, Microsoft.Data.SqlClient.SqlBulkCopyOptions.KeepIdentity, transaction)
+            {
+                DestinationTableName = tableName,
+                BatchSize = batchSize
+            };
+
+            // Create DataTable from items
+            var dataTable = ToDataTable(items);
+            
+            // Map columns
+            foreach (DataColumn column in dataTable.Columns)
+            {
+                bulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+            }
+
+            await bulkCopy.WriteToServerAsync(dataTable);
+
+            // Disable IDENTITY_INSERT
+            await using (var cmd = new SqlCommand($"SET IDENTITY_INSERT [{tableName}] OFF", connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Convert list of entities to DataTable for SqlBulkCopy
+    /// </summary>
+    static DataTable ToDataTable<T>(List<T> items)
+    {
+        var table = new DataTable();
+        var properties = typeof(T).GetProperties()
+            .Where(p => p.CanRead && !IsNavigationProperty(p))
+            .ToArray();
+
+        // Add columns
+        foreach (var prop in properties)
+        {
+            var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            
+            // Handle enums
+            if (propType.IsEnum)
+            {
+                propType = typeof(int);
+            }
+            
+            table.Columns.Add(prop.Name, propType);
+        }
+
+        // Add rows
+        foreach (var item in items)
+        {
+            var row = table.NewRow();
+            foreach (var prop in properties)
+            {
+                var value = prop.GetValue(item);
+                
+                // Handle enums
+                if (value != null && prop.PropertyType.IsEnum)
+                {
+                    value = (int)value;
+                }
+                else if (value != null && Nullable.GetUnderlyingType(prop.PropertyType)?.IsEnum == true)
+                {
+                    value = (int)value;
+                }
+                
+                row[prop.Name] = value ?? DBNull.Value;
+            }
+            table.Rows.Add(row);
+        }
+
+        return table;
+    }
+
+    /// <summary>
+    /// Check if property is a navigation property (should be excluded from bulk insert)
+    /// </summary>
+    static bool IsNavigationProperty(System.Reflection.PropertyInfo prop)
+    {
+        // Skip collections
+        if (prop.PropertyType != typeof(string) && 
+            typeof(System.Collections.IEnumerable).IsAssignableFrom(prop.PropertyType))
+            return true;
+
+        // Skip navigation properties (reference types except string and common value types)
+        if (prop.PropertyType.IsClass && 
+            prop.PropertyType != typeof(string) &&
+            !prop.PropertyType.IsPrimitive &&
+            prop.PropertyType != typeof(DateTime) &&
+            prop.PropertyType != typeof(decimal))
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Clean all data from database in correct order (respecting FK constraints)
+    /// </summary>
+    static async Task CleanDatabaseAsync(SPCDbContext db)
+    {
+        var tables = new[]
+        {
+            // Detail tables first (FK dependencies)
+            "CurrentAccountMovements",
+            "MovimientosCtaCte",
+            "CurrentAccounts",
+            "PaymentDetails",
+            "Payments",
+            "ConsignmentDetails",
+            "Consignments",
+            "InternalDebitNoteDetails",
+            "InternalDebitNotes",
+            "DebitNoteDetails",
+            "DebitNotes",
+            "CreditNoteDetails",
+            "CreditNotes",
+            "QuoteDetails",
+            "Quotes",
+            "RemitoDetalles",
+            "Remitos",
+            "FacturaDetalles",
+            "Facturas",
+            "StockMovementDetails",
+            "StockMovements",
+            "Stocks",
+            "CustomerAddresses",
+            "Clientes",
+            "Productos",
+            "Vendedores",
+            "Depositos",
+            "Branches",
+            "ZonasVenta",
+            "PaymentMethods",
+            "Rubros",
+            "UnidadesMedida",
+            "CondicionesIva"
+        };
+
+        // Disable FK checks
+        Console.WriteLine("Disabling foreign key constraints...");
+        await db.Database.ExecuteSqlRawAsync("EXEC sp_MSforeachtable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'");
+
+        // Delete from each table
+        foreach (var table in tables)
+        {
+            Console.Write($"Deleting {table}... ");
+            try
+            {
+                var count = await db.Database.ExecuteSqlRawAsync($"DELETE FROM [{table}]");
+                Console.WriteLine($"OK ({count} rows)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SKIP ({ex.Message})");
+            }
+        }
+
+        // Reset identity seeds
+        Console.WriteLine();
+        Console.WriteLine("Resetting identity seeds...");
+        foreach (var table in tables)
+        {
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync($"DBCC CHECKIDENT ('{table}', RESEED, 0)");
+            }
+            catch
+            {
+                // Some tables may not have identity columns - ignore
+            }
+        }
+
+        // Re-enable FK checks
+        Console.WriteLine("Re-enabling foreign key constraints...");
+        await db.Database.ExecuteSqlRawAsync("EXEC sp_MSforeachtable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL'");
     }
     
     static string? TruncateString(string? value, int maxLength)

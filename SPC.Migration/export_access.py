@@ -13,6 +13,18 @@ OUTPUT_DIR = Path(r"C:\Programmes\spc-software\SPC.Migration\data")
 
 # Tables to export (in order of dependencies)
 TABLES = [
+    # Auxiliary tables
+    ("UnidadesMedida", "unidades_medida.csv"),
+    ("Rubros", "rubros.csv"),
+    ("CondicionIva", "condicion_iva.csv"),
+    ("CodPago", "cod_pago.csv"),
+    ("Sucursales", "sucursales.csv"),
+    # Master data (need to preserve IDs)
+    ("Clientes", "clientes.csv"),
+    ("Productos", "productos.csv"),
+    ("Empleados", "empleados.csv"),
+    ("Depositos", "depositos.csv"),
+    ("Stock", "stock.csv"),
     # Documents (the big ones that timeout)
     ("FacturaC", "facturas_c.csv"),
     ("FacturaD", "facturas_d.csv"),

@@ -1,0 +1,221 @@
+@page "/stock"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@rendermode InteractiveServer
+
+<PageTitle>Stock - SPC</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Consulta de Stock</h3>
+        <div>
+            <button class="btn @(soloMinimos ? "btn-warning" : "btn-outline-warning")" @onclick="ToggleBajoMinimo">
+                @if (soloMinimos)
+                {
+                    <span>Ver Todos</span>
+                }
+                else
+                {
+                    <span>Solo Bajo Minimo</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Buscar por codigo o descripcion..."
+                               @bind="searchTerm"
+                               @bind:event="oninput"
+                               @onkeyup="HandleSearchKeyUp" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="Search">
+                            Buscar
+                        </button>
+                        @if (!string.IsNullOrEmpty(searchTerm))
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
+                                Limpiar
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    @if (stock != null)
+                    {
+                        <span class="text-muted">@stock.Count producto(s)</span>
+                        @if (stock.Any())
+                        {
+                            <span class="ms-3 text-muted">
+                                Valor total: <strong class="text-success">@stock.Sum(s => s.ValorStock).ToString("C2")</strong>
+                            </span>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando stock..." />
+    }
+    else if (stock == null || stock.Count == 0)
+    {
+        <div class="alert alert-info">
+            @if (soloMinimos)
+            {
+                <span>No hay productos con stock bajo minimo.</span>
+            }
+            else if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <span>No se encontraron productos con el termino "@searchTerm"</span>
+            }
+            else
+            {
+                <span>No hay stock registrado.</span>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Descripcion</th>
+                                <th>Rubro</th>
+                                <th class="text-end">Stock</th>
+                                <th class="text-end">Minimo</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-end">Valor</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in stock)
+                            {
+                                <tr class="@(item.BajoMinimo ? "table-warning" : "")">
+                                    <td><code>@item.ProductoCodigo</code></td>
+                                    <td>@item.ProductoDescripcion</td>
+                                    <td><small class="text-muted">@(item.RubroNombre ?? "-")</small></td>
+                                    <td class="text-end">
+                                        <strong class="@(item.BajoMinimo ? "text-danger" : "text-success")">
+                                            @item.StockTotal.ToString("N0")
+                                        </strong>
+                                    </td>
+                                    <td class="text-end text-muted">@item.StockMinimo</td>
+                                    <td class="text-end">@item.PrecioVenta.ToString("C2")</td>
+                                    <td class="text-end">
+                                        <strong>@item.ValorStock.ToString("C2")</strong>
+                                    </td>
+                                    <td>
+                                        @if (item.BajoMinimo)
+                                        {
+                                            <span class="badge bg-danger">Bajo Minimo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">OK</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3"><strong>TOTALES</strong></td>
+                                <td class="text-end"><strong>@stock.Sum(s => s.StockTotal).ToString("N0")</strong></td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-end"><strong class="text-success">@stock.Sum(s => s.ValorStock).ToString("C2")</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<StockResumenDto>? stock;
+    private bool loading = true;
+    private string searchTerm = "";
+    private bool soloMinimos = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStock();
+    }
+
+    private async Task LoadStock()
+    {
+        loading = true;
+        try
+        {
+            if (soloMinimos)
+            {
+                stock = await Api.GetStockBajoMinimoAsync();
+            }
+            else
+            {
+                stock = await Api.GetStockResumenAsync();
+            }
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await LoadStock();
+            return;
+        }
+
+        loading = true;
+        try
+        {
+            stock = await Api.BuscarStockAsync(searchTerm);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchTerm = "";
+        await LoadStock();
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+    private async Task ToggleBajoMinimo()
+    {
+        soloMinimos = !soloMinimos;
+        searchTerm = "";
+        await LoadStock();
+    }
+}
