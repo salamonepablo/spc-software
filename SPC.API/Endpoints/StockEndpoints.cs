@@ -33,19 +33,19 @@ public static class StockEndpoints
         // GET /api/stock/producto/{id} - Get stock for a specific product
         group.MapGet("/producto/{productoId:int}", async (int productoId, IStockService service) =>
         {
-            var stock = await service.GetByProductoAsync(productoId);
+            var stock = await service.GetByProductAsync(productoId);
             return Results.Ok(stock);
         })
-        .WithName("GetStockByProducto")
+        .WithName("GetStockByProduct")
         .WithDescription("Returns stock for a specific product across all warehouses");
 
         // GET /api/stock/deposito/{id} - Get stock in a specific warehouse
         group.MapGet("/deposito/{depositoId:int}", async (int depositoId, IStockService service) =>
         {
-            var stock = await service.GetByDepositoAsync(depositoId);
+            var stock = await service.GetByWarehouseAsync(depositoId);
             return Results.Ok(stock);
         })
-        .WithName("GetStockByDeposito")
+        .WithName("GetStockByWarehouse")
         .WithDescription("Returns all stock in a specific warehouse");
 
         // GET /api/stock/bajominimo - Get products below minimum stock

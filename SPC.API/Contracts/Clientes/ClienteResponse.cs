@@ -1,9 +1,9 @@
-namespace SPC.API.Contracts.Clientes;
+namespace SPC.API.Contracts.Customers;
 
 /// <summary>
-/// Response DTO for Cliente data returned by API
+/// Response DTO for Customer data returned by API
 /// </summary>
-public class ClienteResponse
+public class CustomerResponse
 {
     public int Id { get; set; }
     public string RazonSocial { get; set; } = "";
@@ -23,18 +23,18 @@ public class ClienteResponse
     public DateTime FechaAlta { get; set; }
     
     // Related entity info (flattened)
-    public int? CondicionIvaId { get; set; }
-    public string? CondicionIvaDescripcion { get; set; }
-    public string? CondicionIvaCodigo { get; set; }
-    public string? TipoFactura { get; set; }
+    public int? TaxConditionId { get; set; }
+    public string? TaxConditionDescripcion { get; set; }
+    public string? TaxConditionCodigo { get; set; }
+    public string? TipoInvoice { get; set; }
     
     // IIBB data from AFIP padrón
     public decimal AlicuotaIIBB { get; set; }
     public string? ProvinciaPadronIIBB { get; set; }
     
-    public int? VendedorId { get; set; }
-    public string? VendedorNombre { get; set; }
+    public int? SalesRepId { get; set; }
+    public string? SalesRepNombre { get; set; }
     
-    public int? ZonaVentaId { get; set; }
-    public string? ZonaVentaNombre { get; set; }
+    public int? SalesZoneId { get; set; }
+    public string? SalesZoneNombre { get; set; }
 }

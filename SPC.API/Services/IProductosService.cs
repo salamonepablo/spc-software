@@ -1,16 +1,16 @@
-using SPC.API.Contracts.Productos;
+using SPC.API.Contracts.Products;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Service interface for Producto business operations
+/// Service interface for Product business operations
 /// </summary>
-public interface IProductosService
+public interface IProductsService
 {
-    Task<IEnumerable<ProductoResponse>> GetAllAsync();
-    Task<ProductoResponse?> GetByIdAsync(int id);
-    Task<IEnumerable<ProductoResponse>> SearchAsync(string descripcion);
-    Task<ProductoResponse> CreateAsync(CreateProductoRequest request);
-    Task<ProductoResponse?> UpdateAsync(int id, UpdateProductoRequest request);
+    Task<IEnumerable<ProductResponse>> GetAllAsync();
+    Task<ProductResponse?> GetByIdAsync(int id);
+    Task<IEnumerable<ProductResponse>> SearchAsync(string descripcion);
+    Task<ProductResponse> CreateAsync(CreateProductRequest request);
+    Task<ProductResponse?> UpdateAsync(int id, UpdateProductRequest request);
     Task<bool> DeleteAsync(int id);
 }

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace SPC.API.Data.Migrations
+namespace SPC.API.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -30,6 +30,41 @@ namespace SPC.API.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Categorys",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Descripcion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categorys", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CompanySettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CompanyName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    CUIT = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: false),
+                    IsIVAWithholdingAgent = table.Column<bool>(type: "bit", nullable: false),
+                    IsIIBBPerceptionAgent = table.Column<bool>(type: "bit", nullable: false),
+                    IIBBProvince = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    IIBBRegistrationNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    FiscalActivityStartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CompanySettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CondicionesIva",
                 columns: table => new
                 {
@@ -37,7 +72,7 @@ namespace SPC.API.Data.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Codigo = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
                     Descripcion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    TipoFactura = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false)
+                    TipoInvoice = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -62,36 +97,7 @@ namespace SPC.API.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Rubros",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Rubros", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UnidadesMedida",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Codigo = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UnidadesMedida", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Vendedores",
+                name: "SalesRepes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -116,7 +122,40 @@ namespace SPC.API.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Vendedores", x => x.Id);
+                    table.PrimaryKey("PK_SalesRepes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TaxSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TaxCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Rate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    EffectiveFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EffectiveTo = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaxSettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UnidadesMedida",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Codigo = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Nombre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UnidadesMedida", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -135,7 +174,28 @@ namespace SPC.API.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Productos",
+                name: "Warehouses",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Direccion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    SalesRepAsociadoId = table.Column<int>(type: "int", nullable: true),
+                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Warehouses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Warehouses_SalesRepes_SalesRepAsociadoId",
+                        column: x => x.SalesRepAsociadoId,
+                        principalTable: "SalesRepes",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Products",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -143,8 +203,10 @@ namespace SPC.API.Data.Migrations
                     Codigo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Descripcion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     CodigoProveedor = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    RubroId = table.Column<int>(type: "int", nullable: true),
-                    UnidadMedidaId = table.Column<int>(type: "int", nullable: true),
+                    CategoryId = table.Column<int>(type: "int", nullable: true),
+                    UnitOfMeasureId = table.Column<int>(type: "int", nullable: true),
+                    PrecioInvoice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PrecioQuote = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PrecioVenta = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PrecioCosto = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PorcentajeIVA = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
@@ -154,42 +216,21 @@ namespace SPC.API.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Productos", x => x.Id);
+                    table.PrimaryKey("PK_Products", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Productos_Rubros_RubroId",
-                        column: x => x.RubroId,
-                        principalTable: "Rubros",
+                        name: "FK_Products_Categorys_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categorys",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Productos_UnidadesMedida_UnidadMedidaId",
-                        column: x => x.UnidadMedidaId,
+                        name: "FK_Products_UnidadesMedida_UnitOfMeasureId",
+                        column: x => x.UnitOfMeasureId,
                         principalTable: "UnidadesMedida",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "Depositos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Direccion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    VendedorAsociadoId = table.Column<int>(type: "int", nullable: true),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Depositos", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Depositos_Vendedores_VendedorAsociadoId",
-                        column: x => x.VendedorAsociadoId,
-                        principalTable: "Vendedores",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Clientes",
+                name: "Customers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -204,31 +245,33 @@ namespace SPC.API.Data.Migrations
                     Telefono = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Celular = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    CondicionIvaId = table.Column<int>(type: "int", nullable: true),
-                    VendedorId = table.Column<int>(type: "int", nullable: true),
-                    ZonaVentaId = table.Column<int>(type: "int", nullable: true),
+                    TaxConditionId = table.Column<int>(type: "int", nullable: true),
+                    SalesRepId = table.Column<int>(type: "int", nullable: true),
+                    SalesZoneId = table.Column<int>(type: "int", nullable: true),
                     PorcentajeDescuento = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
                     LimiteCredito = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    AlicuotaIIBB = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    ProvinciaPadronIIBB = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Activo = table.Column<bool>(type: "bit", nullable: false),
                     FechaAlta = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Clientes", x => x.Id);
+                    table.PrimaryKey("PK_Customers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Clientes_CondicionesIva_CondicionIvaId",
-                        column: x => x.CondicionIvaId,
+                        name: "FK_Customers_CondicionesIva_TaxConditionId",
+                        column: x => x.TaxConditionId,
                         principalTable: "CondicionesIva",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Clientes_Vendedores_VendedorId",
-                        column: x => x.VendedorId,
-                        principalTable: "Vendedores",
+                        name: "FK_Customers_SalesRepes_SalesRepId",
+                        column: x => x.SalesRepId,
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_Clientes_ZonasVenta_ZonaVentaId",
-                        column: x => x.ZonaVentaId,
+                        name: "FK_Customers_ZonasVenta_SalesZoneId",
+                        column: x => x.SalesZoneId,
                         principalTable: "ZonasVenta",
                         principalColumn: "Id");
                 });
@@ -249,15 +292,15 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_StockMovements", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StockMovements_Depositos_DestinationWarehouseId",
+                        name: "FK_StockMovements_Warehouses_DestinationWarehouseId",
                         column: x => x.DestinationWarehouseId,
-                        principalTable: "Depositos",
+                        principalTable: "Warehouses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_StockMovements_Depositos_SourceWarehouseId",
+                        name: "FK_StockMovements_Warehouses_SourceWarehouseId",
                         column: x => x.SourceWarehouseId,
-                        principalTable: "Depositos",
+                        principalTable: "Warehouses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -268,23 +311,23 @@ namespace SPC.API.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductoId = table.Column<int>(type: "int", nullable: false),
-                    DepositoId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    WarehouseId = table.Column<int>(type: "int", nullable: false),
                     Cantidad = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Stocks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Stocks_Depositos_DepositoId",
-                        column: x => x.DepositoId,
-                        principalTable: "Depositos",
+                        name: "FK_Stocks_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Stocks_Productos_ProductoId",
-                        column: x => x.ProductoId,
-                        principalTable: "Productos",
+                        name: "FK_Stocks_Warehouses_WarehouseId",
+                        column: x => x.WarehouseId,
+                        principalTable: "Warehouses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -315,14 +358,14 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CasualDeliveryNotes_Clientes_CustomerId",
+                        name: "FK_CasualDeliveryNotes_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_CasualDeliveryNotes_Vendedores_SalesRepId",
+                        name: "FK_CasualDeliveryNotes_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                 });
 
@@ -343,15 +386,15 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_Consignments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Consignments_Clientes_CustomerId",
+                        name: "FK_Consignments_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Consignments_Vendedores_SalesRepId",
+                        name: "FK_Consignments_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                 });
 
@@ -375,9 +418,9 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_CurrentAccountMovements", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CurrentAccountMovements_Clientes_CustomerId",
+                        name: "FK_CurrentAccountMovements_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -398,9 +441,9 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_CurrentAccounts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CurrentAccounts_Clientes_CustomerId",
+                        name: "FK_CurrentAccounts_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -429,9 +472,9 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_CustomerAddresses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CustomerAddresses_Clientes_CustomerId",
+                        name: "FK_CustomerAddresses_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -474,68 +517,15 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_DebitNotes_Clientes_CustomerId",
+                        name: "FK_DebitNotes_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_DebitNotes_Vendedores_SalesRepId",
+                        name: "FK_DebitNotes_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Facturas",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BranchId = table.Column<int>(type: "int", nullable: false),
-                    TipoFactura = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
-                    PuntoVenta = table.Column<int>(type: "int", nullable: false),
-                    NumeroFactura = table.Column<long>(type: "bigint", nullable: false),
-                    FechaFactura = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ClienteId = table.Column<int>(type: "int", nullable: false),
-                    VendedorId = table.Column<int>(type: "int", nullable: true),
-                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PorcentajeIVA = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    ImporteIVA = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    AlicuotaIIBB = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    ImportePercepcionIIBB = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PorcentajeDescuento = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    ImporteDescuento = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CAE = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    FechaVencimientoCAE = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CondicionVenta = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    FormaPago = table.Column<int>(type: "int", nullable: true),
-                    UnidadNegocio = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    RemitoId = table.Column<int>(type: "int", nullable: true),
-                    Aclaracion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Anulada = table.Column<bool>(type: "bit", nullable: false),
-                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Facturas", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Facturas_Branches_BranchId",
-                        column: x => x.BranchId,
-                        principalTable: "Branches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Facturas_Clientes_ClienteId",
-                        column: x => x.ClienteId,
-                        principalTable: "Clientes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Facturas_Vendedores_VendedorId",
-                        column: x => x.VendedorId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                 });
 
@@ -571,16 +561,71 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_InternalDebitNotes_Clientes_CustomerId",
+                        name: "FK_InternalDebitNotes_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_InternalDebitNotes_Vendedores_SalesRepId",
+                        name: "FK_InternalDebitNotes_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Invoices",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    TipoInvoice = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    PuntoVenta = table.Column<int>(type: "int", nullable: false),
+                    NumeroInvoice = table.Column<long>(type: "bigint", nullable: false),
+                    FechaInvoice = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    SalesRepId = table.Column<int>(type: "int", nullable: true),
+                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PorcentajeIVA = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    ImporteIVA = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    IVAContenido = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AlicuotaIIBB = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    ImportePercepcionIIBB = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PorcentajeDescuento = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    ImporteDescuento = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CAE = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    FechaVencimientoCAE = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CondicionVenta = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    FormaPago = table.Column<int>(type: "int", nullable: true),
+                    UnidadNegocio = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    DeliveryNoteId = table.Column<int>(type: "int", nullable: true),
+                    Aclaracion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Anulada = table.Column<bool>(type: "bit", nullable: false),
+                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Invoices", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Invoices_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Invoices_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Invoices_SalesRepes_SalesRepId",
+                        column: x => x.SalesRepId,
+                        principalTable: "SalesRepes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -608,9 +653,9 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Payments_Clientes_CustomerId",
+                        name: "FK_Payments_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -644,15 +689,15 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Quotes_Clientes_CustomerId",
+                        name: "FK_Quotes_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Quotes_Vendedores_SalesRepId",
+                        name: "FK_Quotes_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                 });
 
@@ -671,9 +716,9 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_StockMovementDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StockMovementDetails_Productos_ProductId",
+                        name: "FK_StockMovementDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -706,9 +751,9 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CasualDeliveryNoteDetails_Productos_ProductId",
+                        name: "FK_CasualDeliveryNoteDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -735,9 +780,9 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ConsignmentDetails_Productos_ProductId",
+                        name: "FK_ConsignmentDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -768,9 +813,42 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_DebitNoteDetails_Productos_ProductId",
+                        name: "FK_DebitNoteDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InternalDebitNoteDetails",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InternalDebitNoteId = table.Column<int>(type: "int", nullable: false),
+                    ItemNumber = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    DiscountPercent = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
+                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    UnitOfMeasure = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InternalDebitNoteDetails", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InternalDebitNoteDetails_InternalDebitNotes_InternalDebitNoteId",
+                        column: x => x.InternalDebitNoteId,
+                        principalTable: "InternalDebitNotes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InternalDebitNoteDetails_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -813,33 +891,83 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CreditNotes_Clientes_CustomerId",
+                        name: "FK_CreditNotes_Customers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Clientes",
+                        principalTable: "Customers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CreditNotes_Facturas_InvoiceId",
+                        name: "FK_CreditNotes_Invoices_InvoiceId",
                         column: x => x.InvoiceId,
-                        principalTable: "Facturas",
+                        principalTable: "Invoices",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_CreditNotes_Vendedores_SalesRepId",
+                        name: "FK_CreditNotes_SalesRepes_SalesRepId",
                         column: x => x.SalesRepId,
-                        principalTable: "Vendedores",
+                        principalTable: "SalesRepes",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "FacturaDetalles",
+                name: "DeliveryNotes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FacturaId = table.Column<int>(type: "int", nullable: false),
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    PuntoVenta = table.Column<int>(type: "int", nullable: false),
+                    NumeroDeliveryNote = table.Column<long>(type: "bigint", nullable: false),
+                    FechaDeliveryNote = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    SalesRepId = table.Column<int>(type: "int", nullable: true),
+                    DireccionEntrega = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    LocalidadEntrega = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    UnidadNegocio = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Aclaracion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Facturado = table.Column<bool>(type: "bit", nullable: false),
+                    InvoiceId = table.Column<int>(type: "int", nullable: true),
+                    TipoFactura = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
+                    Anulado = table.Column<bool>(type: "bit", nullable: false),
+                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DeliveryNotes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DeliveryNotes_Branches_BranchId",
+                        column: x => x.BranchId,
+                        principalTable: "Branches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DeliveryNotes_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DeliveryNotes_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DeliveryNotes_SalesRepes_SalesRepId",
+                        column: x => x.SalesRepId,
+                        principalTable: "SalesRepes",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InvoiceDetails",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InvoiceId = table.Column<int>(type: "int", nullable: false),
                     ItemNumero = table.Column<int>(type: "int", nullable: false),
-                    ProductoId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
                     Cantidad = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PrecioUnitario = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PorcentajeDescuento = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
@@ -848,102 +976,19 @@ namespace SPC.API.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FacturaDetalles", x => x.Id);
+                    table.PrimaryKey("PK_InvoiceDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FacturaDetalles_Facturas_FacturaId",
-                        column: x => x.FacturaId,
-                        principalTable: "Facturas",
+                        name: "FK_InvoiceDetails_Invoices_InvoiceId",
+                        column: x => x.InvoiceId,
+                        principalTable: "Invoices",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_FacturaDetalles_Productos_ProductoId",
-                        column: x => x.ProductoId,
-                        principalTable: "Productos",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Remitos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BranchId = table.Column<int>(type: "int", nullable: false),
-                    PuntoVenta = table.Column<int>(type: "int", nullable: false),
-                    NumeroRemito = table.Column<long>(type: "bigint", nullable: false),
-                    FechaRemito = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ClienteId = table.Column<int>(type: "int", nullable: false),
-                    VendedorId = table.Column<int>(type: "int", nullable: true),
-                    DireccionEntrega = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    LocalidadEntrega = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    UnidadNegocio = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Aclaracion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Facturado = table.Column<bool>(type: "bit", nullable: false),
-                    FacturaId = table.Column<int>(type: "int", nullable: true),
-                    TipoFactura = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Anulado = table.Column<bool>(type: "bit", nullable: false),
-                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Remitos", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Remitos_Branches_BranchId",
-                        column: x => x.BranchId,
-                        principalTable: "Branches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Remitos_Clientes_ClienteId",
-                        column: x => x.ClienteId,
-                        principalTable: "Clientes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Remitos_Facturas_FacturaId",
-                        column: x => x.FacturaId,
-                        principalTable: "Facturas",
+                        name: "FK_InvoiceDetails_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Remitos_Vendedores_VendedorId",
-                        column: x => x.VendedorId,
-                        principalTable: "Vendedores",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InternalDebitNoteDetails",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InternalDebitNoteId = table.Column<int>(type: "int", nullable: false),
-                    ItemNumber = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    DiscountPercent = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    UnitOfMeasure = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InternalDebitNoteDetails", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_InternalDebitNoteDetails_InternalDebitNotes_InternalDebitNoteId",
-                        column: x => x.InternalDebitNoteId,
-                        principalTable: "InternalDebitNotes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_InternalDebitNoteDetails_Productos_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Productos",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -995,9 +1040,9 @@ namespace SPC.API.Data.Migrations
                 {
                     table.PrimaryKey("PK_QuoteDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_QuoteDetails_Productos_ProductId",
+                        name: "FK_QuoteDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -1034,37 +1079,37 @@ namespace SPC.API.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CreditNoteDetails_Productos_ProductId",
+                        name: "FK_CreditNoteDetails_Products_ProductId",
                         column: x => x.ProductId,
-                        principalTable: "Productos",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "RemitoDetalles",
+                name: "DeliveryNoteDetails",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    RemitoId = table.Column<int>(type: "int", nullable: false),
+                    DeliveryNoteId = table.Column<int>(type: "int", nullable: false),
                     ItemNumero = table.Column<int>(type: "int", nullable: false),
-                    ProductoId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
                     Cantidad = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RemitoDetalles", x => x.Id);
+                    table.PrimaryKey("PK_DeliveryNoteDetails", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RemitoDetalles_Productos_ProductoId",
-                        column: x => x.ProductoId,
-                        principalTable: "Productos",
+                        name: "FK_DeliveryNoteDetails_DeliveryNotes_DeliveryNoteId",
+                        column: x => x.DeliveryNoteId,
+                        principalTable: "DeliveryNotes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_RemitoDetalles_Remitos_RemitoId",
-                        column: x => x.RemitoId,
-                        principalTable: "Remitos",
+                        name: "FK_DeliveryNoteDetails_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1074,13 +1119,24 @@ namespace SPC.API.Data.Migrations
                 columns: new[] { "Id", "Code", "IsActive", "Name", "PointOfSale" },
                 values: new object[,]
                 {
-                    { 1, "CALLE", true, "Calle (Vendedores)", 2 },
+                    { 1, "CALLE", true, "Calle (SalesRepes)", 2 },
                     { 2, "DISTRIB", true, "Distribuidora (Oficina)", 5 }
                 });
 
             migrationBuilder.InsertData(
+                table: "Categorys",
+                columns: new[] { "Id", "Activo", "Descripcion", "Nombre" },
+                values: new object[,]
+                {
+                    { 1, true, null, "Baterias Auto" },
+                    { 2, true, null, "Baterias Moto" },
+                    { 3, true, null, "Baterias Camion" },
+                    { 4, true, null, "Accesorios" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "CondicionesIva",
-                columns: new[] { "Id", "Codigo", "Descripcion", "TipoFactura" },
+                columns: new[] { "Id", "Codigo", "Descripcion", "TipoInvoice" },
                 values: new object[,]
                 {
                     { 1, "RI", "Responsable Inscripto", "A" },
@@ -1088,11 +1144,6 @@ namespace SPC.API.Data.Migrations
                     { 3, "CF", "Consumidor Final", "B" },
                     { 4, "EX", "Exento", "B" }
                 });
-
-            migrationBuilder.InsertData(
-                table: "Depositos",
-                columns: new[] { "Id", "Activo", "Direccion", "Nombre", "VendedorAsociadoId" },
-                values: new object[] { 1, true, null, "Deposito Principal", null });
 
             migrationBuilder.InsertData(
                 table: "PaymentMethods",
@@ -1109,14 +1160,15 @@ namespace SPC.API.Data.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Rubros",
-                columns: new[] { "Id", "Activo", "Descripcion", "Nombre" },
+                table: "TaxSettings",
+                columns: new[] { "Id", "Description", "EffectiveFrom", "EffectiveTo", "IsActive", "IsDefault", "Rate", "TaxCode" },
                 values: new object[,]
                 {
-                    { 1, true, null, "Baterias Auto" },
-                    { 2, true, null, "Baterias Moto" },
-                    { 3, true, null, "Baterias Camion" },
-                    { 4, true, null, "Accesorios" }
+                    { 1, "IVA General", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, true, 21.00m, "VAT" },
+                    { 2, "IVA Reducido", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, false, 10.50m, "VAT_REDUCED" },
+                    { 3, "IVA Exento", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, false, 0.00m, "VAT_EXEMPT" },
+                    { 4, "IIBB Buenos Aires", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, false, 3.00m, "IIBB_BA" },
+                    { 5, "IIBB CABA", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, true, false, 3.00m, "IIBB_CABA" }
                 });
 
             migrationBuilder.InsertData(
@@ -1127,6 +1179,11 @@ namespace SPC.API.Data.Migrations
                     { 1, "UN", "Unidades" },
                     { 2, "CJ", "Cajas" }
                 });
+
+            migrationBuilder.InsertData(
+                table: "Warehouses",
+                columns: new[] { "Id", "Activo", "Direccion", "Nombre", "SalesRepAsociadoId" },
+                values: new object[] { 1, true, null, "Warehouse Principal", null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Branches_Code",
@@ -1158,21 +1215,6 @@ namespace SPC.API.Data.Migrations
                 name: "IX_CasualDeliveryNotes_SalesRepId",
                 table: "CasualDeliveryNotes",
                 column: "SalesRepId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Clientes_CondicionIvaId",
-                table: "Clientes",
-                column: "CondicionIvaId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Clientes_VendedorId",
-                table: "Clientes",
-                column: "VendedorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Clientes_ZonaVentaId",
-                table: "Clientes",
-                column: "ZonaVentaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ConsignmentDetails_ConsignmentId",
@@ -1247,6 +1289,21 @@ namespace SPC.API.Data.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Customers_SalesRepId",
+                table: "Customers",
+                column: "SalesRepId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_SalesZoneId",
+                table: "Customers",
+                column: "SalesZoneId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_TaxConditionId",
+                table: "Customers",
+                column: "TaxConditionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DebitNoteDetails_DebitNoteId",
                 table: "DebitNoteDetails",
                 column: "DebitNoteId");
@@ -1278,40 +1335,35 @@ namespace SPC.API.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Depositos_VendedorAsociadoId",
-                table: "Depositos",
-                column: "VendedorAsociadoId");
+                name: "IX_DeliveryNoteDetails_DeliveryNoteId",
+                table: "DeliveryNoteDetails",
+                column: "DeliveryNoteId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FacturaDetalles_FacturaId",
-                table: "FacturaDetalles",
-                column: "FacturaId");
+                name: "IX_DeliveryNoteDetails_ProductId",
+                table: "DeliveryNoteDetails",
+                column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FacturaDetalles_ProductoId",
-                table: "FacturaDetalles",
-                column: "ProductoId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Facturas_BranchId",
-                table: "Facturas",
-                column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Facturas_ClienteId",
-                table: "Facturas",
-                column: "ClienteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Facturas_TipoFactura_PuntoVenta_NumeroFactura",
-                table: "Facturas",
-                columns: new[] { "TipoFactura", "PuntoVenta", "NumeroFactura" },
+                name: "IX_DeliveryNotes_BranchId_NumeroDeliveryNote",
+                table: "DeliveryNotes",
+                columns: new[] { "BranchId", "NumeroDeliveryNote" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Facturas_VendedorId",
-                table: "Facturas",
-                column: "VendedorId");
+                name: "IX_DeliveryNotes_CustomerId",
+                table: "DeliveryNotes",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DeliveryNotes_InvoiceId",
+                table: "DeliveryNotes",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DeliveryNotes_SalesRepId",
+                table: "DeliveryNotes",
+                column: "SalesRepId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InternalDebitNoteDetails_InternalDebitNoteId",
@@ -1345,6 +1397,37 @@ namespace SPC.API.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_InvoiceDetails_InvoiceId",
+                table: "InvoiceDetails",
+                column: "InvoiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceDetails_ProductId",
+                table: "InvoiceDetails",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_BranchId",
+                table: "Invoices",
+                column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_CustomerId",
+                table: "Invoices",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_SalesRepId",
+                table: "Invoices",
+                column: "SalesRepId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_TipoInvoice_PuntoVenta_NumeroInvoice",
+                table: "Invoices",
+                columns: new[] { "TipoInvoice", "PuntoVenta", "NumeroInvoice" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PaymentDetails_PaymentId",
                 table: "PaymentDetails",
                 column: "PaymentId");
@@ -1372,14 +1455,14 @@ namespace SPC.API.Data.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Productos_RubroId",
-                table: "Productos",
-                column: "RubroId");
+                name: "IX_Products_CategoryId",
+                table: "Products",
+                column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Productos_UnidadMedidaId",
-                table: "Productos",
-                column: "UnidadMedidaId");
+                name: "IX_Products_UnitOfMeasureId",
+                table: "Products",
+                column: "UnitOfMeasureId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_QuoteDetails_ProductId",
@@ -1408,35 +1491,10 @@ namespace SPC.API.Data.Migrations
                 column: "SalesRepId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RemitoDetalles_ProductoId",
-                table: "RemitoDetalles",
-                column: "ProductoId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_RemitoDetalles_RemitoId",
-                table: "RemitoDetalles",
-                column: "RemitoId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Remitos_BranchId_NumeroRemito",
-                table: "Remitos",
-                columns: new[] { "BranchId", "NumeroRemito" },
+                name: "IX_SalesRepes_Legajo",
+                table: "SalesRepes",
+                column: "Legajo",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Remitos_ClienteId",
-                table: "Remitos",
-                column: "ClienteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Remitos_FacturaId",
-                table: "Remitos",
-                column: "FacturaId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Remitos_VendedorId",
-                table: "Remitos",
-                column: "VendedorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockMovementDetails_ProductId",
@@ -1459,21 +1517,26 @@ namespace SPC.API.Data.Migrations
                 column: "SourceWarehouseId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Stocks_DepositoId",
+                name: "IX_Stocks_ProductId_WarehouseId",
                 table: "Stocks",
-                column: "DepositoId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Stocks_ProductoId_DepositoId",
-                table: "Stocks",
-                columns: new[] { "ProductoId", "DepositoId" },
+                columns: new[] { "ProductId", "WarehouseId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Vendedores_Legajo",
-                table: "Vendedores",
-                column: "Legajo",
+                name: "IX_Stocks_WarehouseId",
+                table: "Stocks",
+                column: "WarehouseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaxSettings_TaxCode_EffectiveFrom",
+                table: "TaxSettings",
+                columns: new[] { "TaxCode", "EffectiveFrom" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Warehouses_SalesRepAsociadoId",
+                table: "Warehouses",
+                column: "SalesRepAsociadoId");
         }
 
         /// <inheritdoc />
@@ -1481,6 +1544,9 @@ namespace SPC.API.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "CasualDeliveryNoteDetails");
+
+            migrationBuilder.DropTable(
+                name: "CompanySettings");
 
             migrationBuilder.DropTable(
                 name: "ConsignmentDetails");
@@ -1501,10 +1567,13 @@ namespace SPC.API.Data.Migrations
                 name: "DebitNoteDetails");
 
             migrationBuilder.DropTable(
-                name: "FacturaDetalles");
+                name: "DeliveryNoteDetails");
 
             migrationBuilder.DropTable(
                 name: "InternalDebitNoteDetails");
+
+            migrationBuilder.DropTable(
+                name: "InvoiceDetails");
 
             migrationBuilder.DropTable(
                 name: "PaymentDetails");
@@ -1513,13 +1582,13 @@ namespace SPC.API.Data.Migrations
                 name: "QuoteDetails");
 
             migrationBuilder.DropTable(
-                name: "RemitoDetalles");
-
-            migrationBuilder.DropTable(
                 name: "StockMovementDetails");
 
             migrationBuilder.DropTable(
                 name: "Stocks");
+
+            migrationBuilder.DropTable(
+                name: "TaxSettings");
 
             migrationBuilder.DropTable(
                 name: "CasualDeliveryNotes");
@@ -1534,6 +1603,9 @@ namespace SPC.API.Data.Migrations
                 name: "DebitNotes");
 
             migrationBuilder.DropTable(
+                name: "DeliveryNotes");
+
+            migrationBuilder.DropTable(
                 name: "InternalDebitNotes");
 
             migrationBuilder.DropTable(
@@ -1546,22 +1618,19 @@ namespace SPC.API.Data.Migrations
                 name: "Quotes");
 
             migrationBuilder.DropTable(
-                name: "Remitos");
-
-            migrationBuilder.DropTable(
                 name: "StockMovements");
 
             migrationBuilder.DropTable(
-                name: "Productos");
+                name: "Products");
 
             migrationBuilder.DropTable(
-                name: "Facturas");
+                name: "Invoices");
 
             migrationBuilder.DropTable(
-                name: "Depositos");
+                name: "Warehouses");
 
             migrationBuilder.DropTable(
-                name: "Rubros");
+                name: "Categorys");
 
             migrationBuilder.DropTable(
                 name: "UnidadesMedida");
@@ -1570,13 +1639,13 @@ namespace SPC.API.Data.Migrations
                 name: "Branches");
 
             migrationBuilder.DropTable(
-                name: "Clientes");
+                name: "Customers");
 
             migrationBuilder.DropTable(
                 name: "CondicionesIva");
 
             migrationBuilder.DropTable(
-                name: "Vendedores");
+                name: "SalesRepes");
 
             migrationBuilder.DropTable(
                 name: "ZonasVenta");

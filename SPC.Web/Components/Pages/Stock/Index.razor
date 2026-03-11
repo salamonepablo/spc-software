@@ -93,7 +93,7 @@
                             <tr>
                                 <th>Codigo</th>
                                 <th>Descripcion</th>
-                                <th>Rubro</th>
+                                <th>Category</th>
                                 <th class="text-end">Stock</th>
                                 <th class="text-end">Minimo</th>
                                 <th class="text-end">Precio</th>
@@ -105,9 +105,9 @@
                             @foreach (var item in stock)
                             {
                                 <tr class="@(item.BajoMinimo ? "table-warning" : "")">
-                                    <td><code>@item.ProductoCodigo</code></td>
-                                    <td>@item.ProductoDescripcion</td>
-                                    <td><small class="text-muted">@(item.RubroNombre ?? "-")</small></td>
+                                    <td><code>@item.ProductCodigo</code></td>
+                                    <td>@item.ProductDescripcion</td>
+                                    <td><small class="text-muted">@(item.CategoryNombre ?? "-")</small></td>
                                     <td class="text-end">
                                         <strong class="@(item.BajoMinimo ? "text-danger" : "text-success")">
                                             @item.StockTotal.ToString("N0")

@@ -1,19 +1,19 @@
 using Microsoft.EntityFrameworkCore;
-using SPC.API.Contracts.Presupuestos;
+using SPC.API.Contracts.Quotes;
 using SPC.API.Data;
 using SPC.Shared.Models;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Presupuestos (Quotes) service implementation
+/// Quotes (Quotes) service implementation
 /// </summary>
-public class PresupuestosService : IPresupuestosService
+public class QuotesService : IQuotesService
 {
     private readonly SPCDbContext _db;
     private readonly IPricingService _pricingService;
 
-    public PresupuestosService(SPCDbContext db, IPricingService pricingService)
+    public QuotesService(SPCDbContext db, IPricingService pricingService)
     {
         _db = db;
         _pricingService = pricingService;
@@ -23,7 +23,7 @@ public class PresupuestosService : IPresupuestosService
     // QUERIES
     // ===========================================
 
-    public async Task<IEnumerable<PresupuestoResponse>> GetAllAsync(int skip = 0, int take = 50)
+    public async Task<IEnumerable<QuoteResponse>> GetAllAsync(int skip = 0, int take = 50)
     {
         var quotes = await _db.Quotes
             .Include(q => q.Customer)
@@ -39,7 +39,7 @@ public class PresupuestosService : IPresupuestosService
         return quotes.Select(MapToResponse);
     }
 
-    public async Task<PresupuestoCompletoResponse?> GetByIdAsync(int id)
+    public async Task<QuoteCompletoResponse?> GetByIdAsync(int id)
     {
         var quote = await _db.Quotes
             .Include(q => q.Customer)
@@ -54,7 +54,7 @@ public class PresupuestosService : IPresupuestosService
         return MapToCompleteResponse(quote);
     }
 
-    public async Task<IEnumerable<PresupuestoResponse>> GetByCustomerAsync(int customerId)
+    public async Task<IEnumerable<QuoteResponse>> GetByCustomerAsync(int customerId)
     {
         var quotes = await _db.Quotes
             .Include(q => q.Customer)
@@ -68,7 +68,7 @@ public class PresupuestosService : IPresupuestosService
         return quotes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<PresupuestoResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<QuoteResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
     {
         var quotes = await _db.Quotes
             .Include(q => q.Customer)
@@ -82,7 +82,7 @@ public class PresupuestosService : IPresupuestosService
         return quotes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<PresupuestoResponse>> SearchAsync(string term)
+    public async Task<IEnumerable<QuoteResponse>> SearchAsync(string term)
     {
         long.TryParse(term, out var quoteNumber);
 
@@ -110,11 +110,11 @@ public class PresupuestosService : IPresupuestosService
     // COMMANDS
     // ===========================================
 
-    public async Task<PresupuestoCompletoResponse> CreateAsync(CreatePresupuestoRequest request)
+    public async Task<QuoteCompletoResponse> CreateAsync(CreateQuoteRequest request)
     {
         // 1. Validate and load customer
-        var customer = await _db.Clientes.FindAsync(request.CustomerId)
-            ?? throw new InvalidOperationException($"Cliente {request.CustomerId} no encontrado");
+        var customer = await _db.Customers.FindAsync(request.CustomerId)
+            ?? throw new InvalidOperationException($"Customer {request.CustomerId} no encontrado");
 
         // 2. Validate and load branch
         var branch = await _db.Branches.FindAsync(request.BranchId)
@@ -122,14 +122,14 @@ public class PresupuestosService : IPresupuestosService
 
         // 3. Load all products
         var productIds = request.Details.Select(d => d.ProductId).Distinct().ToList();
-        var products = await _db.Productos
+        var products = await _db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var detail in request.Details)
         {
             if (!products.ContainsKey(detail.ProductId))
-                throw new InvalidOperationException($"Producto {detail.ProductId} no encontrado");
+                throw new InvalidOperationException($"Product {detail.ProductId} no encontrado");
         }
 
         // 4. Resolve document discount
@@ -137,14 +137,14 @@ public class PresupuestosService : IPresupuestosService
             request.DiscountPercent,
             customer.PorcentajeDescuento);
 
-        // 5. Calculate line items (quotes use PrecioPresupuesto, no VAT calculation)
-        var lineResults = new List<(CreatePresupuestoDetalleRequest detail, LineCalculationResult calc, Producto product)>();
+        // 5. Calculate line items (quotes use PrecioQuote, no VAT calculation)
+        var lineResults = new List<(CreateQuoteDetalleRequest detail, LineCalculationResult calc, Product product)>();
         foreach (var detail in request.Details)
         {
             var product = products[detail.ProductId];
             
             // Use provided price or default to product's quote price
-            var unitPrice = detail.UnitPrice ?? product.PrecioPresupuesto;
+            var unitPrice = detail.UnitPrice ?? product.PrecioQuote;
             
             // For quotes, VAT is included in price, so we set 0 for calculation
             var lineCalc = _pricingService.CalculateLine(
@@ -235,9 +235,9 @@ public class PresupuestosService : IPresupuestosService
     // MAPPING
     // ===========================================
 
-    private static PresupuestoResponse MapToResponse(Quote quote)
+    private static QuoteResponse MapToResponse(Quote quote)
     {
-        return new PresupuestoResponse
+        return new QuoteResponse
         {
             Id = quote.Id,
             BranchId = quote.BranchId,
@@ -258,9 +258,9 @@ public class PresupuestosService : IPresupuestosService
         };
     }
 
-    private static PresupuestoCompletoResponse MapToCompleteResponse(Quote quote)
+    private static QuoteCompletoResponse MapToCompleteResponse(Quote quote)
     {
-        return new PresupuestoCompletoResponse
+        return new QuoteCompletoResponse
         {
             Id = quote.Id,
             BranchId = quote.BranchId,
@@ -280,7 +280,7 @@ public class PresupuestosService : IPresupuestosService
             ItemCount = quote.Details.Count,
             BusinessUnit = quote.BusinessUnit,
             Notes = quote.Notes,
-            Details = quote.Details.Select(d => new PresupuestoDetalleResponse
+            Details = quote.Details.Select(d => new QuoteDetalleResponse
             {
                 Id = d.Id,
                 ItemNumber = d.ItemNumber,

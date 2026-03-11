@@ -6,13 +6,13 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Productos - SPC</PageTitle>
+<PageTitle>Products - SPC</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Productos</h4>
+        <h4 class="fw-bold mb-0">Products</h4>
         <a href="/productos/nuevo" class="btn btn-primary">
-            Nuevo Producto
+            Nuevo Product
         </a>
     </div>
 
@@ -78,7 +78,7 @@
                             <tr>
                                 <th>Código</th>
                                 <th>Descripción</th>
-                                <th>Rubro</th>
+                                <th>Category</th>
                                 <th class="text-end">Precio Venta</th>
                                 <th class="text-end">IVA %</th>
                                 <th style="width: 150px;">Acciones</th>
@@ -96,7 +96,7 @@
                                             <br /><small class="text-muted">Prov: @producto.CodigoProveedor</small>
                                         }
                                     </td>
-                                    <td>@(producto.RubroNombre ?? "-")</td>
+                                    <td>@(producto.CategoryNombre ?? "-")</td>
                                     <td class="text-end">@producto.PrecioVenta.ToString("C2")</td>
                                     <td class="text-end">@producto.PorcentajeIVA.ToString("0.##")%</td>
                                     <td>
@@ -123,14 +123,14 @@
     </div>
 </div>
 
-<ConfirmDialog Title="Eliminar Producto"
+<ConfirmDialog Title="Eliminar Product"
                Message="@deleteConfirmMessage"
                ConfirmText="Eliminar"
                IsVisible="showDeleteConfirm"
                OnClose="HandleDeleteConfirm" />
 
 @code {
-    private List<ProductoDto>? productos;
+    private List<ProductDto>? productos;
     private bool loading = true;
     private string searchTerm = "";
     
@@ -140,20 +140,20 @@
     
     // Delete confirmation state
     private bool showDeleteConfirm;
-    private ProductoDto? productoToDelete;
+    private ProductDto? productoToDelete;
     private string deleteConfirmMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadProductos();
+        await LoadProducts();
     }
 
-    private async Task LoadProductos()
+    private async Task LoadProducts()
     {
         loading = true;
         try
         {
-            productos = await Api.GetProductosAsync();
+            productos = await Api.GetProductsAsync();
         }
         finally
         {
@@ -165,14 +165,14 @@
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            await LoadProductos();
+            await LoadProducts();
             return;
         }
 
         loading = true;
         try
         {
-            productos = await Api.BuscarProductosAsync(searchTerm);
+            productos = await Api.BuscarProductsAsync(searchTerm);
         }
         finally
         {
@@ -183,7 +183,7 @@
     private async Task ClearSearch()
     {
         searchTerm = "";
-        await LoadProductos();
+        await LoadProducts();
     }
 
     private async Task HandleSearchKeyUp(KeyboardEventArgs e)
@@ -194,7 +194,7 @@
         }
     }
 
-    private void ShowDeleteConfirm(ProductoDto producto)
+    private void ShowDeleteConfirm(ProductDto producto)
     {
         productoToDelete = producto;
         deleteConfirmMessage = $"¿Está seguro que desea eliminar el producto \"{producto.Codigo} - {producto.Descripcion}\"? Esta acción no se puede deshacer.";
@@ -207,13 +207,13 @@
 
         if (confirmed && productoToDelete != null)
         {
-            var success = await Api.DeleteProductoAsync(productoToDelete.Id);
+            var success = await Api.DeleteProductAsync(productoToDelete.Id);
             
             if (success)
             {
-                alertMessage = $"Producto \"{productoToDelete.Codigo}\" eliminado correctamente.";
+                alertMessage = $"Product \"{productoToDelete.Codigo}\" eliminado correctamente.";
                 alertType = AlertMessage.AlertType.Success;
-                await LoadProductos();
+                await LoadProducts();
             }
             else
             {

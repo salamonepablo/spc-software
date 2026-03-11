@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for updating an existing Producto
+/// DTO for updating an existing Product
 /// </summary>
-public class UpdateProductoDto
+public class UpdateProductDto
 {
     [Required(ErrorMessage = "El código es requerido")]
     [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
@@ -18,9 +18,9 @@ public class UpdateProductoDto
     [StringLength(100, ErrorMessage = "Máximo 100 caracteres")]
     public string? CodigoProveedor { get; set; }
     
-    public int? RubroId { get; set; }
+    public int? CategoryId { get; set; }
     
-    public int? UnidadMedidaId { get; set; }
+    public int? UnitOfMeasureId { get; set; }
     
     [Range(0, double.MaxValue, ErrorMessage = "Debe ser mayor o igual a 0")]
     public decimal PrecioVenta { get; set; } = 0;

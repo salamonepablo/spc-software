@@ -13,12 +13,12 @@
         </div>
     </div>
 
-    @* Primera fila: Clientes, Productos, Stock *@
+    @* Primera fila: Customers, Products, Stock *@
     <div class="row g-4">
         <div class="col-md-4">
             <div class="card h-100 border-primary">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">Clientes</h5>
+                    <h5 class="card-title fw-bold fs-5">Customers</h5>
                     <p class="card-text">Gestion de clientes, condiciones comerciales y datos de contacto.</p>
                     @if (clientesCount.HasValue)
                     {
@@ -27,7 +27,7 @@
                     }
                 </div>
                 <div class="card-footer bg-transparent">
-                    <a href="/clientes" class="btn btn-primary">Ir a Clientes</a>
+                    <a href="/clientes" class="btn btn-primary">Ir a Customers</a>
                 </div>
             </div>
         </div>
@@ -35,7 +35,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-primary">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">Productos</h5>
+                    <h5 class="card-title fw-bold fs-5">Products</h5>
                     <p class="card-text">Catalogo de productos, precios y categorias.</p>
                     @if (productosCount.HasValue)
                     {
@@ -44,7 +44,7 @@
                     }
                 </div>
                 <div class="card-footer bg-transparent">
-                    <a href="/productos" class="btn btn-primary">Ir a Productos</a>
+                    <a href="/productos" class="btn btn-primary">Ir a Products</a>
                 </div>
             </div>
         </div>
@@ -67,18 +67,18 @@
         </div>
     </div>
 
-    @* Segunda fila: Facturacion *@
+    @* Segunda fila: Invoicecion *@
     <div class="row g-4 mt-2">
         <div class="col-md-8">
             <div class="card h-100 border-warning">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold fs-5">Facturacion</h5>
+                    <h5 class="card-title fw-bold fs-5">Invoicecion</h5>
                     <p class="card-text">Consulta de facturas emitidas con integracion AFIP.</p>
                     @if (facturacionResumen != null)
                     {
                         <div class="row">
                             <div class="col-4">
-                                <p class="h4 text-warning mb-0">@facturacionResumen.TotalFacturas.ToString("N0")</p>
+                                <p class="h4 text-warning mb-0">@facturacionResumen.TotalInvoices.ToString("N0")</p>
                                 <small class="text-muted">facturas totales</small>
                             </div>
                             <div class="col-4">
@@ -93,7 +93,7 @@
                     }
                 </div>
                 <div class="card-footer bg-transparent">
-                    <a href="/facturas" class="btn btn-warning">Ver Facturas</a>
+                    <a href="/facturas" class="btn btn-warning">Ver Invoices</a>
                 </div>
             </div>
         </div>
@@ -155,17 +155,17 @@
     private int? clientesCount;
     private int? productosCount;
     private decimal? stockValor;
-    private FacturacionResumenDto? facturacionResumen;
+    private InvoicecionResumenDto? facturacionResumen;
     private bool? apiStatus;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var clientesTask = Api.GetClientesAsync();
-            var productosTask = Api.GetProductosAsync();
+            var clientesTask = Api.GetCustomersAsync();
+            var productosTask = Api.GetProductsAsync();
             var stockTask = Api.GetStockResumenAsync();
-            var facturacionTask = Api.GetFacturacionResumenAsync();
+            var facturacionTask = Api.GetInvoicecionResumenAsync();
             
             await Task.WhenAll(clientesTask, productosTask, stockTask, facturacionTask);
             

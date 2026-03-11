@@ -80,40 +80,40 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
         if (!db.CondicionesIva.Any())
         {
             db.CondicionesIva.AddRange(
-                new CondicionIva { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoFactura = "A" },
-                new CondicionIva { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoFactura = "B" },
-                new CondicionIva { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoFactura = "B" },
-                new CondicionIva { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoFactura = "B" }
+                new TaxCondition { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoInvoice = "A" },
+                new TaxCondition { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoInvoice = "B" },
+                new TaxCondition { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoInvoice = "B" },
+                new TaxCondition { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoInvoice = "B" }
             );
         }
         
         if (!db.UnidadesMedida.Any())
         {
             db.UnidadesMedida.AddRange(
-                new UnidadMedida { Id = 1, Codigo = "UN", Nombre = "Unidades" },
-                new UnidadMedida { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+                new UnitOfMeasure { Id = 1, Codigo = "UN", Nombre = "Unidades" },
+                new UnitOfMeasure { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
             );
         }
         
-        if (!db.Depositos.Any())
+        if (!db.Warehouses.Any())
         {
-            db.Depositos.Add(new Deposito { Id = 1, Nombre = "Deposito Principal", Activo = true });
+            db.Warehouses.Add(new Warehouse { Id = 1, Nombre = "Warehouse Principal", Activo = true });
         }
         
-        if (!db.Rubros.Any())
+        if (!db.Categorys.Any())
         {
-            db.Rubros.AddRange(
-                new Rubro { Id = 1, Nombre = "Baterias Auto", Activo = true },
-                new Rubro { Id = 2, Nombre = "Baterias Moto", Activo = true },
-                new Rubro { Id = 3, Nombre = "Baterias Camion", Activo = true },
-                new Rubro { Id = 4, Nombre = "Accesorios", Activo = true }
+            db.Categorys.AddRange(
+                new Category { Id = 1, Nombre = "Baterias Auto", Activo = true },
+                new Category { Id = 2, Nombre = "Baterias Moto", Activo = true },
+                new Category { Id = 3, Nombre = "Baterias Camion", Activo = true },
+                new Category { Id = 4, Nombre = "Accesorios", Activo = true }
             );
         }
         
         if (!db.Branches.Any())
         {
             db.Branches.AddRange(
-                new Branch { Id = 1, Code = "CALLE", Name = "Calle (Vendedores)", PointOfSale = 2, IsActive = true },
+                new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesRepes)", PointOfSale = 2, IsActive = true },
                 new Branch { Id = 2, Code = "DISTRIB", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true }
             );
         }
@@ -160,14 +160,14 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
         }
         
         // Add a test customer with discount for testing
-        if (!db.Clientes.Any())
+        if (!db.Customers.Any())
         {
-            db.Clientes.Add(new Cliente 
+            db.Customers.Add(new Customer 
             { 
                 Id = 1, 
-                RazonSocial = "Cliente Test", 
+                RazonSocial = "Customer Test", 
                 CUIT = "20-12345678-9",
-                CondicionIvaId = 1, 
+                TaxConditionId = 1, 
                 PorcentajeDescuento = 10m, // 10% default discount
                 LimiteCredito = 50000m,
                 Activo = true,
@@ -176,31 +176,31 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
         }
         
         // Add test products with dual pricing
-        if (!db.Productos.Any())
+        if (!db.Products.Any())
         {
-            db.Productos.AddRange(
-                new Producto 
+            db.Products.AddRange(
+                new Product 
                 { 
                     Id = 1, 
                     Codigo = "BAT001", 
                     Descripcion = "Bateria 12V 65AH", 
-                    PrecioFactura = 1000m,  // Invoice price (without VAT)
-                    PrecioPresupuesto = 1210m,  // Quote price (with VAT included)
+                    PrecioInvoice = 1000m,  // Invoice price (without VAT)
+                    PrecioQuote = 1210m,  // Quote price (with VAT included)
                     PrecioVenta = 1000m,
                     PorcentajeIVA = 21m,
-                    RubroId = 1,
+                    CategoryId = 1,
                     Activo = true 
                 },
-                new Producto 
+                new Product 
                 { 
                     Id = 2, 
                     Codigo = "BAT002", 
                     Descripcion = "Bateria 12V 75AH", 
-                    PrecioFactura = 1500m,
-                    PrecioPresupuesto = 1815m,
+                    PrecioInvoice = 1500m,
+                    PrecioQuote = 1815m,
                     PrecioVenta = 1500m,
                     PorcentajeIVA = 21m,
-                    RubroId = 1,
+                    CategoryId = 1,
                     Activo = true 
                 }
             );

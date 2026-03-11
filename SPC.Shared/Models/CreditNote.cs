@@ -26,13 +26,13 @@ public class CreditNote
     /// <summary>Fecha de emision</summary>
     public DateTime CreditNoteDate { get; set; }
     
-    /// <summary>Cliente</summary>
+    /// <summary>Customer</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
-    /// <summary>Vendedor</summary>
+    /// <summary>SalesRep</summary>
     public int? SalesRepId { get; set; }
-    public Vendedor? SalesRep { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     /// <summary>Subtotal gravado</summary>
     public decimal Subtotal { get; set; }
@@ -69,9 +69,9 @@ public class CreditNote
     [StringLength(50)]
     public string? SalesCondition { get; set; }
     
-    /// <summary>Factura contra la que se emite la NC</summary>
+    /// <summary>Invoice contra la que se emite la NC</summary>
     public int? InvoiceId { get; set; }
-    public Factura? Invoice { get; set; }
+    public Invoice? Invoice { get; set; }
     
     /// <summary>Esta anulada?</summary>
     public bool IsVoided { get; set; } = false;
@@ -96,7 +96,7 @@ public class CreditNoteDetail
     public int ItemNumber { get; set; }
     
     public int ProductId { get; set; }
-    public Producto? Product { get; set; }
+    public Product? Product { get; set; }
     
     public decimal Quantity { get; set; }
     

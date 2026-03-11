@@ -7,8 +7,8 @@ namespace SPC.Tests.Unit;
 /// TDD Tests for Invoice calculation rules.
 /// 
 /// Business Rules:
-/// 1. Factura A: Prices are NET (without VAT), VAT is added and discriminated
-/// 2. Factura B: Prices are FINAL (with VAT included), shows "IVA Contenido"
+/// 1. Invoice A: Prices are NET (without VAT), VAT is added and discriminated
+/// 2. Invoice B: Prices are FINAL (with VAT included), shows "IVA Contenido"
 /// 3. IIBB perception only applies if company is "Agente de Percepción"
 /// 4. IIBB rate comes from customer (AFIP/ARCA padrón)
 /// </summary>
@@ -26,9 +26,9 @@ public class InvoiceCalculationTests
     // ===========================================
 
     [Fact]
-    public void FacturaA_CalculatesVATOnNetPrice()
+    public void InvoiceA_CalculatesVATOnNetPrice()
     {
-        // Arrange - Factura A uses PrecioFactura (net, without VAT)
+        // Arrange - Invoice A uses PrecioInvoice (net, without VAT)
         // Product price: 1000 (net)
         // Expected: Subtotal=1000, VAT=210, Total=1210
         
@@ -47,9 +47,9 @@ public class InvoiceCalculationTests
     }
 
     [Fact]
-    public void FacturaA_WithMultipleLines_SumsCorrectly()
+    public void InvoiceA_WithMultipleLines_SumsCorrectly()
     {
-        // Arrange - Multiple products, Factura A
+        // Arrange - Multiple products, Invoice A
         var lines = new[]
         {
             new LineCalculationResult { Subtotal = 81485m, VATPercent = 21m },  // BATERIA 12 X 45
@@ -70,9 +70,9 @@ public class InvoiceCalculationTests
     // ===========================================
 
     [Fact]
-    public void FacturaB_UsesIncludedVAT_DoesNotAddVAT()
+    public void InvoiceB_UsesIncludedVAT_DoesNotAddVAT()
     {
-        // Arrange - Factura B: price already includes VAT
+        // Arrange - Invoice B: price already includes VAT
         // Product price: 1210 (with VAT included)
         // Expected: Total=1210, IVAContenido=210
         
@@ -91,7 +91,7 @@ public class InvoiceCalculationTests
     }
 
     [Fact]
-    public void FacturaB_CalculatesVATContained_Correctly()
+    public void InvoiceB_CalculatesVATContained_Correctly()
     {
         // Arrange - From PDF example: Total=32748.72, IVA Contenido=5683.66
         // VAT contained = Total / 1.21 * 0.21 = Total * 0.21 / 1.21
@@ -109,9 +109,9 @@ public class InvoiceCalculationTests
     }
 
     [Fact]
-    public void FacturaB_WithDiscount_AppliesBeforeVATCalculation()
+    public void InvoiceB_WithDiscount_AppliesBeforeVATCalculation()
     {
-        // Arrange - Factura B with 10% discount
+        // Arrange - Invoice B with 10% discount
         var lines = new[]
         {
             new LineCalculationResult { Subtotal = 1210m, VATPercent = 21m }
@@ -207,7 +207,7 @@ public class InvoiceCalculationTests
     // ===========================================
 
     [Fact]
-    public void FacturaA_WithAllDiscountsAndIIBB_CalculatesCorrectly()
+    public void InvoiceA_WithAllDiscountsAndIIBB_CalculatesCorrectly()
     {
         // Arrange - Complex scenario from real invoice
         // Line: 1000 with 10% line discount = 900

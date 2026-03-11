@@ -19,30 +19,30 @@ public class StockService : IStockService
     public async Task<IEnumerable<StockResponse>> GetAllAsync()
     {
         var stocks = await _db.Stocks
-            .Include(s => s.Producto)
-            .Include(s => s.Deposito)
-            .Where(s => s.Producto.Activo && s.Deposito.Activo)
-            .OrderBy(s => s.Producto.Descripcion)
-            .ThenBy(s => s.Deposito.Nombre)
+            .Include(s => s.Product)
+            .Include(s => s.Warehouse)
+            .Where(s => s.Product.Activo && s.Warehouse.Activo)
+            .OrderBy(s => s.Product.Descripcion)
+            .ThenBy(s => s.Warehouse.Nombre)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
-            ProductoId = s.ProductoId,
-            ProductoCodigo = s.Producto.Codigo,
-            ProductoDescripcion = s.Producto.Descripcion,
-            DepositoId = s.DepositoId,
-            DepositoNombre = s.Deposito.Nombre,
+            ProductId = s.ProductId,
+            ProductCodigo = s.Product.Codigo,
+            ProductDescripcion = s.Product.Descripcion,
+            WarehouseId = s.WarehouseId,
+            WarehouseNombre = s.Warehouse.Nombre,
             Cantidad = s.Cantidad,
-            StockMinimo = s.Producto.StockMinimo
+            StockMinimo = s.Product.StockMinimo
         });
     }
 
     public async Task<IEnumerable<StockResumenResponse>> GetResumenAsync()
     {
-        var productos = await _db.Productos
-            .Include(p => p.Rubro)
+        var productos = await _db.Products
+            .Include(p => p.Category)
             .Include(p => p.Stocks)
             .Where(p => p.Activo)
             .OrderBy(p => p.Descripcion)
@@ -50,64 +50,64 @@ public class StockService : IStockService
 
         return productos.Select(p => new StockResumenResponse
         {
-            ProductoId = p.Id,
-            ProductoCodigo = p.Codigo,
-            ProductoDescripcion = p.Descripcion,
-            RubroNombre = p.Rubro?.Nombre,
+            ProductId = p.Id,
+            ProductCodigo = p.Codigo,
+            ProductDescripcion = p.Descripcion,
+            CategoryNombre = p.Category?.Nombre,
             StockTotal = p.Stocks.Sum(s => s.Cantidad),
             StockMinimo = p.StockMinimo,
             PrecioVenta = p.PrecioVenta
         });
     }
 
-    public async Task<IEnumerable<StockResponse>> GetByProductoAsync(int productoId)
+    public async Task<IEnumerable<StockResponse>> GetByProductAsync(int productoId)
     {
         var stocks = await _db.Stocks
-            .Include(s => s.Producto)
-            .Include(s => s.Deposito)
-            .Where(s => s.ProductoId == productoId && s.Deposito.Activo)
-            .OrderBy(s => s.Deposito.Nombre)
+            .Include(s => s.Product)
+            .Include(s => s.Warehouse)
+            .Where(s => s.ProductId == productoId && s.Warehouse.Activo)
+            .OrderBy(s => s.Warehouse.Nombre)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
-            ProductoId = s.ProductoId,
-            ProductoCodigo = s.Producto.Codigo,
-            ProductoDescripcion = s.Producto.Descripcion,
-            DepositoId = s.DepositoId,
-            DepositoNombre = s.Deposito.Nombre,
+            ProductId = s.ProductId,
+            ProductCodigo = s.Product.Codigo,
+            ProductDescripcion = s.Product.Descripcion,
+            WarehouseId = s.WarehouseId,
+            WarehouseNombre = s.Warehouse.Nombre,
             Cantidad = s.Cantidad,
-            StockMinimo = s.Producto.StockMinimo
+            StockMinimo = s.Product.StockMinimo
         });
     }
 
-    public async Task<IEnumerable<StockResponse>> GetByDepositoAsync(int depositoId)
+    public async Task<IEnumerable<StockResponse>> GetByWarehouseAsync(int depositoId)
     {
         var stocks = await _db.Stocks
-            .Include(s => s.Producto)
-            .Include(s => s.Deposito)
-            .Where(s => s.DepositoId == depositoId && s.Producto.Activo)
-            .OrderBy(s => s.Producto.Descripcion)
+            .Include(s => s.Product)
+            .Include(s => s.Warehouse)
+            .Where(s => s.WarehouseId == depositoId && s.Product.Activo)
+            .OrderBy(s => s.Product.Descripcion)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
-            ProductoId = s.ProductoId,
-            ProductoCodigo = s.Producto.Codigo,
-            ProductoDescripcion = s.Producto.Descripcion,
-            DepositoId = s.DepositoId,
-            DepositoNombre = s.Deposito.Nombre,
+            ProductId = s.ProductId,
+            ProductCodigo = s.Product.Codigo,
+            ProductDescripcion = s.Product.Descripcion,
+            WarehouseId = s.WarehouseId,
+            WarehouseNombre = s.Warehouse.Nombre,
             Cantidad = s.Cantidad,
-            StockMinimo = s.Producto.StockMinimo
+            StockMinimo = s.Product.StockMinimo
         });
     }
 
     public async Task<IEnumerable<StockResumenResponse>> GetBajoMinimoAsync()
     {
-        var productos = await _db.Productos
-            .Include(p => p.Rubro)
+        var productos = await _db.Products
+            .Include(p => p.Category)
             .Include(p => p.Stocks)
             .Where(p => p.Activo && p.StockMinimo > 0)
             .ToListAsync();
@@ -116,21 +116,21 @@ public class StockService : IStockService
             .Where(p => p.Stocks.Sum(s => s.Cantidad) < p.StockMinimo)
             .Select(p => new StockResumenResponse
             {
-                ProductoId = p.Id,
-                ProductoCodigo = p.Codigo,
-                ProductoDescripcion = p.Descripcion,
-                RubroNombre = p.Rubro?.Nombre,
+                ProductId = p.Id,
+                ProductCodigo = p.Codigo,
+                ProductDescripcion = p.Descripcion,
+                CategoryNombre = p.Category?.Nombre,
                 StockTotal = p.Stocks.Sum(s => s.Cantidad),
                 StockMinimo = p.StockMinimo,
                 PrecioVenta = p.PrecioVenta
             })
-            .OrderBy(p => p.ProductoDescripcion);
+            .OrderBy(p => p.ProductDescripcion);
     }
 
     public async Task<IEnumerable<StockResumenResponse>> SearchAsync(string termino)
     {
-        var productos = await _db.Productos
-            .Include(p => p.Rubro)
+        var productos = await _db.Products
+            .Include(p => p.Category)
             .Include(p => p.Stocks)
             .Where(p => p.Activo &&
                    (p.Codigo.Contains(termino) || p.Descripcion.Contains(termino)))
@@ -139,10 +139,10 @@ public class StockService : IStockService
 
         return productos.Select(p => new StockResumenResponse
         {
-            ProductoId = p.Id,
-            ProductoCodigo = p.Codigo,
-            ProductoDescripcion = p.Descripcion,
-            RubroNombre = p.Rubro?.Nombre,
+            ProductId = p.Id,
+            ProductCodigo = p.Codigo,
+            ProductDescripcion = p.Descripcion,
+            CategoryNombre = p.Category?.Nombre,
             StockTotal = p.Stocks.Sum(s => s.Cantidad),
             StockMinimo = p.StockMinimo,
             PrecioVenta = p.PrecioVenta

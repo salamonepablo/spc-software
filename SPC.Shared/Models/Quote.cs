@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Presupuesto (Budget/Quote).
+/// Quote (Budget/Quote).
 /// Documento interno sin IVA, genera saldo en Linea 2 de cuenta corriente.
 /// NO se convierte en factura, es una linea de credito paralela.
 /// </summary>
@@ -21,13 +21,13 @@ public class Quote
     /// <summary>Fecha de emision</summary>
     public DateTime QuoteDate { get; set; }
     
-    /// <summary>Cliente</summary>
+    /// <summary>Customer</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
-    /// <summary>Vendedor</summary>
+    /// <summary>SalesRep</summary>
     public int? SalesRepId { get; set; }
-    public Vendedor? SalesRep { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     /// <summary>Subtotal sin descuento</summary>
     public decimal Subtotal { get; set; }
@@ -69,7 +69,7 @@ public class QuoteDetail
     public int ItemNumber { get; set; }
     
     public int ProductId { get; set; }
-    public Producto? Product { get; set; }
+    public Product? Product { get; set; }
     
     public decimal Quantity { get; set; }
     

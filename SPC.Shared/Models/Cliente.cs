@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Entidad Cliente - Equivalente a tabla Clientes en Access
+/// Entidad Customer - Equivalente a tabla Customers en Access
 /// </summary>
-public class Cliente
+public class Customer
 {
     public int Id { get; set; }
     
@@ -41,17 +41,17 @@ public class Cliente
     [EmailAddress(ErrorMessage = "Email inválido")]
     public string? Email { get; set; }
     
-    // Relación con CondicionIva
-    public int? CondicionIvaId { get; set; }
-    public CondicionIva? CondicionIva { get; set; }
+    // Relación con TaxCondition
+    public int? TaxConditionId { get; set; }
+    public TaxCondition? TaxCondition { get; set; }
     
-    // Relación con Vendedor
-    public int? VendedorId { get; set; }
-    public Vendedor? Vendedor { get; set; }
+    // Relación con SalesRep
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     // Relación con Zona de Venta
-    public int? ZonaVentaId { get; set; }
-    public ZonaVenta? ZonaVenta { get; set; }
+    public int? SalesZoneId { get; set; }
+    public SalesZone? SalesZone { get; set; }
     
     [Range(0, 100, ErrorMessage = "Descuento debe estar entre 0 y 100")]
     public decimal PorcentajeDescuento { get; set; } = 0;
@@ -85,8 +85,8 @@ public class Cliente
     public DateTime FechaAlta { get; set; } = DateTime.Now;
     
     // Navegacion: un cliente tiene muchas facturas, remitos, etc.
-    public List<Factura> Facturas { get; set; } = new();
-    public List<Remito> Remitos { get; set; } = new();
+    public List<Invoice> Invoices { get; set; } = new();
+    public List<DeliveryNote> DeliveryNotes { get; set; } = new();
     public List<CustomerAddress> DeliveryAddresses { get; set; } = new();
     public List<Quote> Quotes { get; set; } = new();
     public List<CreditNote> CreditNotes { get; set; } = new();

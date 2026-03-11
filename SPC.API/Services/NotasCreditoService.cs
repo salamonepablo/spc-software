@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using SPC.API.Contracts.NotasCredito;
+using SPC.API.Contracts.CreditNotes;
 using SPC.API.Data;
 using SPC.Shared.Models;
 
@@ -8,13 +8,13 @@ namespace SPC.API.Services;
 /// <summary>
 /// Credit Notes service implementation
 /// </summary>
-public class NotasCreditoService : INotasCreditoService
+public class CreditNotesService : ICreditNotesService
 {
     private readonly SPCDbContext _db;
     private readonly ITaxConfigurationService _taxService;
     private readonly IPricingService _pricingService;
 
-    public NotasCreditoService(
+    public CreditNotesService(
         SPCDbContext db,
         ITaxConfigurationService taxService,
         IPricingService pricingService)
@@ -28,7 +28,7 @@ public class NotasCreditoService : INotasCreditoService
     // QUERIES
     // ===========================================
 
-    public async Task<IEnumerable<NotaCreditoResponse>> GetAllAsync(int skip = 0, int take = 50)
+    public async Task<IEnumerable<CreditNoteResponse>> GetAllAsync(int skip = 0, int take = 50)
     {
         var notes = await _db.CreditNotes
             .Include(n => n.Customer)
@@ -45,7 +45,7 @@ public class NotasCreditoService : INotasCreditoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<NotaCreditoCompletaResponse?> GetByIdAsync(int id)
+    public async Task<CreditNoteCompletaResponse?> GetByIdAsync(int id)
     {
         var note = await _db.CreditNotes
             .Include(n => n.Customer)
@@ -61,7 +61,7 @@ public class NotasCreditoService : INotasCreditoService
         return MapToCompleteResponse(note);
     }
 
-    public async Task<IEnumerable<NotaCreditoResponse>> GetByCustomerAsync(int customerId)
+    public async Task<IEnumerable<CreditNoteResponse>> GetByCustomerAsync(int customerId)
     {
         var notes = await _db.CreditNotes
             .Include(n => n.Customer)
@@ -76,7 +76,7 @@ public class NotasCreditoService : INotasCreditoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<NotaCreditoResponse>> GetByInvoiceAsync(int invoiceId)
+    public async Task<IEnumerable<CreditNoteResponse>> GetByInvoiceAsync(int invoiceId)
     {
         var notes = await _db.CreditNotes
             .Include(n => n.Customer)
@@ -91,7 +91,7 @@ public class NotasCreditoService : INotasCreditoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<NotaCreditoResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<CreditNoteResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
     {
         var notes = await _db.CreditNotes
             .Include(n => n.Customer)
@@ -106,7 +106,7 @@ public class NotasCreditoService : INotasCreditoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<NotaCreditoResponse>> SearchAsync(string term)
+    public async Task<IEnumerable<CreditNoteResponse>> SearchAsync(string term)
     {
         long.TryParse(term.Replace("-", ""), out var noteNumber);
 
@@ -135,13 +135,13 @@ public class NotasCreditoService : INotasCreditoService
     // COMMANDS
     // ===========================================
 
-    public async Task<NotaCreditoCompletaResponse> CreateAsync(CreateNotaCreditoRequest request)
+    public async Task<CreditNoteCompletaResponse> CreateAsync(CreateCreditNoteRequest request)
     {
         // 1. Validate and load customer
-        var customer = await _db.Clientes
-            .Include(c => c.CondicionIva)
+        var customer = await _db.Customers
+            .Include(c => c.TaxCondition)
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId)
-            ?? throw new InvalidOperationException($"Cliente {request.CustomerId} no encontrado");
+            ?? throw new InvalidOperationException($"Customer {request.CustomerId} no encontrado");
 
         // 2. Validate and load branch
         var branch = await _db.Branches.FindAsync(request.BranchId)
@@ -150,23 +150,23 @@ public class NotasCreditoService : INotasCreditoService
         // 3. Validate invoice if provided
         if (request.InvoiceId.HasValue)
         {
-            var invoice = await _db.Facturas.FindAsync(request.InvoiceId.Value);
+            var invoice = await _db.Invoices.FindAsync(request.InvoiceId.Value);
             if (invoice == null)
-                throw new InvalidOperationException($"Factura {request.InvoiceId} no encontrada");
-            if (invoice.ClienteId != request.CustomerId)
+                throw new InvalidOperationException($"Invoice {request.InvoiceId} no encontrada");
+            if (invoice.CustomerId != request.CustomerId)
                 throw new InvalidOperationException("La factura no pertenece al cliente especificado");
         }
 
         // 4. Load all products
         var productIds = request.Details.Select(d => d.ProductId).Distinct().ToList();
-        var products = await _db.Productos
+        var products = await _db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var detail in request.Details)
         {
             if (!products.ContainsKey(detail.ProductId))
-                throw new InvalidOperationException($"Producto {detail.ProductId} no encontrado");
+                throw new InvalidOperationException($"Product {detail.ProductId} no encontrado");
         }
 
         // 5. Get VAT rate from configuration
@@ -183,11 +183,11 @@ public class NotasCreditoService : INotasCreditoService
             : VoucherType.CreditNoteB;
 
         // 8. Calculate line items
-        var lineResults = new List<(CreateNotaCreditoDetalleRequest detail, LineCalculationResult calc, Producto product)>();
+        var lineResults = new List<(CreateCreditNoteDetalleRequest detail, LineCalculationResult calc, Product product)>();
         foreach (var detail in request.Details)
         {
             var product = products[detail.ProductId];
-            var unitPrice = detail.UnitPrice ?? product.PrecioFactura;
+            var unitPrice = detail.UnitPrice ?? product.PrecioInvoice;
             
             var lineCalc = _pricingService.CalculateLine(
                 unitPrice,
@@ -287,9 +287,9 @@ public class NotasCreditoService : INotasCreditoService
     // MAPPING
     // ===========================================
 
-    private static NotaCreditoResponse MapToResponse(CreditNote note)
+    private static CreditNoteResponse MapToResponse(CreditNote note)
     {
-        return new NotaCreditoResponse
+        return new CreditNoteResponse
         {
             Id = note.Id,
             VoucherType = note.VoucherType == VoucherType.CreditNoteA ? "A" : "B",
@@ -303,7 +303,7 @@ public class NotasCreditoService : INotasCreditoService
             SalesRepName = note.SalesRep?.Nombre,
             InvoiceId = note.InvoiceId,
             InvoiceNumber = note.Invoice != null
-                ? $"{note.Invoice.TipoFactura} {note.Invoice.PuntoVenta:D4}-{note.Invoice.NumeroFactura:D8}"
+                ? $"{note.Invoice.TipoInvoice} {note.Invoice.PuntoVenta:D4}-{note.Invoice.NumeroInvoice:D8}"
                 : null,
             Subtotal = note.Subtotal,
             VATPercent = note.VATPercent,
@@ -320,9 +320,9 @@ public class NotasCreditoService : INotasCreditoService
         };
     }
 
-    private static NotaCreditoCompletaResponse MapToCompleteResponse(CreditNote note)
+    private static CreditNoteCompletaResponse MapToCompleteResponse(CreditNote note)
     {
-        return new NotaCreditoCompletaResponse
+        return new CreditNoteCompletaResponse
         {
             Id = note.Id,
             VoucherType = note.VoucherType == VoucherType.CreditNoteA ? "A" : "B",
@@ -336,7 +336,7 @@ public class NotasCreditoService : INotasCreditoService
             SalesRepName = note.SalesRep?.Nombre,
             InvoiceId = note.InvoiceId,
             InvoiceNumber = note.Invoice != null
-                ? $"{note.Invoice.TipoFactura} {note.Invoice.PuntoVenta:D4}-{note.Invoice.NumeroFactura:D8}"
+                ? $"{note.Invoice.TipoInvoice} {note.Invoice.PuntoVenta:D4}-{note.Invoice.NumeroInvoice:D8}"
                 : null,
             Subtotal = note.Subtotal,
             VATPercent = note.VATPercent,
@@ -352,7 +352,7 @@ public class NotasCreditoService : INotasCreditoService
             ItemCount = note.Details.Count,
             SalesCondition = note.SalesCondition,
             Notes = note.Notes,
-            Details = note.Details.Select(d => new NotaCreditoDetalleResponse
+            Details = note.Details.Select(d => new CreditNoteDetalleResponse
             {
                 Id = d.Id,
                 ItemNumber = d.ItemNumber,

@@ -8,7 +8,7 @@ public static class Features
     /// <summary>
     /// Dual-line current account (Billing + Budget).
     /// When disabled, only Billing balance is tracked.
-    /// Budget = Presupuestos (sin IVA, no fiscal, linea de credito paralela).
+    /// Budget = Quotes (sin IVA, no fiscal, linea de credito paralela).
     /// </summary>
     public const string DualLineCurrentAccount = "DualLineCurrentAccount";
 

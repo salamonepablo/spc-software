@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using SPC.API.Contracts.NotasDebito;
+using SPC.API.Contracts.DebitNotes;
 using SPC.API.Data;
 using SPC.Shared.Models;
 
@@ -8,13 +8,13 @@ namespace SPC.API.Services;
 /// <summary>
 /// Debit Notes service implementation
 /// </summary>
-public class NotasDebitoService : INotasDebitoService
+public class DebitNotesService : IDebitNotesService
 {
     private readonly SPCDbContext _db;
     private readonly ITaxConfigurationService _taxService;
     private readonly IPricingService _pricingService;
 
-    public NotasDebitoService(
+    public DebitNotesService(
         SPCDbContext db,
         ITaxConfigurationService taxService,
         IPricingService pricingService)
@@ -28,7 +28,7 @@ public class NotasDebitoService : INotasDebitoService
     // QUERIES
     // ===========================================
 
-    public async Task<IEnumerable<NotaDebitoResponse>> GetAllAsync(int skip = 0, int take = 50)
+    public async Task<IEnumerable<DebitNoteResponse>> GetAllAsync(int skip = 0, int take = 50)
     {
         var notes = await _db.DebitNotes
             .Include(n => n.Customer)
@@ -44,7 +44,7 @@ public class NotasDebitoService : INotasDebitoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<NotaDebitoCompletaResponse?> GetByIdAsync(int id)
+    public async Task<DebitNoteCompletaResponse?> GetByIdAsync(int id)
     {
         var note = await _db.DebitNotes
             .Include(n => n.Customer)
@@ -59,7 +59,7 @@ public class NotasDebitoService : INotasDebitoService
         return MapToCompleteResponse(note);
     }
 
-    public async Task<IEnumerable<NotaDebitoResponse>> GetByCustomerAsync(int customerId)
+    public async Task<IEnumerable<DebitNoteResponse>> GetByCustomerAsync(int customerId)
     {
         var notes = await _db.DebitNotes
             .Include(n => n.Customer)
@@ -73,7 +73,7 @@ public class NotasDebitoService : INotasDebitoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<NotaDebitoResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<DebitNoteResponse>> GetByDateRangeAsync(DateTime from, DateTime to)
     {
         var notes = await _db.DebitNotes
             .Include(n => n.Customer)
@@ -87,7 +87,7 @@ public class NotasDebitoService : INotasDebitoService
         return notes.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<NotaDebitoResponse>> SearchAsync(string term)
+    public async Task<IEnumerable<DebitNoteResponse>> SearchAsync(string term)
     {
         long.TryParse(term.Replace("-", ""), out var noteNumber);
 
@@ -115,13 +115,13 @@ public class NotasDebitoService : INotasDebitoService
     // COMMANDS
     // ===========================================
 
-    public async Task<NotaDebitoCompletaResponse> CreateAsync(CreateNotaDebitoRequest request)
+    public async Task<DebitNoteCompletaResponse> CreateAsync(CreateDebitNoteRequest request)
     {
         // 1. Validate and load customer
-        var customer = await _db.Clientes
-            .Include(c => c.CondicionIva)
+        var customer = await _db.Customers
+            .Include(c => c.TaxCondition)
             .FirstOrDefaultAsync(c => c.Id == request.CustomerId)
-            ?? throw new InvalidOperationException($"Cliente {request.CustomerId} no encontrado");
+            ?? throw new InvalidOperationException($"Customer {request.CustomerId} no encontrado");
 
         // 2. Validate and load branch
         var branch = await _db.Branches.FindAsync(request.BranchId)
@@ -129,14 +129,14 @@ public class NotasDebitoService : INotasDebitoService
 
         // 3. Load all products
         var productIds = request.Details.Select(d => d.ProductId).Distinct().ToList();
-        var products = await _db.Productos
+        var products = await _db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var detail in request.Details)
         {
             if (!products.ContainsKey(detail.ProductId))
-                throw new InvalidOperationException($"Producto {detail.ProductId} no encontrado");
+                throw new InvalidOperationException($"Product {detail.ProductId} no encontrado");
         }
 
         // 4. Get VAT rate from configuration
@@ -153,11 +153,11 @@ public class NotasDebitoService : INotasDebitoService
             : VoucherType.DebitNoteB;
 
         // 7. Calculate line items
-        var lineResults = new List<(CreateNotaDebitoDetalleRequest detail, LineCalculationResult calc, Producto product)>();
+        var lineResults = new List<(CreateDebitNoteDetalleRequest detail, LineCalculationResult calc, Product product)>();
         foreach (var detail in request.Details)
         {
             var product = products[detail.ProductId];
-            var unitPrice = detail.UnitPrice ?? product.PrecioFactura;
+            var unitPrice = detail.UnitPrice ?? product.PrecioInvoice;
             
             var lineCalc = _pricingService.CalculateLine(
                 unitPrice,
@@ -256,9 +256,9 @@ public class NotasDebitoService : INotasDebitoService
     // MAPPING
     // ===========================================
 
-    private static NotaDebitoResponse MapToResponse(DebitNote note)
+    private static DebitNoteResponse MapToResponse(DebitNote note)
     {
-        return new NotaDebitoResponse
+        return new DebitNoteResponse
         {
             Id = note.Id,
             VoucherType = note.VoucherType == VoucherType.DebitNoteA ? "A" : "B",
@@ -285,9 +285,9 @@ public class NotasDebitoService : INotasDebitoService
         };
     }
 
-    private static NotaDebitoCompletaResponse MapToCompleteResponse(DebitNote note)
+    private static DebitNoteCompletaResponse MapToCompleteResponse(DebitNote note)
     {
-        return new NotaDebitoCompletaResponse
+        return new DebitNoteCompletaResponse
         {
             Id = note.Id,
             VoucherType = note.VoucherType == VoucherType.DebitNoteA ? "A" : "B",
@@ -313,7 +313,7 @@ public class NotasDebitoService : INotasDebitoService
             ItemCount = note.Details.Count,
             SalesCondition = note.SalesCondition,
             Notes = note.Notes,
-            Details = note.Details.Select(d => new NotaDebitoDetalleResponse
+            Details = note.Details.Select(d => new DebitNoteDetalleResponse
             {
                 Id = d.Id,
                 ItemNumber = d.ItemNumber,

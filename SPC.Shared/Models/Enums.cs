@@ -5,10 +5,10 @@ namespace SPC.Shared.Models;
 /// </summary>
 public enum AccountLineType
 {
-    /// <summary>Linea 1: Facturas, NC, ND (documentos fiscales)</summary>
+    /// <summary>Linea 1: Invoices, NC, ND (documentos fiscales)</summary>
     Billing = 1,
     
-    /// <summary>Linea 2: Presupuestos (documentos internos, sin IVA)</summary>
+    /// <summary>Linea 2: Quotes (documentos internos, sin IVA)</summary>
     Budget = 2
 }
 
@@ -22,14 +22,14 @@ public enum DocumentType
     CreditNote = 3,         // NC (generic)
     DebitNote = 5,          // ND (generic)
     InternalDebitNote = 7,  // NDI
-    Quote = 20,             // PR Presupuesto
+    Quote = 20,             // PR Quote
     Payment = 30,           // PA Pago
     Receipt = 31,           // RE Recibo
     Other = 99,             // Otros
     
     // Billing (Linea 1) - Documentos fiscales
-    InvoiceA = 101,           // FA-A Factura A
-    InvoiceB = 102,           // FA-B Factura B
+    InvoiceA = 101,           // FA-A Invoice A
+    InvoiceB = 102,           // FA-B Invoice B
     CreditNoteA = 103,        // NC-A Nota Credito A
     CreditNoteB = 104,        // NC-B Nota Credito B
     DebitNoteA = 105,         // ND-A Nota Debito A (fiscal)
@@ -38,7 +38,7 @@ public enum DocumentType
     PaymentVoidBilling = 109, // AN-PA-L1 Anulacion de Pago Billing
     
     // Budget (Linea 2) - Documentos internos
-    QuoteVoid = 121,            // AN-PR Anulacion Presupuesto
+    QuoteVoid = 121,            // AN-PR Anulacion Quote
     PaymentBudget = 122,        // PA-L2 Pago imputado a Budget
     PaymentVoidBudget = 123,    // AN-PA-L2 Anulacion de Pago Budget
     InternalDebitA = 124,       // NDI-A Debito Interno A (ajustes, inflacion)
@@ -78,7 +78,7 @@ public enum PaymentMethodType
 /// </summary>
 public enum VoucherType
 {
-    // Facturas
+    // Invoices
     InvoiceA = 1,
     InvoiceB = 6,
     
@@ -92,5 +92,5 @@ public enum VoucherType
     
     // Documentos internos (no fiscales)
     InternalDebitNote = 100,  // NDI - goes to Budget line
-    Quote = 101               // Presupuesto - goes to Budget line
+    Quote = 101               // Quote - goes to Budget line
 }

@@ -6,17 +6,17 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Nuevo Producto - SPC</PageTitle>
+<PageTitle>Nuevo Product - SPC</PageTitle>
 
 <div class="container-fluid">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/productos">Productos</a></li>
+            <li class="breadcrumb-item"><a href="/productos">Products</a></li>
             <li class="breadcrumb-item active">Nuevo</li>
         </ol>
     </nav>
 
-    <h4 class="fw-bold mb-4">Nuevo Producto</h4>
+    <h4 class="fw-bold mb-4">Nuevo Product</h4>
 
     @if (errorMessage != null)
     {
@@ -27,12 +27,12 @@
 
     <div class="card">
         <div class="card-body">
-            <EditForm Model="producto" OnValidSubmit="HandleSubmit" FormName="CreateProducto">
+            <EditForm Model="producto" OnValidSubmit="HandleSubmit" FormName="CreateProduct">
                 <DataAnnotationsValidator />
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 class="mb-3">Datos del Producto</h5>
+                        <h5 class="mb-3">Datos del Product</h5>
                         
                         <div class="row">
                             <div class="col-md-4 mb-3">
@@ -54,8 +54,8 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="rubro" class="form-label">Rubro</label>
-                                <InputSelect id="rubro" class="form-select" @bind-Value="producto.RubroId">
+                                <label for="rubro" class="form-label">Category</label>
+                                <InputSelect id="rubro" class="form-select" @bind-Value="producto.CategoryId">
                                     <option value="">-- Seleccionar --</option>
                                     @foreach (var rubro in rubros)
                                     {
@@ -65,7 +65,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="unidadMedida" class="form-label">Unidad de Medida</label>
-                                <InputSelect id="unidadMedida" class="form-select" @bind-Value="producto.UnidadMedidaId">
+                                <InputSelect id="unidadMedida" class="form-select" @bind-Value="producto.UnitOfMeasureId">
                                     <option value="">-- Seleccionar --</option>
                                     @foreach (var um in unidadesMedida)
                                     {
@@ -140,9 +140,9 @@
 </div>
 
 @code {
-    private CreateProductoDto producto = new();
-    private List<RubroDto> rubros = new();
-    private List<UnidadMedidaDto> unidadesMedida = new();
+    private CreateProductDto producto = new();
+    private List<CategoryDto> rubros = new();
+    private List<UnitOfMeasureDto> unidadesMedida = new();
     
     private bool saving = false;
     private string? errorMessage;
@@ -150,7 +150,7 @@
     protected override async Task OnInitializedAsync()
     {
         // Load dropdown data in parallel
-        var rubrosTask = Api.GetRubrosAsync();
+        var rubrosTask = Api.GetCategorysAsync();
         var unidadesTask = Api.GetUnidadesMedidaAsync();
 
         await Task.WhenAll(rubrosTask, unidadesTask);
@@ -166,7 +166,7 @@
 
         try
         {
-            var result = await Api.CreateProductoAsync(producto);
+            var result = await Api.CreateProductAsync(producto);
 
             if (result != null)
             {

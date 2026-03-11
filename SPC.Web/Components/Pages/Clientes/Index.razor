@@ -6,13 +6,13 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Clientes - SPC</PageTitle>
+<PageTitle>Customers - SPC</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0">Clientes</h3>
+        <h3 class="mb-0">Customers</h3>
         <a href="/clientes/nuevo" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Nuevo Cliente
+            <i class="bi bi-plus-lg"></i> Nuevo Customer
         </a>
     </div>
 
@@ -100,7 +100,7 @@
                                     <td>@(cliente.CUIT ?? "-")</td>
                                     <td>@(cliente.Localidad ?? "-")</td>
                                     <td>@(cliente.Telefono ?? cliente.Celular ?? "-")</td>
-                                    <td>@(cliente.CondicionIvaDescripcion ?? "-")</td>
+                                    <td>@(cliente.TaxConditionDescripcion ?? "-")</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
                                             <a href="/clientes/editar/@cliente.Id" 
@@ -125,14 +125,14 @@
     </div>
 </div>
 
-<ConfirmDialog Title="Eliminar Cliente"
+<ConfirmDialog Title="Eliminar Customer"
                Message="@deleteConfirmMessage"
                ConfirmText="Eliminar"
                IsVisible="showDeleteConfirm"
                OnClose="HandleDeleteConfirm" />
 
 @code {
-    private List<ClienteDto>? clientes;
+    private List<CustomerDto>? clientes;
     private bool loading = true;
     private string searchTerm = "";
     
@@ -142,20 +142,20 @@
     
     // Delete confirmation state
     private bool showDeleteConfirm;
-    private ClienteDto? clienteToDelete;
+    private CustomerDto? clienteToDelete;
     private string deleteConfirmMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadClientes();
+        await LoadCustomers();
     }
 
-    private async Task LoadClientes()
+    private async Task LoadCustomers()
     {
         loading = true;
         try
         {
-            clientes = await Api.GetClientesAsync();
+            clientes = await Api.GetCustomersAsync();
         }
         finally
         {
@@ -167,14 +167,14 @@
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            await LoadClientes();
+            await LoadCustomers();
             return;
         }
 
         loading = true;
         try
         {
-            clientes = await Api.BuscarClientesAsync(searchTerm);
+            clientes = await Api.BuscarCustomersAsync(searchTerm);
         }
         finally
         {
@@ -185,7 +185,7 @@
     private async Task ClearSearch()
     {
         searchTerm = "";
-        await LoadClientes();
+        await LoadCustomers();
     }
 
     private async Task HandleSearchKeyUp(KeyboardEventArgs e)
@@ -196,7 +196,7 @@
         }
     }
 
-    private void ShowDeleteConfirm(ClienteDto cliente)
+    private void ShowDeleteConfirm(CustomerDto cliente)
     {
         clienteToDelete = cliente;
         deleteConfirmMessage = $"¿Está seguro que desea eliminar al cliente \"{cliente.RazonSocial}\"? Esta acción no se puede deshacer.";
@@ -209,13 +209,13 @@
 
         if (confirmed && clienteToDelete != null)
         {
-            var success = await Api.DeleteClienteAsync(clienteToDelete.Id);
+            var success = await Api.DeleteCustomerAsync(clienteToDelete.Id);
             
             if (success)
             {
-                alertMessage = $"Cliente \"{clienteToDelete.RazonSocial}\" eliminado correctamente.";
+                alertMessage = $"Customer \"{clienteToDelete.RazonSocial}\" eliminado correctamente.";
                 alertType = AlertMessage.AlertType.Success;
-                await LoadClientes();
+                await LoadCustomers();
             }
             else
             {

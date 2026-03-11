@@ -6,12 +6,12 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Nueva Factura - SPC</PageTitle>
+<PageTitle>Nueva Invoice - SPC</PageTitle>
 
 <div class="container-fluid">
     <div class="row mb-3">
         <div class="col">
-            <h3>Nueva Factura</h3>
+            <h3>Nueva Invoice</h3>
         </div>
         <div class="col-auto">
             <button class="btn btn-outline-secondary" @onclick="Cancelar">Cancelar</button>
@@ -28,13 +28,13 @@
             <div class="col-md-8">
                 <div class="card mb-3">
                     <div class="card-header">
-                        <h5 class="mb-0">Datos de la Factura</h5>
+                        <h5 class="mb-0">Datos de la Invoice</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label">Tipo</label>
-                                <select class="form-select" @bind="factura.TipoFactura" @bind:after="OnTipoFacturaChanged">
+                                <select class="form-select" @bind="factura.TipoInvoice" @bind:after="OnTipoInvoiceChanged">
                                     <option value="A">A - Responsable Inscripto</option>
                                     <option value="B">B - Consumidor Final</option>
                                 </select>
@@ -51,8 +51,8 @@
                             </div>
                             
                             <div class="col-md-5">
-                                <label class="form-label">Cliente</label>
-                                <select class="form-select" @bind="factura.ClienteId" @bind:after="OnClienteChanged">
+                                <label class="form-label">Customer</label>
+                                <select class="form-select" @bind="factura.CustomerId" @bind:after="OnCustomerChanged">
                                     <option value="0">Seleccionar cliente...</option>
                                     @foreach (var c in clientes)
                                     {
@@ -62,9 +62,9 @@
                             </div>
                             
                             <div class="col-md-4">
-                                <label class="form-label">Vendedor</label>
-                                <select class="form-select" @bind="factura.VendedorId">
-                                    <option value="@(null)">Sin vendedor</option>
+                                <label class="form-label">SalesRep</label>
+                                <select class="form-select" @bind="factura.SalesRepId">
+                                    <option value="">Sin vendedor</option>
                                     @foreach (var v in vendedores)
                                     {
                                         <option value="@v.Id">@v.Nombre</option>
@@ -109,7 +109,7 @@
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 40%;">Producto</th>
+                                        <th style="width: 40%;">Product</th>
                                         <th class="text-end">Cant.</th>
                                         <th class="text-end">Precio</th>
                                         <th class="text-end">Dto %</th>
@@ -124,7 +124,8 @@
                                         <tr>
                                             <td>
                                                 <select class="form-select form-select-sm" 
-                                                        @onchange="(e) => OnProductoSelected(index, e)">
+                                                        value="@factura.Detalles[index].ProductId"
+                                                        @onchange="EventCallback.Factory.Create<ChangeEventArgs>(this, e => OnProductSelected(index, e))">
                                                     <option value="0">Seleccionar...</option>
                                                     @foreach (var p in productos)
                                                     {
@@ -155,7 +156,7 @@
                                             </td>
                                             <td>
                                                 <button class="btn btn-outline-danger btn-sm" 
-                                                        @onclick="() => EliminarItem(index)"
+                                                        @onclick="EventCallback.Factory.Create(this, () => EliminarItem(index))"
                                                         title="Eliminar">
                                                     &times;
                                                 </button>
@@ -202,7 +203,7 @@
                             <span>@subtotalNeto.ToString("C2")</span>
                         </div>
                         
-                        @if (factura.TipoFactura == "A")
+                        @if (factura.TipoInvoice == "A")
                         {
                             <div class="d-flex justify-content-between mb-2">
                                 <span>IVA (@ivaPorcentaje%):</span>
@@ -231,18 +232,18 @@
                             <h5 class="text-primary">@total.ToString("C2")</h5>
                         </div>
                         
-                        @if (factura.TipoFactura == "A")
+                        @if (factura.TipoInvoice == "A")
                         {
                             <hr />
                             <small class="text-muted">
-                                <strong>Factura A:</strong> Precio neto + IVA discriminado
+                                <strong>Invoice A:</strong> Precio neto + IVA discriminado
                             </small>
                         }
                         else
                         {
                             <hr />
                             <small class="text-muted">
-                                <strong>Factura B:</strong> Precio final (IVA incluido)
+                                <strong>Invoice B:</strong> Precio final (IVA incluido)
                             </small>
                         }
                     </div>
@@ -252,12 +253,12 @@
                 {
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0">Cliente Seleccionado</h6>
+                            <h6 class="mb-0">Customer Seleccionado</h6>
                         </div>
                         <div class="card-body">
                             <p class="mb-1"><strong>@clienteSeleccionado.RazonSocial</strong></p>
                             <p class="mb-1"><small>CUIT: @clienteSeleccionado.CUIT</small></p>
-                            <p class="mb-1"><small>Cond. IVA: @clienteSeleccionado.CondicionIvaCodigo</small></p>
+                            <p class="mb-1"><small>Cond. IVA: @clienteSeleccionado.TaxConditionCodigo</small></p>
                             @if (clienteSeleccionado.PorcentajeDescuento > 0)
                             {
                                 <p class="mb-0"><small class="text-success">Descuento cliente: @clienteSeleccionado.PorcentajeDescuento%</small></p>
@@ -270,7 +271,7 @@
                     <button class="btn btn-success btn-lg" 
                             disabled="@(!puedeGuardar)"
                             @onclick="Guardar">
-                        @(guardando ? "Guardando..." : "Guardar Factura")
+                        @(guardando ? "Guardando..." : "Guardar Invoice")
                     </button>
                 </div>
                 
@@ -284,12 +285,12 @@
 </div>
 
 @code {
-    private CreateFacturaDto factura = new();
-    private List<ClienteDto> clientes = new();
-    private List<ProductoDto> productos = new();
-    private List<VendedorDto> vendedores = new();
+    private CreateInvoiceDto factura = new();
+    private List<CustomerDto> clientes = new();
+    private List<ProductDto> productos = new();
+    private List<SalesRepDto> vendedores = new();
     private List<SucursalDto> sucursales = new();
-    private ClienteDto? clienteSeleccionado;
+    private CustomerDto? clienteSeleccionado;
     private bool loading = true;
     private bool guardando = false;
     private string mensajeError = "";
@@ -297,23 +298,23 @@
     private const decimal ivaPorcentaje = 21m;
     private const decimal iibbDefaultPorcentaje = 3m;
 
-    private void OnTipoFacturaChanged()
+    private void OnTipoInvoiceChanged()
     {
         for (int i = 0; i < factura.Detalles.Count; i++)
         {
-            if (factura.Detalles[i].ProductoId > 0)
+            if (factura.Detalles[i].ProductId > 0)
             {
-                OnProductoChanged(i);
+                OnProductChanged(i);
             }
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        var clientesTask = Api.GetClientesAsync();
-        var productosTask = Api.GetProductosAsync();
-        var vendedoresTask = Api.GetVendedoresAsync();
-        var sucursalesTask = Api.GetSucursalesAsync();
+        var clientesTask = Api.GetCustomersAsync();
+        var productosTask = Api.GetProductsAsync();
+        var vendedoresTask = Api.GetSalesRepesAsync();
+        var sucursalesTask = Api.GetBranchesAsync();
 
         await Task.WhenAll(clientesTask, productosTask, vendedoresTask, sucursalesTask);
 
@@ -330,26 +331,26 @@
         loading = false;
     }
 
-    private void SetFacturaType(string type)
+    private void SetInvoiceType(string type)
     {
-        if (factura.TipoFactura != type)
+        if (factura.TipoInvoice != type)
         {
-            factura.TipoFactura = type;
+            factura.TipoInvoice = type;
             for (int i = 0; i < factura.Detalles.Count; i++)
             {
-                if (factura.Detalles[i].ProductoId > 0)
+                if (factura.Detalles[i].ProductId > 0)
                 {
-                    OnProductoChanged(i);
+                    OnProductChanged(i);
                 }
             }
         }
     }
 
-    private void OnClienteChanged()
+    private void OnCustomerChanged()
     {
-        if (factura.ClienteId > 0)
+        if (factura.CustomerId > 0)
         {
-            clienteSeleccionado = clientes.FirstOrDefault(c => c.Id == factura.ClienteId);
+            clienteSeleccionado = clientes.FirstOrDefault(c => c.Id == factura.CustomerId);
         }
         else
         {
@@ -357,30 +358,30 @@
         }
     }
 
-    private void OnProductoSelected(int index, ChangeEventArgs e)
+    private void OnProductSelected(int index, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out int productoId))
         {
-            factura.Detalles[index].ProductoId = productoId;
-            OnProductoChanged(index);
+            factura.Detalles[index].ProductId = productoId;
+            OnProductChanged(index);
         }
     }
 
-    private void OnProductoChanged(int index)
+    private void OnProductChanged(int index)
     {
-        var productoId = factura.Detalles[index].ProductoId;
+        var productoId = factura.Detalles[index].ProductId;
         if (productoId > 0)
         {
             var producto = productos.FirstOrDefault(p => p.Id == productoId);
             if (producto != null)
             {
-                if (factura.TipoFactura == "A")
+                if (factura.TipoInvoice == "A")
                 {
-                    factura.Detalles[index].PrecioUnitario = producto.PrecioFactura;
+                    factura.Detalles[index].PrecioUnitario = producto.PrecioInvoice;
                 }
                 else
                 {
-                    factura.Detalles[index].PrecioUnitario = producto.PrecioPresupuesto;
+                    factura.Detalles[index].PrecioUnitario = producto.PrecioQuote;
                 }
             }
         }
@@ -388,7 +389,7 @@
 
     private void AgregarItem()
     {
-        factura.Detalles.Add(new CreateFacturaDetalleDto
+        factura.Detalles.Add(new CreateInvoiceDetailDto
         {
             Cantidad = 1,
             PorcentajeDescuento = 0
@@ -408,7 +409,7 @@
         if (index < 0 || index >= factura.Detalles.Count) return 0;
         
         var item = factura.Detalles[index];
-        if (item.ProductoId == 0 || item.Cantidad <= 0) return 0;
+        if (item.ProductId == 0 || item.Cantidad <= 0) return 0;
 
         var precio = item.PrecioUnitario ?? 0;
         var cantidad = item.Cantidad;
@@ -439,7 +440,7 @@
     
     private decimal iva => subtotalNeto * (ivaPorcentaje / 100);
     
-    private decimal ivaContenido => factura.TipoFactura == "B" 
+    private decimal ivaContenido => factura.TipoInvoice == "B" 
         ? subtotalNeto * ivaPorcentaje / (100 + ivaPorcentaje)
         : 0;
     
@@ -447,13 +448,13 @@
         ? (subtotalNeto + iva) * (clienteSeleccionado.AlicuotaIIBB / 100)
         : 0;
     
-    private decimal total => factura.TipoFactura == "A"
+    private decimal total => factura.TipoInvoice == "A"
         ? subtotalNeto + iva + iibb
         : subtotalNeto;
 
-    private bool puedeGuardar => factura.ClienteId > 0 
+    private bool puedeGuardar => factura.CustomerId > 0 
         && factura.Detalles.Count > 0 
-        && factura.Detalles.Any(d => d.ProductoId > 0)
+        && factura.Detalles.Any(d => d.ProductId > 0)
         && !guardando;
 
     private async Task Guardar()
@@ -464,7 +465,7 @@
         try
         {
             var itemsValidos = factura.Detalles
-                .Where(d => d.ProductoId > 0 && d.Cantidad > 0)
+                .Where(d => d.ProductId > 0 && d.Cantidad > 0)
                 .ToList();
             
             if (!itemsValidos.Any())
@@ -476,7 +477,7 @@
 
             factura.Detalles = itemsValidos;
 
-            var result = await Api.CreateFacturaAsync(factura);
+            var result = await Api.CreateInvoiceAsync(factura);
             
             if (result != null)
             {

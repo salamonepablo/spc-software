@@ -26,7 +26,7 @@ public interface IPricingService
         decimal iibbPercent);
     
     /// <summary>
-    /// Calculates document totals for Factura A (net prices + VAT discriminated).
+    /// Calculates document totals for Invoice A (net prices + VAT discriminated).
     /// VAT is ADDED to the net subtotal.
     /// IIBB only applies if company is perception agent.
     /// </summary>
@@ -43,7 +43,7 @@ public interface IPricingService
         bool isIIBBPerceptionAgent);
     
     /// <summary>
-    /// Calculates document totals for Factura B (final prices with VAT included).
+    /// Calculates document totals for Invoice B (final prices with VAT included).
     /// VAT is NOT added - it's extracted from the total as "IVA Contenido".
     /// Complies with Ley 27.743 - Régimen de Transparencia Fiscal.
     /// </summary>
@@ -122,7 +122,7 @@ public record DocumentCalculationResult
 }
 
 /// <summary>
-/// Result of a Factura B calculation (prices include VAT)
+/// Result of a Invoice B calculation (prices include VAT)
 /// </summary>
 public record DocumentCalculationResultTypeB
 {

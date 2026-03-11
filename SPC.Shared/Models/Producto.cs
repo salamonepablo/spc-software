@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Producto / Artículo - Baterías y accesorios
+/// Product / Artículo - Baterías y accesorios
 /// </summary>
-public class Producto
+public class Product
 {
     public int Id { get; set; }
     
@@ -21,13 +21,13 @@ public class Producto
     [StringLength(100)]
     public string? CodigoProveedor { get; set; }
     
-    // Relación con Rubro/Categoría
-    public int? RubroId { get; set; }
-    public Rubro? Rubro { get; set; }
+    // Relación con Category/Categoría
+    public int? CategoryId { get; set; }
+    public Category? Category { get; set; }
     
     // Relación con Unidad de Medida
-    public int? UnidadMedidaId { get; set; }
-    public UnidadMedida? UnidadMedida { get; set; }
+    public int? UnitOfMeasureId { get; set; }
+    public UnitOfMeasure? UnitOfMeasure { get; set; }
     
     /// <summary>
     /// Precio para facturas (sin IVA incluido por convención).
@@ -35,7 +35,7 @@ public class Producto
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]
-    public decimal PrecioFactura { get; set; } = 0;
+    public decimal PrecioInvoice { get; set; } = 0;
     
     /// <summary>
     /// Precio para presupuestos (con IVA incluido por convención).
@@ -43,11 +43,11 @@ public class Producto
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]
-    public decimal PrecioPresupuesto { get; set; } = 0;
+    public decimal PrecioQuote { get; set; } = 0;
     
     /// <summary>
     /// Precio de venta legacy (se mantiene para compatibilidad).
-    /// Usar PrecioFactura o PrecioPresupuesto según el documento.
+    /// Usar PrecioInvoice o PrecioQuote según el documento.
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     [Range(0, 9999999.99, ErrorMessage = "Precio inválido")]

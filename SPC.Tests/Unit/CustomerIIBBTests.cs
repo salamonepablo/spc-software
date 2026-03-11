@@ -18,7 +18,7 @@ public class CustomerIIBBTests
     public void Customer_HasAlicuotaIIBB_Field()
     {
         // Arrange & Act
-        var cliente = new Cliente
+        var cliente = new Customer
         {
             RazonSocial = "Test Customer",
             AlicuotaIIBB = 3.5m
@@ -32,7 +32,7 @@ public class CustomerIIBBTests
     public void Customer_AlicuotaIIBB_DefaultsToZero()
     {
         // Arrange & Act
-        var cliente = new Cliente
+        var cliente = new Customer
         {
             RazonSocial = "Test Customer"
         };
@@ -45,7 +45,7 @@ public class CustomerIIBBTests
     public void Customer_AlicuotaIIBB_CanBeSetFromPadron()
     {
         // Arrange - Simulate loading from ARBA padrón
-        var cliente = new Cliente
+        var cliente = new Customer
         {
             RazonSocial = "DAVID ALFONSO ALVAREZ",
             CUIT = "20-08345589-7",
@@ -60,9 +60,9 @@ public class CustomerIIBBTests
     public void Customer_AlicuotaIIBB_ExentoIsZero()
     {
         // Arrange - Customer is exento in padrón
-        var cliente = new Cliente
+        var cliente = new Customer
         {
-            RazonSocial = "Cliente Exento IIBB",
+            RazonSocial = "Customer Exento IIBB",
             AlicuotaIIBB = 0m
         };
 
@@ -74,7 +74,7 @@ public class CustomerIIBBTests
     public void Customer_HasProvinciaPadron_ForIIBB()
     {
         // Arrange - Province determines which padrón applies
-        var cliente = new Cliente
+        var cliente = new Customer
         {
             RazonSocial = "Test",
             Provincia = "Buenos Aires",

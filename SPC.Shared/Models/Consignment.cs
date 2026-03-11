@@ -16,13 +16,13 @@ public class Consignment
     /// <summary>Fecha de consignacion</summary>
     public DateTime ConsignmentDate { get; set; }
     
-    /// <summary>Cliente</summary>
+    /// <summary>Customer</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
-    /// <summary>Vendedor</summary>
+    /// <summary>SalesRep</summary>
     public int? SalesRepId { get; set; }
-    public Vendedor? SalesRep { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     /// <summary>Esta activa? (false = devuelta o facturada)</summary>
     public bool IsActive { get; set; } = true;
@@ -47,7 +47,7 @@ public class ConsignmentDetail
     public int ItemNumber { get; set; }
     
     public int ProductId { get; set; }
-    public Producto? Product { get; set; }
+    public Product? Product { get; set; }
     
     public decimal Quantity { get; set; }
     

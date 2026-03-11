@@ -5,7 +5,7 @@ namespace SPC.Shared.Models;
 /// <summary>
 /// Unidad de Medida - Unidades, Cajas, etc.
 /// </summary>
-public class UnidadMedida
+public class UnitOfMeasure
 {
     public int Id { get; set; }
     
@@ -18,5 +18,5 @@ public class UnidadMedida
     public string Nombre { get; set; } = "";  // Unidades, Cajas, Kilogramos
     
     // Navegación
-    public List<Producto> Productos { get; set; } = new();
+    public List<Product> Products { get; set; } = new();
 }

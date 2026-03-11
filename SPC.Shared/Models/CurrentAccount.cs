@@ -10,14 +10,14 @@ public class CurrentAccount
 {
     public int Id { get; set; }
     
-    /// <summary>Cliente (PK en Access es IDCliente)</summary>
+    /// <summary>Customer (PK en Access es IDCustomer)</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
-    /// <summary>Saldo Linea 1 (Billing: Facturas, NC, ND, Pagos L1)</summary>
+    /// <summary>Saldo Linea 1 (Billing: Invoices, NC, ND, Pagos L1)</summary>
     public decimal BillingBalance { get; set; } = 0;
     
-    /// <summary>Saldo Linea 2 (Budget: Presupuestos, Pagos L2)</summary>
+    /// <summary>Saldo Linea 2 (Budget: Quotes, Pagos L2)</summary>
     public decimal BudgetBalance { get; set; } = 0;
     
     /// <summary>Saldo Total (L1 + L2)</summary>
@@ -38,9 +38,9 @@ public class CurrentAccountMovement
     /// <summary>Fecha del movimiento</summary>
     public DateTime MovementDate { get; set; }
     
-    /// <summary>Cliente</summary>
+    /// <summary>Customer</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
     /// <summary>Tipo de documento</summary>
     public DocumentType DocumentType { get; set; }

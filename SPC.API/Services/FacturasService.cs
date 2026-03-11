@@ -1,22 +1,22 @@
 using Microsoft.EntityFrameworkCore;
-using SPC.API.Contracts.Facturas;
+using SPC.API.Contracts.Invoices;
 using SPC.API.Data;
 using SPC.Shared.Models;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Facturas service implementation for invoice operations.
-/// Handles different calculation rules for Factura A vs Factura B.
+/// Invoices service implementation for invoice operations.
+/// Handles different calculation rules for Invoice A vs Invoice B.
 /// </summary>
-public class FacturasService : IFacturasService
+public class InvoicesService : IInvoicesService
 {
     private readonly SPCDbContext _db;
     private readonly ITaxConfigurationService _taxService;
     private readonly IPricingService _pricingService;
     private readonly ICompanySettingsService _companySettings;
 
-    public FacturasService(
+    public InvoicesService(
         SPCDbContext db,
         ITaxConfigurationService taxService,
         IPricingService pricingService,
@@ -28,14 +28,14 @@ public class FacturasService : IFacturasService
         _companySettings = companySettings;
     }
 
-    public async Task<IEnumerable<FacturaResponse>> GetAllAsync(int skip = 0, int take = 50)
+    public async Task<IEnumerable<InvoiceResponse>> GetAllAsync(int skip = 0, int take = 50)
     {
-        var facturas = await _db.Facturas
-            .Include(f => f.Cliente)
-            .Include(f => f.Vendedor)
+        var facturas = await _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
             .Include(f => f.Detalles)
-            .OrderByDescending(f => f.FechaFactura)
-            .ThenByDescending(f => f.NumeroFactura)
+            .OrderByDescending(f => f.FechaInvoice)
+            .ThenByDescending(f => f.NumeroInvoice)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
@@ -43,29 +43,29 @@ public class FacturasService : IFacturasService
         return facturas.Select(MapToResponse);
     }
 
-    public async Task<FacturaCompletaResponse?> GetByIdAsync(int id)
+    public async Task<InvoiceCompletaResponse?> GetByIdAsync(int id)
     {
-        var factura = await _db.Facturas
-            .Include(f => f.Cliente)
-            .Include(f => f.Vendedor)
+        var factura = await _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
             .Include(f => f.Detalles)
-                .ThenInclude(d => d.Producto)
+                .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(f => f.Id == id);
 
         if (factura == null) return null;
 
-        return new FacturaCompletaResponse
+        return new InvoiceCompletaResponse
         {
             Id = factura.Id,
-            TipoFactura = factura.TipoFactura,
+            TipoInvoice = factura.TipoInvoice,
             PuntoVenta = factura.PuntoVenta,
-            NumeroFactura = factura.NumeroFactura,
-            FechaFactura = factura.FechaFactura,
-            ClienteId = factura.ClienteId,
-            ClienteRazonSocial = factura.Cliente.RazonSocial,
-            ClienteCUIT = factura.Cliente.CUIT,
-            VendedorId = factura.VendedorId,
-            VendedorNombre = factura.Vendedor?.Nombre,
+            NumeroInvoice = factura.NumeroInvoice,
+            FechaInvoice = factura.FechaInvoice,
+            CustomerId = factura.CustomerId,
+            CustomerRazonSocial = factura.Customer.RazonSocial,
+            CustomerCUIT = factura.Customer.CUIT,
+            SalesRepId = factura.SalesRepId,
+            SalesRepNombre = factura.SalesRep?.Nombre,
             Subtotal = factura.Subtotal,
             ImporteIVA = factura.ImporteIVA,
             IVAContenido = factura.IVAContenido,
@@ -76,13 +76,13 @@ public class FacturasService : IFacturasService
             FechaVencimientoCAE = factura.FechaVencimientoCAE,
             Anulada = factura.Anulada,
             CantidadItems = factura.Detalles.Count,
-            Detalles = factura.Detalles.Select(d => new FacturaDetalleResponse
+            Detalles = factura.Detalles.Select(d => new InvoiceDetailResponse
             {
                 Id = d.Id,
                 ItemNumero = d.ItemNumero,
-                ProductoId = d.ProductoId,
-                ProductoCodigo = d.Producto.Codigo,
-                ProductoDescripcion = d.Producto.Descripcion,
+                ProductId = d.ProductId,
+                ProductCodigo = d.Product.Codigo,
+                ProductDescripcion = d.Product.Descripcion,
                 Cantidad = d.Cantidad,
                 PrecioUnitario = d.PrecioUnitario,
                 PorcentajeDescuento = d.PorcentajeDescuento,
@@ -92,78 +92,78 @@ public class FacturasService : IFacturasService
         };
     }
 
-    public async Task<IEnumerable<FacturaResponse>> GetByClienteAsync(int clienteId)
+    public async Task<IEnumerable<InvoiceResponse>> GetByCustomerAsync(int clienteId)
     {
-        var facturas = await _db.Facturas
-            .Include(f => f.Cliente)
-            .Include(f => f.Vendedor)
+        var facturas = await _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
             .Include(f => f.Detalles)
-            .Where(f => f.ClienteId == clienteId)
-            .OrderByDescending(f => f.FechaFactura)
-            .ThenByDescending(f => f.NumeroFactura)
+            .Where(f => f.CustomerId == clienteId)
+            .OrderByDescending(f => f.FechaInvoice)
+            .ThenByDescending(f => f.NumeroInvoice)
             .ToListAsync();
 
         return facturas.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<FacturaResponse>> GetByFechaAsync(DateTime desde, DateTime hasta)
+    public async Task<IEnumerable<InvoiceResponse>> GetByFechaAsync(DateTime desde, DateTime hasta)
     {
-        var facturas = await _db.Facturas
-            .Include(f => f.Cliente)
-            .Include(f => f.Vendedor)
+        var facturas = await _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
             .Include(f => f.Detalles)
-            .Where(f => f.FechaFactura >= desde && f.FechaFactura <= hasta)
-            .OrderByDescending(f => f.FechaFactura)
-            .ThenByDescending(f => f.NumeroFactura)
+            .Where(f => f.FechaInvoice >= desde && f.FechaInvoice <= hasta)
+            .OrderByDescending(f => f.FechaInvoice)
+            .ThenByDescending(f => f.NumeroInvoice)
             .ToListAsync();
 
         return facturas.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<FacturaResponse>> SearchAsync(string termino)
+    public async Task<IEnumerable<InvoiceResponse>> SearchAsync(string termino)
     {
         // Try to parse as number for invoice search
-        long.TryParse(termino.Replace("-", ""), out var numeroFactura);
+        long.TryParse(termino.Replace("-", ""), out var numeroInvoice);
 
-        var facturas = await _db.Facturas
-            .Include(f => f.Cliente)
-            .Include(f => f.Vendedor)
+        var facturas = await _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
             .Include(f => f.Detalles)
-            .Where(f => f.NumeroFactura == numeroFactura ||
-                       f.Cliente.RazonSocial.Contains(termino) ||
-                       (f.Cliente.CUIT != null && f.Cliente.CUIT.Contains(termino)))
-            .OrderByDescending(f => f.FechaFactura)
+            .Where(f => f.NumeroInvoice == numeroInvoice ||
+                       f.Customer.RazonSocial.Contains(termino) ||
+                       (f.Customer.CUIT != null && f.Customer.CUIT.Contains(termino)))
+            .OrderByDescending(f => f.FechaInvoice)
             .Take(100)
             .ToListAsync();
 
         return facturas.Select(MapToResponse);
     }
 
-    public async Task<FacturacionResumenResponse> GetResumenAsync()
+    public async Task<InvoicecionResumenResponse> GetResumenAsync()
     {
         var hoy = DateTime.Today;
         var inicioMes = new DateTime(hoy.Year, hoy.Month, 1);
         var inicioAnio = new DateTime(hoy.Year, 1, 1);
 
-        var facturasHoy = await _db.Facturas
-            .Where(f => f.FechaFactura.Date == hoy && !f.Anulada)
+        var facturasHoy = await _db.Invoices
+            .Where(f => f.FechaInvoice.Date == hoy && !f.Anulada)
             .ToListAsync();
 
-        var facturasMes = await _db.Facturas
-            .Where(f => f.FechaFactura >= inicioMes && !f.Anulada)
+        var facturasMes = await _db.Invoices
+            .Where(f => f.FechaInvoice >= inicioMes && !f.Anulada)
             .ToListAsync();
 
-        var facturasAnio = await _db.Facturas
-            .Where(f => f.FechaFactura >= inicioAnio && !f.Anulada)
+        var facturasAnio = await _db.Invoices
+            .Where(f => f.FechaInvoice >= inicioAnio && !f.Anulada)
             .ToListAsync();
 
-        var totalFacturas = await _db.Facturas.CountAsync();
+        var totalInvoices = await _db.Invoices.CountAsync();
 
-        return new FacturacionResumenResponse
+        return new InvoicecionResumenResponse
         {
-            TotalFacturas = totalFacturas,
-            FacturasHoy = facturasHoy.Count,
-            FacturasMes = facturasMes.Count,
+            TotalInvoices = totalInvoices,
+            InvoicesHoy = facturasHoy.Count,
+            InvoicesMes = facturasMes.Count,
             MontoHoy = facturasHoy.Sum(f => f.Total),
             MontoMes = facturasMes.Sum(f => f.Total),
             MontoAnio = facturasAnio.Sum(f => f.Total)
@@ -172,35 +172,35 @@ public class FacturasService : IFacturasService
 
     public async Task<int> GetCountAsync()
     {
-        return await _db.Facturas.CountAsync();
+        return await _db.Invoices.CountAsync();
     }
 
     // ===========================================
     // COMMANDS
     // ===========================================
 
-    public async Task<FacturaCompletaResponse> CreateAsync(CreateFacturaRequest request)
+    public async Task<InvoiceCompletaResponse> CreateAsync(CreateInvoiceRequest request)
     {
         // 1. Validate and load customer
-        var cliente = await _db.Clientes
-            .Include(c => c.CondicionIva)
-            .FirstOrDefaultAsync(c => c.Id == request.ClienteId)
-            ?? throw new InvalidOperationException($"Cliente {request.ClienteId} no encontrado");
+        var cliente = await _db.Customers
+            .Include(c => c.TaxCondition)
+            .FirstOrDefaultAsync(c => c.Id == request.CustomerId)
+            ?? throw new InvalidOperationException($"Customer {request.CustomerId} no encontrado");
 
         // 2. Validate and load branch
         var branch = await _db.Branches.FindAsync(request.BranchId)
             ?? throw new InvalidOperationException($"Sucursal {request.BranchId} no encontrada");
 
         // 3. Load all products for validation
-        var productIds = request.Detalles.Select(d => d.ProductoId).Distinct().ToList();
-        var productos = await _db.Productos
+        var productIds = request.Detalles.Select(d => d.ProductId).Distinct().ToList();
+        var productos = await _db.Products
             .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var detalle in request.Detalles)
         {
-            if (!productos.ContainsKey(detalle.ProductoId))
-                throw new InvalidOperationException($"Producto {detalle.ProductoId} no encontrado");
+            if (!productos.ContainsKey(detalle.ProductId))
+                throw new InvalidOperationException($"Product {detalle.ProductId} no encontrado");
         }
 
         // 4. Get VAT rate from configuration (not hardcoded!)
@@ -211,16 +211,16 @@ public class FacturasService : IFacturasService
             request.PorcentajeDescuento,
             cliente.PorcentajeDescuento);
 
-        // 6. Determine if this is Factura A or B
-        bool isFacturaA = request.TipoFactura.ToUpperInvariant() == "A";
+        // 6. Determine if this is Invoice A or B
+        bool isInvoiceA = request.TipoInvoice.ToUpperInvariant() == "A";
 
         // 7. Calculate line items
-        // Factura A: uses PrecioFactura (net price, VAT will be added)
-        // Factura B: uses PrecioPresupuesto (final price with VAT included)
-        var lineResults = new List<(CreateFacturaDetalleRequest detalle, LineCalculationResult calc, Producto producto)>();
+        // Invoice A: uses PrecioInvoice (net price, VAT will be added)
+        // Invoice B: uses PrecioQuote (final price with VAT included)
+        var lineResults = new List<(CreateInvoiceDetailRequest detalle, LineCalculationResult calc, Product producto)>();
         foreach (var detalle in request.Detalles)
         {
-            var producto = productos[detalle.ProductoId];
+            var producto = productos[detalle.ProductId];
             
             // Select price based on invoice type
             decimal unitPrice;
@@ -230,7 +230,7 @@ public class FacturasService : IFacturasService
             }
             else
             {
-                unitPrice = isFacturaA ? producto.PrecioFactura : producto.PrecioPresupuesto;
+                unitPrice = isInvoiceA ? producto.PrecioInvoice : producto.PrecioQuote;
             }
             
             var lineVat = detalle.PorcentajeIVA ?? producto.PorcentajeIVA;
@@ -253,12 +253,12 @@ public class FacturasService : IFacturasService
             : cliente.AlicuotaIIBB;
 
         // 9. Calculate document totals based on invoice type
-        Factura factura;
-        var nextNumber = await GetNextInvoiceNumberAsync(request.TipoFactura, branch.PointOfSale);
+        Invoice factura;
+        var nextNumber = await GetNextInvoiceNumberAsync(request.TipoInvoice, branch.PointOfSale);
 
-        if (isFacturaA)
+        if (isInvoiceA)
         {
-            // Factura A: Net prices + VAT discriminated + IIBB if agent
+            // Invoice A: Net prices + VAT discriminated + IIBB if agent
             var docCalc = _pricingService.CalculateDocumentTypeA(
                 lineResults.Select(l => l.calc),
                 documentDiscount,
@@ -266,20 +266,20 @@ public class FacturasService : IFacturasService
                 customerIIBBRate,
                 isIIBBAgent);
 
-            factura = new Factura
+            factura = new Invoice
             {
                 BranchId = request.BranchId,
-                TipoFactura = "A",
+                TipoInvoice = "A",
                 PuntoVenta = branch.PointOfSale,
-                NumeroFactura = nextNumber,
-                FechaFactura = DateTime.Now,
-                ClienteId = request.ClienteId,
-                VendedorId = request.VendedorId,
+                NumeroInvoice = nextNumber,
+                FechaInvoice = DateTime.Now,
+                CustomerId = request.CustomerId,
+                SalesRepId = request.SalesRepId,
                 
                 PorcentajeIVA = vatRate,
                 Subtotal = docCalc.NetSubtotal,
                 ImporteIVA = docCalc.VATAmount,
-                IVAContenido = 0, // Factura A: IVA discriminado, no contenido
+                IVAContenido = 0, // Invoice A: IVA discriminado, no contenido
                 
                 AlicuotaIIBB = docCalc.IIBBPercent,
                 ImportePercepcionIIBB = docCalc.IIBBAmount,
@@ -294,28 +294,28 @@ public class FacturasService : IFacturasService
         }
         else
         {
-            // Factura B: Final prices with VAT included, show IVA Contenido
+            // Invoice B: Final prices with VAT included, show IVA Contenido
             var docCalc = _pricingService.CalculateDocumentTypeB(
                 lineResults.Select(l => l.calc),
                 documentDiscount,
                 vatRate);
 
-            factura = new Factura
+            factura = new Invoice
             {
                 BranchId = request.BranchId,
-                TipoFactura = "B",
+                TipoInvoice = "B",
                 PuntoVenta = branch.PointOfSale,
-                NumeroFactura = nextNumber,
-                FechaFactura = DateTime.Now,
-                ClienteId = request.ClienteId,
-                VendedorId = request.VendedorId,
+                NumeroInvoice = nextNumber,
+                FechaInvoice = DateTime.Now,
+                CustomerId = request.CustomerId,
+                SalesRepId = request.SalesRepId,
                 
                 PorcentajeIVA = vatRate,
-                Subtotal = docCalc.Total, // In Factura B, Subtotal = Total
-                ImporteIVA = 0, // Factura B: IVA not discriminated
+                Subtotal = docCalc.Total, // In Invoice B, Subtotal = Total
+                ImporteIVA = 0, // Invoice B: IVA not discriminated
                 IVAContenido = docCalc.VATContained, // Ley 27.743
                 
-                AlicuotaIIBB = 0, // Factura B typically no IIBB perception
+                AlicuotaIIBB = 0, // Invoice B typically no IIBB perception
                 ImportePercepcionIIBB = 0,
                 PorcentajeDescuento = documentDiscount,
                 ImporteDescuento = docCalc.DocumentDiscountAmount,
@@ -331,10 +331,10 @@ public class FacturasService : IFacturasService
         int itemNumber = 1;
         foreach (var (detalle, calc, producto) in lineResults)
         {
-            factura.Detalles.Add(new FacturaDetalle
+            factura.Detalles.Add(new InvoiceDetail
             {
                 ItemNumero = itemNumber++,
-                ProductoId = detalle.ProductoId,
+                ProductId = detalle.ProductId,
                 Cantidad = detalle.Cantidad,
                 PrecioUnitario = calc.UnitPrice,
                 PorcentajeDescuento = calc.DiscountPercent,
@@ -344,7 +344,7 @@ public class FacturasService : IFacturasService
         }
 
         // 11. Save to database
-        _db.Facturas.Add(factura);
+        _db.Invoices.Add(factura);
         await _db.SaveChangesAsync();
 
         // 12. Return complete response
@@ -353,7 +353,7 @@ public class FacturasService : IFacturasService
 
     public async Task<bool> AnularAsync(int id, string motivo)
     {
-        var factura = await _db.Facturas.FindAsync(id);
+        var factura = await _db.Invoices.FindAsync(id);
         if (factura == null)
             return false;
 
@@ -372,11 +372,11 @@ public class FacturasService : IFacturasService
     /// <summary>
     /// Gets the next invoice number for a given type and point of sale
     /// </summary>
-    private async Task<long> GetNextInvoiceNumberAsync(string tipoFactura, int puntoVenta)
+    private async Task<long> GetNextInvoiceNumberAsync(string tipoInvoice, int puntoVenta)
     {
-        var lastNumber = await _db.Facturas
-            .Where(f => f.TipoFactura == tipoFactura && f.PuntoVenta == puntoVenta)
-            .MaxAsync(f => (long?)f.NumeroFactura) ?? 0;
+        var lastNumber = await _db.Invoices
+            .Where(f => f.TipoInvoice == tipoInvoice && f.PuntoVenta == puntoVenta)
+            .MaxAsync(f => (long?)f.NumeroInvoice) ?? 0;
 
         return lastNumber + 1;
     }
@@ -385,20 +385,20 @@ public class FacturasService : IFacturasService
     // MAPPING
     // ===========================================
 
-    private static FacturaResponse MapToResponse(Factura factura)
+    private static InvoiceResponse MapToResponse(Invoice factura)
     {
-        return new FacturaResponse
+        return new InvoiceResponse
         {
             Id = factura.Id,
-            TipoFactura = factura.TipoFactura,
+            TipoInvoice = factura.TipoInvoice,
             PuntoVenta = factura.PuntoVenta,
-            NumeroFactura = factura.NumeroFactura,
-            FechaFactura = factura.FechaFactura,
-            ClienteId = factura.ClienteId,
-            ClienteRazonSocial = factura.Cliente.RazonSocial,
-            ClienteCUIT = factura.Cliente.CUIT,
-            VendedorId = factura.VendedorId,
-            VendedorNombre = factura.Vendedor?.Nombre,
+            NumeroInvoice = factura.NumeroInvoice,
+            FechaInvoice = factura.FechaInvoice,
+            CustomerId = factura.CustomerId,
+            CustomerRazonSocial = factura.Customer.RazonSocial,
+            CustomerCUIT = factura.Customer.CUIT,
+            SalesRepId = factura.SalesRepId,
+            SalesRepNombre = factura.SalesRep?.Nombre,
             Subtotal = factura.Subtotal,
             ImporteIVA = factura.ImporteIVA,
             IVAContenido = factura.IVAContenido,

@@ -14,10 +14,10 @@ public interface IStockService
     Task<IEnumerable<StockResumenResponse>> GetResumenAsync();
     
     /// <summary>Get stock for a specific product across all warehouses</summary>
-    Task<IEnumerable<StockResponse>> GetByProductoAsync(int productoId);
+    Task<IEnumerable<StockResponse>> GetByProductAsync(int productoId);
     
     /// <summary>Get all stock in a specific warehouse</summary>
-    Task<IEnumerable<StockResponse>> GetByDepositoAsync(int depositoId);
+    Task<IEnumerable<StockResponse>> GetByWarehouseAsync(int depositoId);
     
     /// <summary>Get products with stock below minimum</summary>
     Task<IEnumerable<StockResumenResponse>> GetBajoMinimoAsync();

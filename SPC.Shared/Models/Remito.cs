@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Remito oficial - Cabecera (RemitoC en Access).
+/// DeliveryNote oficial - Cabecera (DeliveryNoteC en Access).
 /// Albaran de entrega de mercaderia.
 /// </summary>
-public class Remito
+public class DeliveryNote
 {
     public int Id { get; set; }
     
@@ -17,17 +17,17 @@ public class Remito
     
     public int PuntoVenta { get; set; } = 1;
     
-    public long NumeroRemito { get; set; }
+    public long NumeroDeliveryNote { get; set; }
     
-    public DateTime FechaRemito { get; set; } = DateTime.Now;
+    public DateTime FechaDeliveryNote { get; set; } = DateTime.Now;
     
-    // Relacion con Cliente
-    public int ClienteId { get; set; }
-    public Cliente Cliente { get; set; } = null!;
+    // Relacion con Customer
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
     
-    // Vendedor
-    public int? VendedorId { get; set; }
-    public Vendedor? Vendedor { get; set; }
+    // SalesRep
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     // Direccion de entrega (puede ser diferente a la del cliente)
     [StringLength(300)]
@@ -46,8 +46,8 @@ public class Remito
     
     // Estado
     public bool Facturado { get; set; } = false;
-    public int? FacturaId { get; set; }
-    public Factura? Factura { get; set; }
+    public int? InvoiceId { get; set; }
+    public Invoice? Invoice { get; set; }
     
     /// <summary>Tipo de factura asociada</summary>
     [StringLength(1)]
@@ -59,5 +59,5 @@ public class Remito
     public string? Observaciones { get; set; }
     
     // Navegacion
-    public List<RemitoDetalle> Detalles { get; set; } = new();
+    public List<DeliveryNoteDetail> Detalles { get; set; } = new();
 }

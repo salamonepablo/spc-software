@@ -4,14 +4,14 @@ using SPC.Shared.Models;
 
 namespace SPC.API.Endpoints;
 
-public static class SucursalesEndpoints
+public static class BranchesEndpoints
 {
-    public static void MapSucursalesEndpoints(this IEndpointRouteBuilder app)
+    public static void MapBranchesEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/sucursales", GetSucursales);
+        app.MapGet("/api/sucursales", GetBranches);
     }
 
-    private static async Task<IResult> GetSucursales(SPCDbContext db)
+    private static async Task<IResult> GetBranches(SPCDbContext db)
     {
         var sucursales = await db.Branches
             .Where(b => b.IsActive)

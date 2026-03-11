@@ -6,17 +6,17 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Nuevo Cliente - SPC</PageTitle>
+<PageTitle>Nuevo Customer - SPC</PageTitle>
 
 <div class="container-fluid">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/clientes">Clientes</a></li>
+            <li class="breadcrumb-item"><a href="/clientes">Customers</a></li>
             <li class="breadcrumb-item active">Nuevo</li>
         </ol>
     </nav>
 
-    <h3 class="mb-4">Nuevo Cliente</h3>
+    <h3 class="mb-4">Nuevo Customer</h3>
 
     @if (errorMessage != null)
     {
@@ -27,7 +27,7 @@
 
     <div class="card">
         <div class="card-body">
-            <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="CreateCliente">
+            <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="CreateCustomer">
                 <DataAnnotationsValidator />
                 
                 <div class="row">
@@ -53,11 +53,11 @@
 
                         <div class="mb-3">
                             <label for="condicionIva" class="form-label">Condición IVA</label>
-                            <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.CondicionIvaId">
+                            <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.TaxConditionId">
                                 <option value="">-- Seleccionar --</option>
                                 @foreach (var cond in condicionesIva)
                                 {
-                                    <option value="@cond.Id">@cond.Descripcion (@cond.TipoFactura)</option>
+                                    <option value="@cond.Id">@cond.Descripcion (@cond.TipoInvoice)</option>
                                 }
                             </InputSelect>
                         </div>
@@ -113,8 +113,8 @@
                         <h5 class="mb-3">Comercial</h5>
 
                         <div class="mb-3">
-                            <label for="vendedor" class="form-label">Vendedor</label>
-                            <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.VendedorId">
+                            <label for="vendedor" class="form-label">SalesRep</label>
+                            <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.SalesRepId">
                                 <option value="">-- Sin asignar --</option>
                                 @foreach (var v in vendedores)
                                 {
@@ -125,7 +125,7 @@
 
                         <div class="mb-3">
                             <label for="zonaVenta" class="form-label">Zona de Venta</label>
-                            <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.ZonaVentaId">
+                            <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.SalesZoneId">
                                 <option value="">-- Sin asignar --</option>
                                 @foreach (var z in zonasVenta)
                                 {
@@ -175,10 +175,10 @@
 </div>
 
 @code {
-    private CreateClienteDto cliente = new();
-    private List<CondicionIvaDto> condicionesIva = new();
-    private List<VendedorDto> vendedores = new();
-    private List<ZonaVentaDto> zonasVenta = new();
+    private CreateCustomerDto cliente = new();
+    private List<TaxConditionDto> condicionesIva = new();
+    private List<SalesRepDto> vendedores = new();
+    private List<SalesZoneDto> zonasVenta = new();
     
     private bool saving = false;
     private string? errorMessage;
@@ -187,7 +187,7 @@
     {
         // Load dropdown data in parallel
         var condicionesTask = Api.GetCondicionesIvaAsync();
-        var vendedoresTask = Api.GetVendedoresAsync();
+        var vendedoresTask = Api.GetSalesRepesAsync();
         var zonasTask = Api.GetZonasVentaAsync();
 
         await Task.WhenAll(condicionesTask, vendedoresTask, zonasTask);
@@ -204,7 +204,7 @@
 
         try
         {
-            var result = await Api.CreateClienteAsync(cliente);
+            var result = await Api.CreateCustomerAsync(cliente);
 
             if (result != null)
             {

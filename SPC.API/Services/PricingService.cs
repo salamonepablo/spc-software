@@ -82,7 +82,7 @@ public class PricingService : IPricingService
     }
     
     /// <summary>
-    /// Calculates document totals for Factura A (net prices + VAT discriminated).
+    /// Calculates document totals for Invoice A (net prices + VAT discriminated).
     /// VAT is ADDED to the net subtotal.
     /// IIBB only applies if company is perception agent.
     /// </summary>
@@ -99,7 +99,7 @@ public class PricingService : IPricingService
         var documentDiscountAmount = linesSubtotal * (documentDiscountPercent / 100m);
         var netSubtotal = linesSubtotal - documentDiscountAmount;
         
-        // Factura A: Add VAT to net subtotal
+        // Invoice A: Add VAT to net subtotal
         var vatAmount = netSubtotal * (vatPercent / 100m);
         
         // IIBB only if company is perception agent
@@ -129,7 +129,7 @@ public class PricingService : IPricingService
     }
     
     /// <summary>
-    /// Calculates document totals for Factura B (final prices with VAT included).
+    /// Calculates document totals for Invoice B (final prices with VAT included).
     /// VAT is NOT added - it's extracted from the total as "IVA Contenido".
     /// Formula: IVA Contenido = Total / (1 + VAT%) * VAT%
     /// </summary>
@@ -144,7 +144,7 @@ public class PricingService : IPricingService
         var documentDiscountAmount = linesSubtotal * (documentDiscountPercent / 100m);
         var total = linesSubtotal - documentDiscountAmount;
         
-        // Factura B: Price already includes VAT
+        // Invoice B: Price already includes VAT
         // Calculate IVA Contenido for transparency (Ley 27.743)
         // IVA Contenido = Total / 1.21 * 0.21 = Total * 0.21 / 1.21
         var vatMultiplier = vatPercent / 100m;

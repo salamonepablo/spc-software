@@ -6,12 +6,12 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Editar Cliente - SPC</PageTitle>
+<PageTitle>Editar Customer - SPC</PageTitle>
 
 <div class="container-fluid">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/clientes">Clientes</a></li>
+            <li class="breadcrumb-item"><a href="/clientes">Customers</a></li>
             <li class="breadcrumb-item active">Editar</li>
         </ol>
     </nav>
@@ -23,14 +23,14 @@
     else if (notFound)
     {
         <div class="alert alert-warning">
-            <h4>Cliente no encontrado</h4>
+            <h4>Customer no encontrado</h4>
             <p>El cliente solicitado no existe o fue eliminado.</p>
-            <a href="/clientes" class="btn btn-primary">Volver a Clientes</a>
+            <a href="/clientes" class="btn btn-primary">Volver a Customers</a>
         </div>
     }
     else
     {
-        <h3 class="mb-4">Editar Cliente: @originalName</h3>
+        <h3 class="mb-4">Editar Customer: @originalName</h3>
 
         @if (errorMessage != null)
         {
@@ -48,7 +48,7 @@
 
         <div class="card">
             <div class="card-body">
-                <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="EditCliente">
+                <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="EditCustomer">
                     <DataAnnotationsValidator />
                     
                     <div class="row">
@@ -74,11 +74,11 @@
 
                             <div class="mb-3">
                                 <label for="condicionIva" class="form-label">Condición IVA</label>
-                                <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.CondicionIvaId">
+                                <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.TaxConditionId">
                                     <option value="">-- Seleccionar --</option>
                                     @foreach (var cond in condicionesIva)
                                     {
-                                        <option value="@cond.Id">@cond.Descripcion (@cond.TipoFactura)</option>
+                                        <option value="@cond.Id">@cond.Descripcion (@cond.TipoInvoice)</option>
                                     }
                                 </InputSelect>
                             </div>
@@ -134,8 +134,8 @@
                             <h5 class="mb-3">Comercial</h5>
 
                             <div class="mb-3">
-                                <label for="vendedor" class="form-label">Vendedor</label>
-                                <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.VendedorId">
+                                <label for="vendedor" class="form-label">SalesRep</label>
+                                <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.SalesRepId">
                                     <option value="">-- Sin asignar --</option>
                                     @foreach (var v in vendedores)
                                     {
@@ -146,7 +146,7 @@
 
                             <div class="mb-3">
                                 <label for="zonaVenta" class="form-label">Zona de Venta</label>
-                                <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.ZonaVentaId">
+                                <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.SalesZoneId">
                                     <option value="">-- Sin asignar --</option>
                                     @foreach (var z in zonasVenta)
                                     {
@@ -200,10 +200,10 @@
     [Parameter]
     public int Id { get; set; }
 
-    private UpdateClienteDto cliente = new();
-    private List<CondicionIvaDto> condicionesIva = new();
-    private List<VendedorDto> vendedores = new();
-    private List<ZonaVentaDto> zonasVenta = new();
+    private UpdateCustomerDto cliente = new();
+    private List<TaxConditionDto> condicionesIva = new();
+    private List<SalesRepDto> vendedores = new();
+    private List<SalesZoneDto> zonasVenta = new();
     
     private bool loading = true;
     private bool notFound = false;
@@ -216,9 +216,9 @@
     {
         // Load dropdown data and cliente in parallel
         var condicionesTask = Api.GetCondicionesIvaAsync();
-        var vendedoresTask = Api.GetVendedoresAsync();
+        var vendedoresTask = Api.GetSalesRepesAsync();
         var zonasTask = Api.GetZonasVentaAsync();
-        var clienteTask = Api.GetClienteAsync(Id);
+        var clienteTask = Api.GetCustomerAsync(Id);
 
         await Task.WhenAll(condicionesTask, vendedoresTask, zonasTask, clienteTask);
 
@@ -241,9 +241,9 @@
         loading = false;
     }
 
-    private void MapToUpdateDto(ClienteDto source)
+    private void MapToUpdateDto(CustomerDto source)
     {
-        cliente = new UpdateClienteDto
+        cliente = new UpdateCustomerDto
         {
             RazonSocial = source.RazonSocial,
             NombreFantasia = source.NombreFantasia,
@@ -255,9 +255,9 @@
             Telefono = source.Telefono,
             Celular = source.Celular,
             Email = source.Email,
-            CondicionIvaId = source.CondicionIvaId,
-            VendedorId = source.VendedorId,
-            ZonaVentaId = source.ZonaVentaId,
+            TaxConditionId = source.TaxConditionId,
+            SalesRepId = source.SalesRepId,
+            SalesZoneId = source.SalesZoneId,
             PorcentajeDescuento = source.PorcentajeDescuento,
             LimiteCredito = source.LimiteCredito,
             Observaciones = source.Observaciones
@@ -272,11 +272,11 @@
 
         try
         {
-            var success = await Api.UpdateClienteAsync(Id, cliente);
+            var success = await Api.UpdateCustomerAsync(Id, cliente);
 
             if (success)
             {
-                successMessage = "Cliente actualizado correctamente.";
+                successMessage = "Customer actualizado correctamente.";
                 originalName = cliente.RazonSocial;
             }
             else

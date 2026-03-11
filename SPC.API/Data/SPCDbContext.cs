@@ -17,13 +17,13 @@ public class SPCDbContext : DbContext
     // ENTIDADES PRINCIPALES
     // ===========================================
     
-    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
-    public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<Product> Products => Set<Product>();
     
     // Documentos Billing (Linea 1 - Fiscales)
-    public DbSet<Factura> Facturas => Set<Factura>();
-    public DbSet<FacturaDetalle> FacturaDetalles => Set<FacturaDetalle>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceDetail> InvoiceDetails => Set<InvoiceDetail>();
     public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
     public DbSet<CreditNoteDetail> CreditNoteDetails => Set<CreditNoteDetail>();
     public DbSet<DebitNote> DebitNotes => Set<DebitNote>();
@@ -35,9 +35,9 @@ public class SPCDbContext : DbContext
     public DbSet<InternalDebitNote> InternalDebitNotes => Set<InternalDebitNote>();
     public DbSet<InternalDebitNoteDetail> InternalDebitNoteDetails => Set<InternalDebitNoteDetail>();
     
-    // Remitos
-    public DbSet<Remito> Remitos => Set<Remito>();
-    public DbSet<RemitoDetalle> RemitoDetalles => Set<RemitoDetalle>();
+    // DeliveryNotes
+    public DbSet<DeliveryNote> DeliveryNotes => Set<DeliveryNote>();
+    public DbSet<DeliveryNoteDetail> DeliveryNoteDetails => Set<DeliveryNoteDetail>();
     public DbSet<CasualDeliveryNote> CasualDeliveryNotes => Set<CasualDeliveryNote>();
     public DbSet<CasualDeliveryNoteDetail> CasualDeliveryNoteDetails => Set<CasualDeliveryNoteDetail>();
     
@@ -63,12 +63,12 @@ public class SPCDbContext : DbContext
     // ===========================================
     
     public DbSet<Branch> Branches => Set<Branch>();
-    public DbSet<CondicionIva> CondicionesIva => Set<CondicionIva>();
-    public DbSet<Vendedor> Vendedores => Set<Vendedor>();
-    public DbSet<ZonaVenta> ZonasVenta => Set<ZonaVenta>();
-    public DbSet<Rubro> Rubros => Set<Rubro>();
-    public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
-    public DbSet<Deposito> Depositos => Set<Deposito>();
+    public DbSet<TaxCondition> CondicionesIva => Set<TaxCondition>();
+    public DbSet<SalesRep> SalesRepes => Set<SalesRep>();
+    public DbSet<SalesZone> ZonasVenta => Set<SalesZone>();
+    public DbSet<Category> Categorys => Set<Category>();
+    public DbSet<UnitOfMeasure> UnidadesMedida => Set<UnitOfMeasure>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<TaxSetting> TaxSettings => Set<TaxSetting>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
@@ -79,21 +79,21 @@ public class SPCDbContext : DbContext
         // CONFIGURACION DE PRECISION DECIMALES
         // ===========================================
         
-        modelBuilder.Entity<Cliente>(entity =>
+        modelBuilder.Entity<Customer>(entity =>
         {
             entity.Property(c => c.LimiteCredito).HasPrecision(18, 2);
             entity.Property(c => c.PorcentajeDescuento).HasPrecision(5, 2);
             entity.Property(c => c.AlicuotaIIBB).HasPrecision(5, 2);
         });
 
-        modelBuilder.Entity<Vendedor>(entity =>
+        modelBuilder.Entity<SalesRep>(entity =>
         {
             entity.Property(v => v.PorcentajeComision).HasPrecision(5, 2);
             entity.HasIndex(v => v.Legajo).IsUnique();
         });
 
-        // Facturas
-        modelBuilder.Entity<Factura>(entity =>
+        // Invoices
+        modelBuilder.Entity<Invoice>(entity =>
         {
             entity.Property(f => f.PorcentajeIVA).HasPrecision(5, 2);
             entity.Property(f => f.AlicuotaIIBB).HasPrecision(5, 2);
@@ -221,8 +221,8 @@ public class SPCDbContext : DbContext
             entity.Property(d => d.Quantity).HasPrecision(18, 2);
         });
 
-        // Remito details
-        modelBuilder.Entity<RemitoDetalle>(entity =>
+        // DeliveryNote details
+        modelBuilder.Entity<DeliveryNoteDetail>(entity =>
         {
             entity.Property(d => d.Cantidad).HasPrecision(18, 2);
         });
@@ -237,11 +237,11 @@ public class SPCDbContext : DbContext
         // ===========================================
         
         modelBuilder.Entity<Stock>()
-            .HasIndex(s => new { s.ProductoId, s.DepositoId })
+            .HasIndex(s => new { s.ProductId, s.WarehouseId })
             .IsUnique();
         
-        modelBuilder.Entity<Factura>()
-            .HasIndex(f => new { f.TipoFactura, f.PuntoVenta, f.NumeroFactura })
+        modelBuilder.Entity<Invoice>()
+            .HasIndex(f => new { f.TipoInvoice, f.PuntoVenta, f.NumeroInvoice })
             .IsUnique();
 
         modelBuilder.Entity<Quote>()
@@ -264,8 +264,8 @@ public class SPCDbContext : DbContext
             .HasIndex(p => new { p.BranchId, p.PaymentNumber })
             .IsUnique();
 
-        modelBuilder.Entity<Remito>()
-            .HasIndex(r => new { r.BranchId, r.NumeroRemito })
+        modelBuilder.Entity<DeliveryNote>()
+            .HasIndex(r => new { r.BranchId, r.NumeroDeliveryNote })
             .IsUnique();
 
         modelBuilder.Entity<Branch>()
@@ -286,22 +286,46 @@ public class SPCDbContext : DbContext
         // RELACIONES
         // ===========================================
         
-        // Remito -> Factura (un remito pertenece a una factura)
-        // Restrict to avoid cascade path conflict: Cliente -> Factura -> Remito vs Cliente -> Remito
-        modelBuilder.Entity<Remito>()
-            .HasOne(r => r.Factura)
-            .WithMany(f => f.Remitos)
-            .HasForeignKey(r => r.FacturaId)
+        // DeliveryNote -> Invoice (un remito pertenece a una factura)
+        // Restrict to avoid cascade path conflict: Customer -> Invoice -> DeliveryNote vs Customer -> DeliveryNote
+        modelBuilder.Entity<Invoice>()
+            .HasOne(f => f.Customer)
+            .WithMany(c => c.Invoices)
+            .HasForeignKey(f => f.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // CreditNote -> Factura (NC se emite contra una factura)
+        modelBuilder.Entity<Invoice>()
+            .HasOne(f => f.SalesRep)
+            .WithMany()
+            .HasForeignKey(f => f.SalesRepId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<InvoiceDetail>()
+            .HasOne(d => d.Invoice)
+            .WithMany(f => f.Detalles)
+            .HasForeignKey(d => d.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<InvoiceDetail>()
+            .HasOne(d => d.Product)
+            .WithMany()
+            .HasForeignKey(d => d.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DeliveryNote>()
+            .HasOne(r => r.Invoice)
+            .WithMany(f => f.DeliveryNotes)
+            .HasForeignKey(r => r.InvoiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // CreditNote -> Invoice (NC se emite contra una factura)
         modelBuilder.Entity<CreditNote>()
             .HasOne(c => c.Invoice)
             .WithMany(f => f.CreditNotes)
             .HasForeignKey(c => c.InvoiceId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // StockMovement -> Depositos (evitar cascade multiple)
+        // StockMovement -> Warehouses (evitar cascade multiple)
         modelBuilder.Entity<StockMovement>()
             .HasOne(s => s.SourceWarehouse)
             .WithMany()
@@ -319,35 +343,35 @@ public class SPCDbContext : DbContext
         // ===========================================
         
         // Condiciones IVA
-        modelBuilder.Entity<CondicionIva>().HasData(
-            new CondicionIva { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoFactura = "A" },
-            new CondicionIva { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoFactura = "B" },
-            new CondicionIva { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoFactura = "B" },
-            new CondicionIva { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoFactura = "B" }
+        modelBuilder.Entity<TaxCondition>().HasData(
+            new TaxCondition { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoInvoice = "A" },
+            new TaxCondition { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoInvoice = "B" },
+            new TaxCondition { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoInvoice = "B" },
+            new TaxCondition { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoInvoice = "B" }
         );
         
         // Unidades de Medida
-        modelBuilder.Entity<UnidadMedida>().HasData(
-            new UnidadMedida { Id = 1, Codigo = "UN", Nombre = "Unidades" },
-            new UnidadMedida { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+        modelBuilder.Entity<UnitOfMeasure>().HasData(
+            new UnitOfMeasure { Id = 1, Codigo = "UN", Nombre = "Unidades" },
+            new UnitOfMeasure { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
         );
         
-        // Deposito principal
-        modelBuilder.Entity<Deposito>().HasData(
-            new Deposito { Id = 1, Nombre = "Deposito Principal", Activo = true }
+        // Warehouse principal
+        modelBuilder.Entity<Warehouse>().HasData(
+            new Warehouse { Id = 1, Nombre = "Warehouse Principal", Activo = true }
         );
         
-        // Rubros
-        modelBuilder.Entity<Rubro>().HasData(
-            new Rubro { Id = 1, Nombre = "Baterias Auto", Activo = true },
-            new Rubro { Id = 2, Nombre = "Baterias Moto", Activo = true },
-            new Rubro { Id = 3, Nombre = "Baterias Camion", Activo = true },
-            new Rubro { Id = 4, Nombre = "Accesorios", Activo = true }
+        // Categorys
+        modelBuilder.Entity<Category>().HasData(
+            new Category { Id = 1, Nombre = "Baterias Auto", Activo = true },
+            new Category { Id = 2, Nombre = "Baterias Moto", Activo = true },
+            new Category { Id = 3, Nombre = "Baterias Camion", Activo = true },
+            new Category { Id = 4, Nombre = "Accesorios", Activo = true }
         );
 
-        // Sucursales
+        // Branches
         modelBuilder.Entity<Branch>().HasData(
-            new Branch { Id = 1, Code = "CALLE", Name = "Calle (Vendedores)", PointOfSale = 2, IsActive = true },
+            new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesRepes)", PointOfSale = 2, IsActive = true },
             new Branch { Id = 2, Code = "DISTRIB", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true }
         );
 

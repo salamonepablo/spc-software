@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Remito temporal/casual (RemitoTemp en Access).
+/// DeliveryNote temporal/casual (DeliveryNoteTemp en Access).
 /// Para clientes ocasionales, sin cuenta corriente.
 /// Lleva numeracion separada de los remitos oficiales.
 /// </summary>
@@ -23,23 +23,23 @@ public class CasualDeliveryNote
     /// <summary>Fecha del remito</summary>
     public DateTime DeliveryNoteDate { get; set; }
     
-    /// <summary>Cliente (puede ser ocasional)</summary>
+    /// <summary>Customer (puede ser ocasional)</summary>
     public int? CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
     /// <summary>Nombre del cliente (si es ocasional sin registro)</summary>
     [StringLength(200)]
     public string? CustomerName { get; set; }
     
-    /// <summary>Vendedor</summary>
+    /// <summary>SalesRep</summary>
     public int? SalesRepId { get; set; }
-    public Vendedor? SalesRep { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     /// <summary>Unidad de negocio</summary>
     [StringLength(50)]
     public string? BusinessUnit { get; set; }
     
-    /// <summary>Factura asociada (si se facturo)</summary>
+    /// <summary>Invoice asociada (si se facturo)</summary>
     public int? InvoiceId { get; set; }
     
     [StringLength(500)]
@@ -62,7 +62,7 @@ public class CasualDeliveryNoteDetail
     public int ItemNumber { get; set; }
     
     public int ProductId { get; set; }
-    public Producto? Product { get; set; }
+    public Product? Product { get; set; }
     
     public decimal Quantity { get; set; }
     

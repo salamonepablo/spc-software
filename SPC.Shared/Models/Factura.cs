@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Factura - Cabecera (FacturaC en Access).
+/// Invoice - Cabecera (InvoiceC en Access).
 /// Documento fiscal que genera saldo en Billing (Linea 1).
 /// </summary>
-public class Factura
+public class Invoice
 {
     public int Id { get; set; }
     
@@ -17,21 +17,21 @@ public class Factura
     
     [Required]
     [StringLength(1)]
-    public string TipoFactura { get; set; } = "B";  // A o B
+    public string TipoInvoice { get; set; } = "B";  // A o B
     
     public int PuntoVenta { get; set; } = 1;
     
-    public long NumeroFactura { get; set; }
+    public long NumeroInvoice { get; set; }
     
-    public DateTime FechaFactura { get; set; } = DateTime.Now;
+    public DateTime FechaInvoice { get; set; } = DateTime.Now;
     
-    // Relacion con Cliente
-    public int ClienteId { get; set; }
-    public Cliente Cliente { get; set; } = null!;
+    // Relacion con Customer
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
     
-    // Vendedor
-    public int? VendedorId { get; set; }
-    public Vendedor? Vendedor { get; set; }
+    // SalesRep
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
     // Totales
     [Column(TypeName = "decimal(18,2)")]
@@ -41,16 +41,16 @@ public class Factura
     public decimal PorcentajeIVA { get; set; } = 21;
     
     /// <summary>
-    /// Importe IVA discriminado (Factura A).
-    /// En Factura B este campo es 0 porque el IVA está contenido en el precio.
+    /// Importe IVA discriminado (Invoice A).
+    /// En Invoice B este campo es 0 porque el IVA está contenido en el precio.
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     public decimal ImporteIVA { get; set; } = 0;
     
     /// <summary>
-    /// IVA Contenido en el precio final (solo Factura B).
+    /// IVA Contenido en el precio final (solo Invoice B).
     /// Requerido por Ley 27.743 - Régimen de Transparencia Fiscal.
-    /// En Factura A este campo es 0.
+    /// En Invoice A este campo es 0.
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     public decimal IVAContenido { get; set; } = 0;
@@ -88,8 +88,8 @@ public class Factura
     [StringLength(50)]
     public string? UnidadNegocio { get; set; }
     
-    /// <summary>Remito asociado</summary>
-    public int? RemitoId { get; set; }
+    /// <summary>DeliveryNote asociado</summary>
+    public int? DeliveryNoteId { get; set; }
     
     /// <summary>Aclaracion en factura</summary>
     [StringLength(200)]
@@ -102,7 +102,7 @@ public class Factura
     public string? Observaciones { get; set; }
     
     // Navegacion
-    public List<FacturaDetalle> Detalles { get; set; } = new();
-    public List<Remito> Remitos { get; set; } = new();
+    public List<InvoiceDetail> Detalles { get; set; } = new();
+    public List<DeliveryNote> DeliveryNotes { get; set; } = new();
     public List<CreditNote> CreditNotes { get; set; } = new();
 }

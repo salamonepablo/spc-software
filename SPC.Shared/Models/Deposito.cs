@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Deposito / Almacen.
+/// Warehouse / Almacen.
 /// Puede ser un deposito fijo o una camioneta de vendedor.
 /// </summary>
-public class Deposito
+public class Warehouse
 {
     public int Id { get; set; }
     
@@ -18,11 +18,11 @@ public class Deposito
     public string? Direccion { get; set; }
     
     /// <summary>
-    /// Vendedor asociado (para camionetas de reparto).
+    /// SalesRep asociado (para camionetas de reparto).
     /// Si es null, es un deposito fijo.
     /// </summary>
-    public int? VendedorAsociadoId { get; set; }
-    public Vendedor? VendedorAsociado { get; set; }
+    public int? SalesRepAsociadoId { get; set; }
+    public SalesRep? SalesRepAsociado { get; set; }
     
     public bool Activo { get; set; } = true;
     

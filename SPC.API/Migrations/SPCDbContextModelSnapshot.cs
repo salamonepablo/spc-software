@@ -8,7 +8,7 @@ using SPC.API.Data;
 
 #nullable disable
 
-namespace SPC.API.Data.Migrations
+namespace SPC.API.Migrations
 {
     [DbContext(typeof(SPCDbContext))]
     partial class SPCDbContextModelSnapshot : ModelSnapshot
@@ -59,7 +59,7 @@ namespace SPC.API.Data.Migrations
                             Id = 1,
                             Code = "CALLE",
                             IsActive = true,
-                            Name = "Calle (Vendedores)",
+                            Name = "Calle (SalesRepes)",
                             PointOfSale = 2
                         },
                         new
@@ -157,7 +157,7 @@ namespace SPC.API.Data.Migrations
                     b.ToTable("CasualDeliveryNoteDetails");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Cliente", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Category", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -168,88 +168,44 @@ namespace SPC.API.Data.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("AlicuotaIIBB")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("CUIT")
-                        .HasMaxLength(13)
-                        .HasColumnType("nvarchar(13)");
-
-                    b.Property<string>("Celular")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CodigoPostal")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<int?>("CondicionIvaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Direccion")
+                    b.Property<string>("Descripcion")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("FechaAlta")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("LimiteCredito")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Localidad")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("NombreFantasia")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal>("PorcentajeDescuento")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("Provincia")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ProvinciaPadronIIBB")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("RazonSocial")
+                    b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("VendedorId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ZonaVentaId")
-                        .HasColumnType("int");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CondicionIvaId");
+                    b.ToTable("Categorys");
 
-                    b.HasIndex("VendedorId");
-
-                    b.HasIndex("ZonaVentaId");
-
-                    b.ToTable("Clientes");
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Activo = true,
+                            Nombre = "Baterias Auto"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Activo = true,
+                            Nombre = "Baterias Moto"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Activo = true,
+                            Nombre = "Baterias Camion"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Activo = true,
+                            Nombre = "Accesorios"
+                        });
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.CompanySettings", b =>
@@ -293,64 +249,6 @@ namespace SPC.API.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("CompanySettings");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.CondicionIva", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("TipoFactura")
-                        .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CondicionesIva");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Codigo = "RI",
-                            Descripcion = "Responsable Inscripto",
-                            TipoFactura = "A"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Codigo = "MO",
-                            Descripcion = "Monotributo",
-                            TipoFactura = "B"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Codigo = "CF",
-                            Descripcion = "Consumidor Final",
-                            TipoFactura = "B"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Codigo = "EX",
-                            Descripcion = "Exento",
-                            TipoFactura = "B"
-                        });
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Consignment", b =>
@@ -652,6 +550,101 @@ namespace SPC.API.Data.Migrations
                     b.ToTable("CurrentAccountMovements");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("AlicuotaIIBB")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("CUIT")
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.Property<string>("Celular")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CodigoPostal")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("FechaAlta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("LimiteCredito")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Localidad")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NombreFantasia")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("PorcentajeDescuento")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Provincia")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProvinciaPadronIIBB")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("RazonSocial")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("SalesRepId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SalesZoneId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TaxConditionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesRepId");
+
+                    b.HasIndex("SalesZoneId");
+
+                    b.HasIndex("TaxConditionId");
+
+                    b.ToTable("Customers");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.CustomerAddress", b =>
                 {
                     b.Property<int>("Id")
@@ -862,45 +855,7 @@ namespace SPC.API.Data.Migrations
                     b.ToTable("DebitNoteDetails");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Deposito", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("VendedorAsociadoId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VendedorAsociadoId");
-
-                    b.ToTable("Depositos");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Activo = true,
-                            Nombre = "Deposito Principal"
-                        });
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.Factura", b =>
+            modelBuilder.Entity("SPC.Shared.Models.DeliveryNote", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -912,100 +867,68 @@ namespace SPC.API.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal>("AlicuotaIIBB")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<bool>("Anulada")
+                    b.Property<bool>("Anulado")
                         .HasColumnType("bit");
 
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CAE")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("ClienteId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CondicionVenta")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<string>("DireccionEntrega")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
-                    b.Property<DateTime>("FechaFactura")
+                    b.Property<bool>("Facturado")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaDeliveryNote")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaVencimientoCAE")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FormaPago")
+                    b.Property<int?>("InvoiceId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("ImporteDescuento")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("LocalidadEntrega")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("ImporteIVA")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ImportePercepcionIIBB")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long>("NumeroFactura")
+                    b.Property<long>("NumeroDeliveryNote")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<decimal>("PorcentajeDescuento")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("PorcentajeIVA")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<int>("PuntoVenta")
                         .HasColumnType("int");
 
-                    b.Property<int?>("RemitoId")
+                    b.Property<int?>("SalesRepId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Subtotal")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("TipoFactura")
-                        .IsRequired()
                         .HasMaxLength(1)
                         .HasColumnType("nvarchar(1)");
-
-                    b.Property<decimal>("Total")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UnidadNegocio")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("VendedorId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
+                    b.HasIndex("CustomerId");
 
-                    b.HasIndex("ClienteId");
+                    b.HasIndex("InvoiceId");
 
-                    b.HasIndex("VendedorId");
+                    b.HasIndex("SalesRepId");
 
-                    b.HasIndex("TipoFactura", "PuntoVenta", "NumeroFactura")
+                    b.HasIndex("BranchId", "NumeroDeliveryNote")
                         .IsUnique();
 
-                    b.ToTable("Facturas");
+                    b.ToTable("DeliveryNotes");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.FacturaDetalle", b =>
+            modelBuilder.Entity("SPC.Shared.Models.DeliveryNoteDetail", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1014,36 +937,25 @@ namespace SPC.API.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("FacturaId")
+                    b.Property<int>("DeliveryNoteId")
                         .HasColumnType("int");
 
                     b.Property<int>("ItemNumero")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("PorcentajeDescuento")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("PorcentajeIVA")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("PrecioUnitario")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ProductoId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("Subtotal")
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FacturaId");
+                    b.HasIndex("DeliveryNoteId");
 
-                    b.HasIndex("ProductoId");
+                    b.HasIndex("ProductId");
 
-                    b.ToTable("FacturaDetalles");
+                    b.ToTable("DeliveryNoteDetails");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.InternalDebitNote", b =>
@@ -1168,6 +1080,155 @@ namespace SPC.API.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("InternalDebitNoteDetails");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.Invoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Aclaracion")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("AlicuotaIIBB")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("Anulada")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CAE")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CondicionVenta")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DeliveryNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaInvoice")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaVencimientoCAE")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FormaPago")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("IVAContenido")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ImporteDescuento")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ImporteIVA")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ImportePercepcionIIBB")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("NumeroInvoice")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("PorcentajeDescuento")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("PorcentajeIVA")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("PuntoVenta")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SalesRepId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TipoInvoice")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UnidadNegocio")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("SalesRepId");
+
+                    b.HasIndex("TipoInvoice", "PuntoVenta", "NumeroInvoice")
+                        .IsUnique();
+
+                    b.ToTable("Invoices");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.InvoiceDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cantidad")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemNumero")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PorcentajeDescuento")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("PorcentajeIVA")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("InvoiceDetails");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Payment", b =>
@@ -1348,7 +1409,7 @@ namespace SPC.API.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Producto", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1358,6 +1419,9 @@ namespace SPC.API.Data.Migrations
 
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Codigo")
                         .IsRequired()
@@ -1383,31 +1447,28 @@ namespace SPC.API.Data.Migrations
                     b.Property<decimal>("PrecioCosto")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("PrecioFactura")
+                    b.Property<decimal>("PrecioInvoice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("PrecioPresupuesto")
+                    b.Property<decimal>("PrecioQuote")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("PrecioVenta")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("RubroId")
-                        .HasColumnType("int");
-
                     b.Property<int>("StockMinimo")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UnidadMedidaId")
+                    b.Property<int?>("UnitOfMeasureId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RubroId");
+                    b.HasIndex("CategoryId");
 
-                    b.HasIndex("UnidadMedidaId");
+                    b.HasIndex("UnitOfMeasureId");
 
-                    b.ToTable("Productos");
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Quote", b =>
@@ -1522,110 +1583,7 @@ namespace SPC.API.Data.Migrations
                     b.ToTable("QuoteDetails");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Remito", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Aclaracion")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("Anulado")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ClienteId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DireccionEntrega")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<int?>("FacturaId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("Facturado")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("FechaRemito")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LocalidadEntrega")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<long>("NumeroRemito")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("PuntoVenta")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TipoFactura")
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
-
-                    b.Property<string>("UnidadNegocio")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("VendedorId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClienteId");
-
-                    b.HasIndex("FacturaId");
-
-                    b.HasIndex("VendedorId");
-
-                    b.HasIndex("BranchId", "NumeroRemito")
-                        .IsUnique();
-
-                    b.ToTable("Remitos");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.RemitoDetalle", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Cantidad")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ItemNumero")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RemitoId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductoId");
-
-                    b.HasIndex("RemitoId");
-
-                    b.ToTable("RemitoDetalles");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.Rubro", b =>
+            modelBuilder.Entity("SPC.Shared.Models.SalesRep", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1634,6 +1592,89 @@ namespace SPC.API.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Apellido")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CUIL")
+                        .HasMaxLength(13)
+                        .HasColumnType("nvarchar(13)");
+
+                    b.Property<string>("Celular")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CodigoPostal")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("DNI")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("Domicilio")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("FechaIngreso")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaNacimiento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Legajo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Localidad")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("PorcentajeComision")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Provincia")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Legajo")
+                        .IsUnique();
+
+                    b.ToTable("SalesRepes");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.SalesZone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activa")
                         .HasColumnType("bit");
 
                     b.Property<string>("Descripcion")
@@ -1647,33 +1688,7 @@ namespace SPC.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rubros");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Activo = true,
-                            Nombre = "Baterias Auto"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Activo = true,
-                            Nombre = "Baterias Moto"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Activo = true,
-                            Nombre = "Baterias Camion"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Activo = true,
-                            Nombre = "Accesorios"
-                        });
+                    b.ToTable("ZonasVenta");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Stock", b =>
@@ -1687,17 +1702,17 @@ namespace SPC.API.Data.Migrations
                     b.Property<decimal>("Cantidad")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("DepositoId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProductoId")
+                    b.Property<int>("WarehouseId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DepositoId");
+                    b.HasIndex("WarehouseId");
 
-                    b.HasIndex("ProductoId", "DepositoId")
+                    b.HasIndex("ProductId", "WarehouseId")
                         .IsUnique();
 
                     b.ToTable("Stocks");
@@ -1764,6 +1779,64 @@ namespace SPC.API.Data.Migrations
                     b.HasIndex("StockMovementId");
 
                     b.ToTable("StockMovementDetails");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.TaxCondition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TipoInvoice")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CondicionesIva");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Codigo = "RI",
+                            Descripcion = "Responsable Inscripto",
+                            TipoInvoice = "A"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Codigo = "MO",
+                            Descripcion = "Monotributo",
+                            TipoInvoice = "B"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Codigo = "CF",
+                            Descripcion = "Consumidor Final",
+                            TipoInvoice = "B"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Codigo = "EX",
+                            Descripcion = "Exento",
+                            TipoInvoice = "B"
+                        });
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.TaxSetting", b =>
@@ -1860,7 +1933,7 @@ namespace SPC.API.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.UnidadMedida", b =>
+            modelBuilder.Entity("SPC.Shared.Models.UnitOfMeasure", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1897,7 +1970,7 @@ namespace SPC.API.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Vendedor", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Warehouse", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1908,101 +1981,31 @@ namespace SPC.API.Data.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Apellido")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CUIL")
-                        .HasMaxLength(13)
-                        .HasColumnType("nvarchar(13)");
-
-                    b.Property<string>("Celular")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CodigoPostal")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("DNI")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<string>("Domicilio")
+                    b.Property<string>("Direccion")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("FechaIngreso")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("FechaNacimiento")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Legajo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Localidad")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal>("PorcentajeComision")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<string>("Provincia")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Legajo")
-                        .IsUnique();
-
-                    b.ToTable("Vendedores");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.ZonaVenta", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int?>("SalesRepAsociadoId")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activa")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
-                    b.ToTable("ZonasVenta");
+                    b.HasIndex("SalesRepAsociadoId");
+
+                    b.ToTable("Warehouses");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Activo = true,
+                            Nombre = "Warehouse Principal"
+                        });
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.CasualDeliveryNote", b =>
@@ -2013,11 +2016,11 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId");
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2036,7 +2039,7 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2047,36 +2050,15 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Cliente", b =>
-                {
-                    b.HasOne("SPC.Shared.Models.CondicionIva", "CondicionIva")
-                        .WithMany("Clientes")
-                        .HasForeignKey("CondicionIvaId");
-
-                    b.HasOne("SPC.Shared.Models.Vendedor", "Vendedor")
-                        .WithMany("Clientes")
-                        .HasForeignKey("VendedorId");
-
-                    b.HasOne("SPC.Shared.Models.ZonaVenta", "ZonaVenta")
-                        .WithMany("Clientes")
-                        .HasForeignKey("ZonaVentaId");
-
-                    b.Navigation("CondicionIva");
-
-                    b.Navigation("Vendedor");
-
-                    b.Navigation("ZonaVenta");
-                });
-
             modelBuilder.Entity("SPC.Shared.Models.Consignment", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2093,7 +2075,7 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2112,18 +2094,18 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany("CreditNotes")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Factura", "Invoice")
+                    b.HasOne("SPC.Shared.Models.Invoice", "Invoice")
                         .WithMany("CreditNotes")
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2144,7 +2126,7 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2157,7 +2139,7 @@ namespace SPC.API.Data.Migrations
 
             modelBuilder.Entity("SPC.Shared.Models.CurrentAccount", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2168,7 +2150,7 @@ namespace SPC.API.Data.Migrations
 
             modelBuilder.Entity("SPC.Shared.Models.CurrentAccountMovement", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2177,9 +2159,30 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.Customer", b =>
+                {
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
+                        .WithMany("Customers")
+                        .HasForeignKey("SalesRepId");
+
+                    b.HasOne("SPC.Shared.Models.SalesZone", "SalesZone")
+                        .WithMany("Customers")
+                        .HasForeignKey("SalesZoneId");
+
+                    b.HasOne("SPC.Shared.Models.TaxCondition", "TaxCondition")
+                        .WithMany("Customers")
+                        .HasForeignKey("TaxConditionId");
+
+                    b.Navigation("SalesRep");
+
+                    b.Navigation("SalesZone");
+
+                    b.Navigation("TaxCondition");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.CustomerAddress", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany("DeliveryAddresses")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2196,13 +2199,13 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany("DebitNotes")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2221,7 +2224,7 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2232,16 +2235,7 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Deposito", b =>
-                {
-                    b.HasOne("SPC.Shared.Models.Vendedor", "VendedorAsociado")
-                        .WithMany("DepositosAsignados")
-                        .HasForeignKey("VendedorAsociadoId");
-
-                    b.Navigation("VendedorAsociado");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.Factura", b =>
+            modelBuilder.Entity("SPC.Shared.Models.DeliveryNote", b =>
                 {
                     b.HasOne("SPC.Shared.Models.Branch", "Branch")
                         .WithMany()
@@ -2249,40 +2243,47 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Cliente")
-                        .WithMany("Facturas")
-                        .HasForeignKey("ClienteId")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
+                        .WithMany("DeliveryNotes")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "Vendedor")
+                    b.HasOne("SPC.Shared.Models.Invoice", "Invoice")
+                        .WithMany("DeliveryNotes")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
-                        .HasForeignKey("VendedorId");
+                        .HasForeignKey("SalesRepId");
 
                     b.Navigation("Branch");
 
-                    b.Navigation("Cliente");
+                    b.Navigation("Customer");
 
-                    b.Navigation("Vendedor");
+                    b.Navigation("Invoice");
+
+                    b.Navigation("SalesRep");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.FacturaDetalle", b =>
+            modelBuilder.Entity("SPC.Shared.Models.DeliveryNoteDetail", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Factura", "Factura")
+                    b.HasOne("SPC.Shared.Models.DeliveryNote", "DeliveryNote")
                         .WithMany("Detalles")
-                        .HasForeignKey("FacturaId")
+                        .HasForeignKey("DeliveryNoteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Producto")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("ProductoId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Factura");
+                    b.Navigation("DeliveryNote");
 
-                    b.Navigation("Producto");
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.InternalDebitNote", b =>
@@ -2293,13 +2294,13 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2318,13 +2319,58 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("InternalDebitNote");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.Invoice", b =>
+                {
+                    b.HasOne("SPC.Shared.Models.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
+                        .WithMany("Invoices")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
+                        .WithMany()
+                        .HasForeignKey("SalesRepId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("SalesRep");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.InvoiceDetail", b =>
+                {
+                    b.HasOne("SPC.Shared.Models.Invoice", "Invoice")
+                        .WithMany("Detalles")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
 
                     b.Navigation("Product");
                 });
@@ -2337,7 +2383,7 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany("Payments")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2367,19 +2413,19 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("PaymentMethod");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Producto", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Product", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Rubro", "Rubro")
-                        .WithMany("Productos")
-                        .HasForeignKey("RubroId");
+                    b.HasOne("SPC.Shared.Models.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId");
 
-                    b.HasOne("SPC.Shared.Models.UnidadMedida", "UnidadMedida")
-                        .WithMany("Productos")
-                        .HasForeignKey("UnidadMedidaId");
+                    b.HasOne("SPC.Shared.Models.UnitOfMeasure", "UnitOfMeasure")
+                        .WithMany("Products")
+                        .HasForeignKey("UnitOfMeasureId");
 
-                    b.Navigation("Rubro");
+                    b.Navigation("Category");
 
-                    b.Navigation("UnidadMedida");
+                    b.Navigation("UnitOfMeasure");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Quote", b =>
@@ -2390,13 +2436,13 @@ namespace SPC.API.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Cliente", "Customer")
+                    b.HasOne("SPC.Shared.Models.Customer", "Customer")
                         .WithMany("Quotes")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Vendedor", "SalesRep")
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRep")
                         .WithMany()
                         .HasForeignKey("SalesRepId");
 
@@ -2409,7 +2455,7 @@ namespace SPC.API.Data.Migrations
 
             modelBuilder.Entity("SPC.Shared.Models.QuoteDetail", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2426,85 +2472,34 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Quote");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Remito", b =>
-                {
-                    b.HasOne("SPC.Shared.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SPC.Shared.Models.Cliente", "Cliente")
-                        .WithMany("Remitos")
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SPC.Shared.Models.Factura", "Factura")
-                        .WithMany("Remitos")
-                        .HasForeignKey("FacturaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("SPC.Shared.Models.Vendedor", "Vendedor")
-                        .WithMany()
-                        .HasForeignKey("VendedorId");
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("Cliente");
-
-                    b.Navigation("Factura");
-
-                    b.Navigation("Vendedor");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.RemitoDetalle", b =>
-                {
-                    b.HasOne("SPC.Shared.Models.Producto", "Producto")
-                        .WithMany()
-                        .HasForeignKey("ProductoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SPC.Shared.Models.Remito", "Remito")
-                        .WithMany("Detalles")
-                        .HasForeignKey("RemitoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Producto");
-
-                    b.Navigation("Remito");
-                });
-
             modelBuilder.Entity("SPC.Shared.Models.Stock", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Deposito", "Deposito")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany("Stocks")
-                        .HasForeignKey("DepositoId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Producto", "Producto")
+                    b.HasOne("SPC.Shared.Models.Warehouse", "Warehouse")
                         .WithMany("Stocks")
-                        .HasForeignKey("ProductoId")
+                        .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Deposito");
+                    b.Navigation("Product");
 
-                    b.Navigation("Producto");
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.StockMovement", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Deposito", "DestinationWarehouse")
+                    b.HasOne("SPC.Shared.Models.Warehouse", "DestinationWarehouse")
                         .WithMany()
                         .HasForeignKey("DestinationWarehouseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SPC.Shared.Models.Deposito", "SourceWarehouse")
+                    b.HasOne("SPC.Shared.Models.Warehouse", "SourceWarehouse")
                         .WithMany()
                         .HasForeignKey("SourceWarehouseId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -2517,7 +2512,7 @@ namespace SPC.API.Data.Migrations
 
             modelBuilder.Entity("SPC.Shared.Models.StockMovementDetail", b =>
                 {
-                    b.HasOne("SPC.Shared.Models.Producto", "Product")
+                    b.HasOne("SPC.Shared.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2534,31 +2529,23 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("StockMovement");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.Warehouse", b =>
+                {
+                    b.HasOne("SPC.Shared.Models.SalesRep", "SalesRepAsociado")
+                        .WithMany("WarehousesAsignados")
+                        .HasForeignKey("SalesRepAsociadoId");
+
+                    b.Navigation("SalesRepAsociado");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.CasualDeliveryNote", b =>
                 {
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Cliente", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Category", b =>
                 {
-                    b.Navigation("CreditNotes");
-
-                    b.Navigation("DebitNotes");
-
-                    b.Navigation("DeliveryAddresses");
-
-                    b.Navigation("Facturas");
-
-                    b.Navigation("Payments");
-
-                    b.Navigation("Quotes");
-
-                    b.Navigation("Remitos");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.CondicionIva", b =>
-                {
-                    b.Navigation("Clientes");
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.Consignment", b =>
@@ -2571,23 +2558,31 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Details");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.Customer", b =>
+                {
+                    b.Navigation("CreditNotes");
+
+                    b.Navigation("DebitNotes");
+
+                    b.Navigation("DeliveryAddresses");
+
+                    b.Navigation("DeliveryNotes");
+
+                    b.Navigation("Invoices");
+
+                    b.Navigation("Payments");
+
+                    b.Navigation("Quotes");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.DebitNote", b =>
                 {
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Deposito", b =>
+            modelBuilder.Entity("SPC.Shared.Models.DeliveryNote", b =>
                 {
-                    b.Navigation("Stocks");
-                });
-
-            modelBuilder.Entity("SPC.Shared.Models.Factura", b =>
-                {
-                    b.Navigation("CreditNotes");
-
                     b.Navigation("Detalles");
-
-                    b.Navigation("Remitos");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.InternalDebitNote", b =>
@@ -2595,12 +2590,21 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Details");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.Invoice", b =>
+                {
+                    b.Navigation("CreditNotes");
+
+                    b.Navigation("DeliveryNotes");
+
+                    b.Navigation("Detalles");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.Payment", b =>
                 {
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Producto", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Product", b =>
                 {
                     b.Navigation("Stocks");
                 });
@@ -2610,14 +2614,16 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Remito", b =>
+            modelBuilder.Entity("SPC.Shared.Models.SalesRep", b =>
                 {
-                    b.Navigation("Detalles");
+                    b.Navigation("Customers");
+
+                    b.Navigation("WarehousesAsignados");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Rubro", b =>
+            modelBuilder.Entity("SPC.Shared.Models.SalesZone", b =>
                 {
-                    b.Navigation("Productos");
+                    b.Navigation("Customers");
                 });
 
             modelBuilder.Entity("SPC.Shared.Models.StockMovement", b =>
@@ -2625,21 +2631,19 @@ namespace SPC.API.Data.Migrations
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.UnidadMedida", b =>
+            modelBuilder.Entity("SPC.Shared.Models.TaxCondition", b =>
                 {
-                    b.Navigation("Productos");
+                    b.Navigation("Customers");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.Vendedor", b =>
+            modelBuilder.Entity("SPC.Shared.Models.UnitOfMeasure", b =>
                 {
-                    b.Navigation("Clientes");
-
-                    b.Navigation("DepositosAsignados");
+                    b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("SPC.Shared.Models.ZonaVenta", b =>
+            modelBuilder.Entity("SPC.Shared.Models.Warehouse", b =>
                 {
-                    b.Navigation("Clientes");
+                    b.Navigation("Stocks");
                 });
 #pragma warning restore 612, 618
         }

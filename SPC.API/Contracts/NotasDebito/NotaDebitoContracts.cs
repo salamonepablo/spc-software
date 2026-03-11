@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SPC.API.Contracts.NotasDebito;
+namespace SPC.API.Contracts.DebitNotes;
 
 // ===========================================
 // REQUEST DTOs
@@ -9,7 +9,7 @@ namespace SPC.API.Contracts.NotasDebito;
 /// <summary>
 /// Request DTO for creating a debit note
 /// </summary>
-public record CreateNotaDebitoRequest
+public record CreateDebitNoteRequest
 {
     /// <summary>Branch ID</summary>
     [Required]
@@ -46,13 +46,13 @@ public record CreateNotaDebitoRequest
     /// <summary>Debit note line items</summary>
     [Required]
     [MinLength(1, ErrorMessage = "La nota de débito debe tener al menos un item")]
-    public List<CreateNotaDebitoDetalleRequest> Details { get; init; } = new();
+    public List<CreateDebitNoteDetalleRequest> Details { get; init; } = new();
 }
 
 /// <summary>
 /// Request DTO for debit note line item
 /// </summary>
-public record CreateNotaDebitoDetalleRequest
+public record CreateDebitNoteDetalleRequest
 {
     /// <summary>Product ID</summary>
     [Required]
@@ -63,7 +63,7 @@ public record CreateNotaDebitoDetalleRequest
     [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
     public decimal Quantity { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioFactura)</summary>
+    /// <summary>Unit price (if null, uses product's PrecioInvoice)</summary>
     public decimal? UnitPrice { get; init; }
     
     /// <summary>Line-level discount percentage</summary>
@@ -74,7 +74,7 @@ public record CreateNotaDebitoDetalleRequest
 /// <summary>
 /// Request DTO for voiding a debit note
 /// </summary>
-public record AnularNotaDebitoRequest
+public record AnularDebitNoteRequest
 {
     /// <summary>Reason for voiding</summary>
     [Required]
@@ -89,7 +89,7 @@ public record AnularNotaDebitoRequest
 /// <summary>
 /// Response DTO for debit note listing
 /// </summary>
-public record NotaDebitoResponse
+public record DebitNoteResponse
 {
     public int Id { get; init; }
     public string VoucherType { get; init; } = "";
@@ -129,7 +129,7 @@ public record NotaDebitoResponse
 /// <summary>
 /// Response DTO for debit note line item
 /// </summary>
-public record NotaDebitoDetalleResponse
+public record DebitNoteDetalleResponse
 {
     public int Id { get; init; }
     public int ItemNumber { get; init; }
@@ -146,9 +146,9 @@ public record NotaDebitoDetalleResponse
 /// <summary>
 /// Full debit note response with details
 /// </summary>
-public record NotaDebitoCompletaResponse : NotaDebitoResponse
+public record DebitNoteCompletaResponse : DebitNoteResponse
 {
     public string? SalesCondition { get; init; }
     public string? Notes { get; init; }
-    public List<NotaDebitoDetalleResponse> Details { get; init; } = new();
+    public List<DebitNoteDetalleResponse> Details { get; init; } = new();
 }

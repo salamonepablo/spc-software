@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Vendedor / Representante de ventas.
+/// SalesRep / Representante de ventas.
 /// En Access era "Empleados" pero solo se usa para vendedores.
 /// </summary>
-public class Vendedor
+public class SalesRep
 {
     public int Id { get; set; }
     
@@ -62,6 +62,6 @@ public class Vendedor
     public bool Activo { get; set; } = true;
     
     // Navegacion
-    public List<Cliente> Clientes { get; set; } = new();
-    public List<Deposito> DepositosAsignados { get; set; } = new();
+    public List<Customer> Customers { get; set; } = new();
+    public List<Warehouse> WarehousesAsignados { get; set; } = new();
 }

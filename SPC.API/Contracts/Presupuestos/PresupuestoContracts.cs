@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SPC.API.Contracts.Presupuestos;
+namespace SPC.API.Contracts.Quotes;
 
 // ===========================================
 // REQUEST DTOs
@@ -9,7 +9,7 @@ namespace SPC.API.Contracts.Presupuestos;
 /// <summary>
 /// Request DTO for creating a quote/budget
 /// </summary>
-public record CreatePresupuestoRequest
+public record CreateQuoteRequest
 {
     /// <summary>Branch ID</summary>
     [Required]
@@ -37,13 +37,13 @@ public record CreatePresupuestoRequest
     /// <summary>Quote line items</summary>
     [Required]
     [MinLength(1, ErrorMessage = "El presupuesto debe tener al menos un item")]
-    public List<CreatePresupuestoDetalleRequest> Details { get; init; } = new();
+    public List<CreateQuoteDetalleRequest> Details { get; init; } = new();
 }
 
 /// <summary>
 /// Request DTO for quote line item
 /// </summary>
-public record CreatePresupuestoDetalleRequest
+public record CreateQuoteDetalleRequest
 {
     /// <summary>Product ID</summary>
     [Required]
@@ -54,7 +54,7 @@ public record CreatePresupuestoDetalleRequest
     [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
     public decimal Quantity { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioPresupuesto)</summary>
+    /// <summary>Unit price (if null, uses product's PrecioQuote)</summary>
     public decimal? UnitPrice { get; init; }
     
     /// <summary>Line-level discount percentage</summary>
@@ -65,7 +65,7 @@ public record CreatePresupuestoDetalleRequest
 /// <summary>
 /// Request DTO for voiding a quote
 /// </summary>
-public record AnularPresupuestoRequest
+public record AnularQuoteRequest
 {
     /// <summary>Reason for voiding</summary>
     [Required]
@@ -80,7 +80,7 @@ public record AnularPresupuestoRequest
 /// <summary>
 /// Response DTO for quote listing
 /// </summary>
-public record PresupuestoResponse
+public record QuoteResponse
 {
     public int Id { get; init; }
     public int BranchId { get; init; }
@@ -111,7 +111,7 @@ public record PresupuestoResponse
 /// <summary>
 /// Response DTO for quote line item
 /// </summary>
-public record PresupuestoDetalleResponse
+public record QuoteDetalleResponse
 {
     public int Id { get; init; }
     public int ItemNumber { get; init; }
@@ -128,9 +128,9 @@ public record PresupuestoDetalleResponse
 /// <summary>
 /// Full quote response with details
 /// </summary>
-public record PresupuestoCompletoResponse : PresupuestoResponse
+public record QuoteCompletoResponse : QuoteResponse
 {
     public string? BusinessUnit { get; init; }
     public string? Notes { get; init; }
-    public List<PresupuestoDetalleResponse> Details { get; init; } = new();
+    public List<QuoteDetalleResponse> Details { get; init; } = new();
 }

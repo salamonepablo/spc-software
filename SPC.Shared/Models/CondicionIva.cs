@@ -5,7 +5,7 @@ namespace SPC.Shared.Models;
 /// <summary>
 /// Condición ante IVA - Responsable Inscripto, Monotributo, etc.
 /// </summary>
-public class CondicionIva
+public class TaxCondition
 {
     public int Id { get; set; }
     
@@ -19,8 +19,8 @@ public class CondicionIva
     
     // Tipo de factura que corresponde
     [StringLength(1)]
-    public string TipoFactura { get; set; } = "B";  // A o B
+    public string TipoInvoice { get; set; } = "B";  // A o B
     
     // Navegación
-    public List<Cliente> Clientes { get; set; } = new();
+    public List<Customer> Customers { get; set; } = new();
 }

@@ -5,7 +5,7 @@ namespace SPC.Shared.Models;
 /// <summary>
 /// Zona de Venta - Agrupación geográfica de clientes
 /// </summary>
-public class ZonaVenta
+public class SalesZone
 {
     public int Id { get; set; }
     
@@ -19,5 +19,5 @@ public class ZonaVenta
     public bool Activa { get; set; } = true;
     
     // Navegación
-    public List<Cliente> Clientes { get; set; } = new();
+    public List<Customer> Customers { get; set; } = new();
 }

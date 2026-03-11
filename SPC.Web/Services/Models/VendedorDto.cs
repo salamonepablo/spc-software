@@ -1,9 +1,9 @@
 namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for Vendedor dropdown data
+/// DTO for SalesRep dropdown data
 /// </summary>
-public class VendedorDto
+public class SalesRepDto
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = "";

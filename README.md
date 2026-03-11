@@ -299,18 +299,40 @@ Examples:
 
 ---
 
+## Naming Convention
+
+All internal code uses **English identifiers** for classes, properties, methods, and variables:
+
+| Domain | Class Name | API Route (Spanish) |
+|--------|------------|---------------------|
+| Customers | `Customer` | `/api/clientes` |
+| Products | `Product` | `/api/productos` |
+| Invoices | `Invoice`, `InvoiceDetail` | `/api/facturas` |
+| Quotes | `Quote`, `QuoteDetail` | `/api/presupuestos` |
+| Credit Notes | `CreditNote`, `CreditNoteDetail` | `/api/notas-credito` |
+| Debit Notes | `DebitNote`, `DebitNoteDetail` | `/api/notas-debito` |
+| Delivery Notes | `DeliveryNote`, `DeliveryNoteDetail` | `/api/remitos` |
+| Sales Reps | `SalesRep` | `/api/vendedores` |
+| Warehouses | `Warehouse` | `/api/depositos` |
+| Categories | `Category` | `/api/rubros` |
+
+> **Note:** API routes remain in Spanish for backwards compatibility with existing integrations.
+
+---
+
 ## Current Status
 
 ### Implemented
 
 - REST API with full CRUD for Customers, Products
-- Full CRUD for Invoices (Facturas), Quotes (Presupuestos), Credit Notes, Debit Notes
-- Business rules: Factura A vs B, IIBB perception, multi-level discounts, VAT immutability
+- Full CRUD for Invoices, Quotes, Credit Notes, Debit Notes
+- Business rules: Invoice A vs B, IIBB perception, multi-level discounts, VAT immutability
 - Blazor Server UI for Customer management (list, create, edit, delete)
 - Clean Architecture with Services, DTOs and modular Endpoints
 - Integration and Unit tests (111 tests passing)
 - Architecture Decision Records (ADRs)
 - CSV-based data migration tool with bulk inserts and skip logging
+- **English naming convention** for all code identifiers (v0.2.0)
 
 ### In Progress
 

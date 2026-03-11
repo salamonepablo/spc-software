@@ -6,15 +6,15 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Facturas - SPC</PageTitle>
+<PageTitle>Invoices - SPC</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0">Facturas</h3>
+        <h3 class="mb-0">Invoices</h3>
         <div class="text-muted">
-            @if (totalFacturas > 0)
+            @if (totalInvoices > 0)
             {
-                <span>@totalFacturas facturas en el sistema</span>
+                <span>@totalInvoices facturas en el sistema</span>
             }
         </div>
     </div>
@@ -28,7 +28,7 @@
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Hoy</h6>
                         <h3 class="mb-0">@resumen.MontoHoy.ToString("C0")</h3>
-                        <small>@resumen.FacturasHoy facturas</small>
+                        <small>@resumen.InvoicesHoy facturas</small>
                     </div>
                 </div>
             </div>
@@ -37,7 +37,7 @@
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Este Mes</h6>
                         <h3 class="mb-0">@resumen.MontoMes.ToString("C0")</h3>
-                        <small>@resumen.FacturasMes facturas</small>
+                        <small>@resumen.InvoicesMes facturas</small>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,7 @@
                 <div class="card bg-secondary text-white">
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Total Historico</h6>
-                        <h3 class="mb-0">@resumen.TotalFacturas.ToString("N0")</h3>
+                        <h3 class="mb-0">@resumen.TotalInvoices.ToString("N0")</h3>
                         <small>facturas emitidas</small>
                     </div>
                 </div>
@@ -119,7 +119,7 @@
                             <tr>
                                 <th>Numero</th>
                                 <th>Fecha</th>
-                                <th>Cliente</th>
+                                <th>Customer</th>
                                 <th>CUIT</th>
                                 <th class="text-end">Total</th>
                                 <th>CAE</th>
@@ -134,11 +134,11 @@
                                     <td>
                                         <strong>@factura.NumeroCompleto</strong>
                                     </td>
-                                    <td>@factura.FechaFactura.ToString("dd/MM/yyyy")</td>
+                                    <td>@factura.FechaInvoice.ToString("dd/MM/yyyy")</td>
                                     <td>
-                                        @factura.ClienteRazonSocial
+                                        @factura.CustomerRazonSocial
                                     </td>
-                                    <td><small>@(factura.ClienteCUIT ?? "-")</small></td>
+                                    <td><small>@(factura.CustomerCUIT ?? "-")</small></td>
                                     <td class="text-end">
                                         <strong>@factura.Total.ToString("C2")</strong>
                                     </td>
@@ -197,17 +197,17 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Factura @facturaSeleccionada.NumeroCompleto</h5>
+                    <h5 class="modal-title">Invoice @facturaSeleccionada.NumeroCompleto</h5>
                     <button type="button" class="btn-close" @onclick="CerrarDetalle"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <p><strong>Cliente:</strong> @facturaSeleccionada.ClienteRazonSocial</p>
-                            <p><strong>CUIT:</strong> @(facturaSeleccionada.ClienteCUIT ?? "-")</p>
+                            <p><strong>Customer:</strong> @facturaSeleccionada.CustomerRazonSocial</p>
+                            <p><strong>CUIT:</strong> @(facturaSeleccionada.CustomerCUIT ?? "-")</p>
                         </div>
                         <div class="col-md-6 text-end">
-                            <p><strong>Fecha:</strong> @facturaSeleccionada.FechaFactura.ToString("dd/MM/yyyy")</p>
+                            <p><strong>Fecha:</strong> @facturaSeleccionada.FechaInvoice.ToString("dd/MM/yyyy")</p>
                             @if (facturaSeleccionada.TieneCAE)
                             {
                                 <p><strong>CAE:</strong> @facturaSeleccionada.CAE</p>
@@ -229,8 +229,8 @@
                             @foreach (var det in facturaSeleccionada.Detalles)
                             {
                                 <tr>
-                                    <td><code>@det.ProductoCodigo</code></td>
-                                    <td>@det.ProductoDescripcion</td>
+                                    <td><code>@det.ProductCodigo</code></td>
+                                    <td>@det.ProductDescripcion</td>
                                     <td class="text-end">@det.Cantidad.ToString("N0")</td>
                                     <td class="text-end">@det.PrecioUnitario.ToString("C2")</td>
                                     <td class="text-end">@det.Subtotal.ToString("C2")</td>
@@ -272,28 +272,28 @@
 }
 
 @code {
-    private List<FacturaDto>? facturas;
-    private FacturacionResumenDto? resumen;
-    private FacturaCompletaDto? facturaSeleccionada;
+    private List<InvoiceDto>? facturas;
+    private InvoicecionResumenDto? resumen;
+    private InvoiceCompletaDto? facturaSeleccionada;
     private bool loading = true;
     private string searchTerm = "";
     private DateTime fechaDesde = DateTime.Today.AddMonths(-1);
     private DateTime fechaHasta = DateTime.Today;
-    private int totalFacturas = 0;
+    private int totalInvoices = 0;
     private int pageSize = 50;
     private int currentPage = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        var resumenTask = Api.GetFacturacionResumenAsync();
-        var facturasTask = Api.GetFacturasAsync(0, pageSize);
-        var countTask = Api.GetFacturasCountAsync();
+        var resumenTask = Api.GetInvoicecionResumenAsync();
+        var facturasTask = Api.GetInvoicesAsync(0, pageSize);
+        var countTask = Api.GetInvoicesCountAsync();
 
         await Task.WhenAll(resumenTask, facturasTask, countTask);
 
         resumen = await resumenTask;
         facturas = await facturasTask;
-        totalFacturas = await countTask;
+        totalInvoices = await countTask;
         loading = false;
     }
 
@@ -301,14 +301,14 @@
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            await LoadFacturas();
+            await LoadInvoices();
             return;
         }
 
         loading = true;
         try
         {
-            facturas = await Api.BuscarFacturasAsync(searchTerm);
+            facturas = await Api.BuscarInvoicesAsync(searchTerm);
         }
         finally
         {
@@ -321,7 +321,7 @@
         loading = true;
         try
         {
-            facturas = await Api.GetFacturasByFechaAsync(fechaDesde, fechaHasta);
+            facturas = await Api.GetInvoicesByFechaAsync(fechaDesde, fechaHasta);
         }
         finally
         {
@@ -329,13 +329,13 @@
         }
     }
 
-    private async Task LoadFacturas()
+    private async Task LoadInvoices()
     {
         currentPage = 0;
         loading = true;
         try
         {
-            facturas = await Api.GetFacturasAsync(0, pageSize);
+            facturas = await Api.GetInvoicesAsync(0, pageSize);
         }
         finally
         {
@@ -346,7 +346,7 @@
     private async Task LoadMore()
     {
         currentPage++;
-        var more = await Api.GetFacturasAsync(currentPage * pageSize, pageSize);
+        var more = await Api.GetInvoicesAsync(currentPage * pageSize, pageSize);
         if (more.Any())
         {
             facturas?.AddRange(more);
@@ -363,7 +363,7 @@
 
     private async Task VerDetalle(int id)
     {
-        facturaSeleccionada = await Api.GetFacturaAsync(id);
+        facturaSeleccionada = await Api.GetInvoiceAsync(id);
     }
 
     private void CerrarDetalle()

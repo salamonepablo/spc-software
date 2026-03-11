@@ -17,41 +17,41 @@ public class ApiService : IApiService
         _logger = logger;
     }
 
-    #region Clientes
+    #region Customers
 
-    public async Task<List<ClienteDto>> GetClientesAsync()
+    public async Task<List<CustomerDto>> GetCustomersAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ClienteDto>>("/api/clientes");
-            return result ?? new List<ClienteDto>();
+            var result = await _http.GetFromJsonAsync<List<CustomerDto>>("/api/clientes");
+            return result ?? new List<CustomerDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching clientes");
-            return new List<ClienteDto>();
+            return new List<CustomerDto>();
         }
     }
 
-    public async Task<List<ClienteDto>> BuscarClientesAsync(string nombre)
+    public async Task<List<CustomerDto>> BuscarCustomersAsync(string nombre)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ClienteDto>>($"/api/clientes/buscar?nombre={Uri.EscapeDataString(nombre)}");
-            return result ?? new List<ClienteDto>();
+            var result = await _http.GetFromJsonAsync<List<CustomerDto>>($"/api/clientes/buscar?nombre={Uri.EscapeDataString(nombre)}");
+            return result ?? new List<CustomerDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching clientes with term: {Nombre}", nombre);
-            return new List<ClienteDto>();
+            return new List<CustomerDto>();
         }
     }
 
-    public async Task<ClienteDto?> GetClienteAsync(int id)
+    public async Task<CustomerDto?> GetCustomerAsync(int id)
     {
         try
         {
-            return await _http.GetFromJsonAsync<ClienteDto>($"/api/clientes/{id}");
+            return await _http.GetFromJsonAsync<CustomerDto>($"/api/clientes/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -64,7 +64,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<ClienteDto?> CreateClienteAsync(CreateClienteDto cliente)
+    public async Task<CustomerDto?> CreateCustomerAsync(CreateCustomerDto cliente)
     {
         try
         {
@@ -72,7 +72,7 @@ public class ApiService : IApiService
             
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<ClienteDto>();
+                return await response.Content.ReadFromJsonAsync<CustomerDto>();
             }
             
             _logger.LogWarning("Failed to create cliente. Status: {Status}", response.StatusCode);
@@ -85,7 +85,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<bool> UpdateClienteAsync(int id, UpdateClienteDto cliente)
+    public async Task<bool> UpdateCustomerAsync(int id, UpdateCustomerDto cliente)
     {
         try
         {
@@ -99,7 +99,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<bool> DeleteClienteAsync(int id)
+    public async Task<bool> DeleteCustomerAsync(int id)
     {
         try
         {
@@ -115,41 +115,41 @@ public class ApiService : IApiService
 
     #endregion
 
-    #region Productos
+    #region Products
 
-    public async Task<List<ProductoDto>> GetProductosAsync()
+    public async Task<List<ProductDto>> GetProductsAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ProductoDto>>("/api/productos");
-            return result ?? new List<ProductoDto>();
+            var result = await _http.GetFromJsonAsync<List<ProductDto>>("/api/productos");
+            return result ?? new List<ProductDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching productos");
-            return new List<ProductoDto>();
+            return new List<ProductDto>();
         }
     }
 
-    public async Task<List<ProductoDto>> BuscarProductosAsync(string termino)
+    public async Task<List<ProductDto>> BuscarProductsAsync(string termino)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ProductoDto>>($"/api/productos/buscar?descripcion={Uri.EscapeDataString(termino)}");
-            return result ?? new List<ProductoDto>();
+            var result = await _http.GetFromJsonAsync<List<ProductDto>>($"/api/productos/buscar?descripcion={Uri.EscapeDataString(termino)}");
+            return result ?? new List<ProductDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching productos with term: {Termino}", termino);
-            return new List<ProductoDto>();
+            return new List<ProductDto>();
         }
     }
 
-    public async Task<ProductoDto?> GetProductoAsync(int id)
+    public async Task<ProductDto?> GetProductAsync(int id)
     {
         try
         {
-            return await _http.GetFromJsonAsync<ProductoDto>($"/api/productos/{id}");
+            return await _http.GetFromJsonAsync<ProductDto>($"/api/productos/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -162,7 +162,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<ProductoDto?> CreateProductoAsync(CreateProductoDto producto)
+    public async Task<ProductDto?> CreateProductAsync(CreateProductDto producto)
     {
         try
         {
@@ -170,7 +170,7 @@ public class ApiService : IApiService
             
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<ProductoDto>();
+                return await response.Content.ReadFromJsonAsync<ProductDto>();
             }
             
             _logger.LogWarning("Failed to create producto. Status: {Status}", response.StatusCode);
@@ -183,7 +183,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<bool> UpdateProductoAsync(int id, UpdateProductoDto producto)
+    public async Task<bool> UpdateProductAsync(int id, UpdateProductDto producto)
     {
         try
         {
@@ -197,7 +197,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<bool> DeleteProductoAsync(int id)
+    public async Task<bool> DeleteProductAsync(int id)
     {
         try
         {
@@ -215,87 +215,87 @@ public class ApiService : IApiService
 
     #region Auxiliary Data
 
-    public async Task<List<CondicionIvaDto>> GetCondicionesIvaAsync()
+    public async Task<List<TaxConditionDto>> GetCondicionesIvaAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<CondicionIvaDto>>("/api/condicionesiva");
-            return result ?? new List<CondicionIvaDto>();
+            var result = await _http.GetFromJsonAsync<List<TaxConditionDto>>("/api/condicionesiva");
+            return result ?? new List<TaxConditionDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching condiciones IVA");
-            return new List<CondicionIvaDto>();
+            return new List<TaxConditionDto>();
         }
     }
 
-    public async Task<List<VendedorDto>> GetVendedoresAsync()
+    public async Task<List<SalesRepDto>> GetSalesRepesAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<VendedorDto>>("/api/vendedores");
-            return result ?? new List<VendedorDto>();
+            var result = await _http.GetFromJsonAsync<List<SalesRepDto>>("/api/vendedores");
+            return result ?? new List<SalesRepDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching vendedores");
-            return new List<VendedorDto>();
+            return new List<SalesRepDto>();
         }
     }
 
-    public async Task<List<ZonaVentaDto>> GetZonasVentaAsync()
+    public async Task<List<SalesZoneDto>> GetZonasVentaAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ZonaVentaDto>>("/api/zonasventas");
-            return result ?? new List<ZonaVentaDto>();
+            var result = await _http.GetFromJsonAsync<List<SalesZoneDto>>("/api/zonasventas");
+            return result ?? new List<SalesZoneDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching zonas venta");
-            return new List<ZonaVentaDto>();
+            return new List<SalesZoneDto>();
         }
     }
 
-    public async Task<List<RubroDto>> GetRubrosAsync()
+    public async Task<List<CategoryDto>> GetCategorysAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<RubroDto>>("/api/rubros");
-            return result ?? new List<RubroDto>();
+            var result = await _http.GetFromJsonAsync<List<CategoryDto>>("/api/rubros");
+            return result ?? new List<CategoryDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching rubros");
-            return new List<RubroDto>();
+            return new List<CategoryDto>();
         }
     }
 
-    public async Task<List<UnidadMedidaDto>> GetUnidadesMedidaAsync()
+    public async Task<List<UnitOfMeasureDto>> GetUnidadesMedidaAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<UnidadMedidaDto>>("/api/unidadesmedida");
-            return result ?? new List<UnidadMedidaDto>();
+            var result = await _http.GetFromJsonAsync<List<UnitOfMeasureDto>>("/api/unidadesmedida");
+            return result ?? new List<UnitOfMeasureDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching unidades medida");
-            return new List<UnidadMedidaDto>();
+            return new List<UnitOfMeasureDto>();
         }
     }
 
-    public async Task<List<DepositoDto>> GetDepositosAsync()
+    public async Task<List<WarehouseDto>> GetWarehousesAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<DepositoDto>>("/api/depositos");
-            return result ?? new List<DepositoDto>();
+            var result = await _http.GetFromJsonAsync<List<WarehouseDto>>("/api/depositos");
+            return result ?? new List<WarehouseDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching depositos");
-            return new List<DepositoDto>();
+            return new List<WarehouseDto>();
         }
     }
 
@@ -345,7 +345,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<StockDetalleDto>> GetStockByProductoAsync(int productoId)
+    public async Task<List<StockDetalleDto>> GetStockByProductAsync(int productoId)
     {
         try
         {
@@ -361,27 +361,27 @@ public class ApiService : IApiService
 
     #endregion
 
-    #region Facturas
+    #region Invoices
 
-    public async Task<List<FacturaDto>> GetFacturasAsync(int skip = 0, int take = 50)
+    public async Task<List<InvoiceDto>> GetInvoicesAsync(int skip = 0, int take = 50)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas?skip={skip}&take={take}");
-            return result ?? new List<FacturaDto>();
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas?skip={skip}&take={take}");
+            return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching facturas");
-            return new List<FacturaDto>();
+            return new List<InvoiceDto>();
         }
     }
 
-    public async Task<FacturaCompletaDto?> GetFacturaAsync(int id)
+    public async Task<InvoiceCompletaDto?> GetInvoiceAsync(int id)
     {
         try
         {
-            return await _http.GetFromJsonAsync<FacturaCompletaDto>($"/api/facturas/{id}");
+            return await _http.GetFromJsonAsync<InvoiceCompletaDto>($"/api/facturas/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -394,53 +394,53 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<FacturaDto>> BuscarFacturasAsync(string termino)
+    public async Task<List<InvoiceDto>> BuscarInvoicesAsync(string termino)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/buscar?termino={Uri.EscapeDataString(termino)}");
-            return result ?? new List<FacturaDto>();
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/buscar?termino={Uri.EscapeDataString(termino)}");
+            return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching facturas with term: {Termino}", termino);
-            return new List<FacturaDto>();
+            return new List<InvoiceDto>();
         }
     }
 
-    public async Task<List<FacturaDto>> GetFacturasByClienteAsync(int clienteId)
+    public async Task<List<InvoiceDto>> GetInvoicesByCustomerAsync(int clienteId)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/cliente/{clienteId}");
-            return result ?? new List<FacturaDto>();
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/cliente/{clienteId}");
+            return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching facturas for cliente {Id}", clienteId);
-            return new List<FacturaDto>();
+            return new List<InvoiceDto>();
         }
     }
 
-    public async Task<List<FacturaDto>> GetFacturasByFechaAsync(DateTime desde, DateTime hasta)
+    public async Task<List<InvoiceDto>> GetInvoicesByFechaAsync(DateTime desde, DateTime hasta)
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<FacturaDto>>($"/api/facturas/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
-            return result ?? new List<FacturaDto>();
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
+            return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching facturas by date range");
-            return new List<FacturaDto>();
+            return new List<InvoiceDto>();
         }
     }
 
-    public async Task<FacturacionResumenDto?> GetFacturacionResumenAsync()
+    public async Task<InvoicecionResumenDto?> GetInvoicecionResumenAsync()
     {
         try
         {
-            return await _http.GetFromJsonAsync<FacturacionResumenDto>("/api/facturas/resumen");
+            return await _http.GetFromJsonAsync<InvoicecionResumenDto>("/api/facturas/resumen");
         }
         catch (Exception ex)
         {
@@ -449,7 +449,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<int> GetFacturasCountAsync()
+    public async Task<int> GetInvoicesCountAsync()
     {
         try
         {
@@ -468,7 +468,7 @@ public class ApiService : IApiService
         public int Total { get; set; }
     }
 
-    public async Task<FacturaCompletaDto?> CreateFacturaAsync(CreateFacturaDto factura)
+    public async Task<InvoiceCompletaDto?> CreateInvoiceAsync(CreateInvoiceDto factura)
     {
         try
         {
@@ -476,7 +476,7 @@ public class ApiService : IApiService
             
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<FacturaCompletaDto>();
+                return await response.Content.ReadFromJsonAsync<InvoiceCompletaDto>();
             }
             
             _logger.LogWarning("Failed to create factura. Status: {Status}", response.StatusCode);
@@ -489,7 +489,7 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<SucursalDto>> GetSucursalesAsync()
+    public async Task<List<SucursalDto>> GetBranchesAsync()
     {
         try
         {

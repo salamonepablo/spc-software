@@ -3,19 +3,19 @@ namespace SPC.Web.Services.Models;
 /// <summary>
 /// DTO for invoice listing
 /// </summary>
-public class FacturaDto
+public class InvoiceDto
 {
     public int Id { get; set; }
-    public string TipoFactura { get; set; } = "";
+    public string TipoInvoice { get; set; } = "";
     public int PuntoVenta { get; set; }
-    public long NumeroFactura { get; set; }
+    public long NumeroInvoice { get; set; }
     public string NumeroCompleto { get; set; } = "";
-    public DateTime FechaFactura { get; set; }
-    public int ClienteId { get; set; }
-    public string ClienteRazonSocial { get; set; } = "";
-    public string? ClienteCUIT { get; set; }
-    public int? VendedorId { get; set; }
-    public string? VendedorNombre { get; set; }
+    public DateTime FechaInvoice { get; set; }
+    public int CustomerId { get; set; }
+    public string CustomerRazonSocial { get; set; } = "";
+    public string? CustomerCUIT { get; set; }
+    public int? SalesRepId { get; set; }
+    public string? SalesRepNombre { get; set; }
     public decimal Subtotal { get; set; }
     public decimal ImporteIVA { get; set; }
     public decimal IVAContenido { get; set; }
@@ -32,13 +32,13 @@ public class FacturaDto
 /// <summary>
 /// DTO for invoice detail line
 /// </summary>
-public class FacturaDetalleDto
+public class InvoiceDetailDto
 {
     public int Id { get; set; }
     public int ItemNumero { get; set; }
-    public int ProductoId { get; set; }
-    public string ProductoCodigo { get; set; } = "";
-    public string ProductoDescripcion { get; set; } = "";
+    public int ProductId { get; set; }
+    public string ProductCodigo { get; set; } = "";
+    public string ProductDescripcion { get; set; } = "";
     public decimal Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal PorcentajeDescuento { get; set; }
@@ -49,19 +49,19 @@ public class FacturaDetalleDto
 /// <summary>
 /// DTO for complete invoice with details
 /// </summary>
-public class FacturaCompletaDto : FacturaDto
+public class InvoiceCompletaDto : InvoiceDto
 {
-    public List<FacturaDetalleDto> Detalles { get; set; } = new();
+    public List<InvoiceDetailDto> Detalles { get; set; } = new();
 }
 
 /// <summary>
 /// DTO for invoicing summary statistics
 /// </summary>
-public class FacturacionResumenDto
+public class InvoicecionResumenDto
 {
-    public int TotalFacturas { get; set; }
-    public int FacturasHoy { get; set; }
-    public int FacturasMes { get; set; }
+    public int TotalInvoices { get; set; }
+    public int InvoicesHoy { get; set; }
+    public int InvoicesMes { get; set; }
     public decimal MontoHoy { get; set; }
     public decimal MontoMes { get; set; }
     public decimal MontoAnio { get; set; }

@@ -1,9 +1,9 @@
 namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for UnidadMedida dropdown data
+/// DTO for UnitOfMeasure dropdown data
 /// </summary>
-public class UnidadMedidaDto
+public class UnitOfMeasureDto
 {
     public int Id { get; set; }
     public string Codigo { get; set; } = "";

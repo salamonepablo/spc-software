@@ -9,13 +9,13 @@ public class Stock
 {
     public int Id { get; set; }
     
-    // Relación con Producto
-    public int ProductoId { get; set; }
-    public Producto Producto { get; set; } = null!;
+    // Relación con Product
+    public int ProductId { get; set; }
+    public Product Product { get; set; } = null!;
     
     // Relación con Depósito
-    public int DepositoId { get; set; }
-    public Deposito Deposito { get; set; } = null!;
+    public int WarehouseId { get; set; }
+    public Warehouse Warehouse { get; set; } = null!;
     
     [Column(TypeName = "decimal(18,2)")]
     public decimal Cantidad { get; set; } = 0;

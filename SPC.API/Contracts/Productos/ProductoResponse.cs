@@ -1,9 +1,9 @@
-namespace SPC.API.Contracts.Productos;
+namespace SPC.API.Contracts.Products;
 
 /// <summary>
-/// Response DTO for Producto data returned by API
+/// Response DTO for Product data returned by API
 /// </summary>
-public class ProductoResponse
+public class ProductResponse
 {
     public int Id { get; set; }
     public string Codigo { get; set; } = "";
@@ -17,10 +17,10 @@ public class ProductoResponse
     public bool Activo { get; set; }
     
     // Related entity info (flattened)
-    public int? RubroId { get; set; }
-    public string? RubroNombre { get; set; }
+    public int? CategoryId { get; set; }
+    public string? CategoryNombre { get; set; }
     
-    public int? UnidadMedidaId { get; set; }
-    public string? UnidadMedidaNombre { get; set; }
-    public string? UnidadMedidaCodigo { get; set; }
+    public int? UnitOfMeasureId { get; set; }
+    public string? UnitOfMeasureNombre { get; set; }
+    public string? UnitOfMeasureCodigo { get; set; }
 }

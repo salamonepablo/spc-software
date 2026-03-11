@@ -1,25 +1,25 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using SPC.API.Contracts.Facturas;
+using SPC.API.Contracts.Invoices;
 using SPC.Tests.Infrastructure;
 
 namespace SPC.Tests.Integration;
 
 /// <summary>
-/// Integration tests for Facturas endpoints including business rule calculations.
+/// Integration tests for Invoices endpoints including business rule calculations.
 /// </summary>
-public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
+public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public FacturasEndpointsTests(SPCWebApplicationFactory factory)
+    public InvoicesEndpointsTests(SPCWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task GetFacturas_ReturnsOk()
+    public async Task GetInvoices_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/facturas");
@@ -29,7 +29,7 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetFacturaById_ReturnsNotFound_WhenDoesNotExist()
+    public async Task GetInvoiceById_ReturnsNotFound_WhenDoesNotExist()
     {
         // Act
         var response = await _client.GetAsync("/api/facturas/99999");
@@ -39,20 +39,20 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateFactura_ReturnsCreated_WithValidData()
+    public async Task CreateInvoice_ReturnsCreated_WithValidData()
     {
         // Arrange
-        var request = new CreateFacturaRequest
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "B",
-            ClienteId = 1,
+            TipoInvoice = "B",
+            CustomerId = 1,
             PorcentajeDescuento = 0,
-            Detalles = new List<CreateFacturaDetalleRequest>
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest
+                new CreateInvoiceDetailRequest
                 {
-                    ProductoId = 1,
+                    ProductId = 1,
                     Cantidad = 2,
                     PorcentajeDescuento = 0
                 }
@@ -65,29 +65,29 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
         factura.Should().NotBeNull();
-        factura!.ClienteId.Should().Be(1);
+        factura!.CustomerId.Should().Be(1);
         factura.Detalles.Should().HaveCount(1);
         factura.Detalles[0].Cantidad.Should().Be(2);
     }
 
     [Fact]
-    public async Task CreateFactura_CalculatesVATCorrectly()
+    public async Task CreateInvoice_CalculatesVATCorrectly()
     {
-        // Arrange - Product 1 has PrecioFactura = 1000, PrecioPresupuesto = 1210, IVA = 21%
-        // Using Factura A (net prices + VAT discriminated)
-        var request = new CreateFacturaRequest
+        // Arrange - Product 1 has PrecioInvoice = 1000, PrecioQuote = 1210, IVA = 21%
+        // Using Invoice A (net prices + VAT discriminated)
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "A",  // Changed to A for discriminated VAT
-            ClienteId = 1,
+            TipoInvoice = "A",  // Changed to A for discriminated VAT
+            CustomerId = 1,
             PorcentajeDescuento = 0,
-            Detalles = new List<CreateFacturaDetalleRequest>
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest
+                new CreateInvoiceDetailRequest
                 {
-                    ProductoId = 1,
+                    ProductId = 1,
                     Cantidad = 1,
                     PorcentajeDescuento = 0
                 }
@@ -96,10 +96,10 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/facturas", request);
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert
-        // Factura A: Uses PrecioFactura = 1000
+        // Invoice A: Uses PrecioInvoice = 1000
         // Subtotal = 1000 (1 x 1000)
         // VAT = 1000 * 21% = 210
         // Total = 1000 + 210 = 1210
@@ -110,21 +110,21 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateFactura_AppliesLineDiscount()
+    public async Task CreateInvoice_AppliesLineDiscount()
     {
-        // Arrange - Product 1: PrecioFactura = 1000, apply 10% line discount
-        // Using Factura A (net prices + VAT discriminated)
-        var request = new CreateFacturaRequest
+        // Arrange - Product 1: PrecioInvoice = 1000, apply 10% line discount
+        // Using Invoice A (net prices + VAT discriminated)
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "A",  // Changed to A
-            ClienteId = 1,
+            TipoInvoice = "A",  // Changed to A
+            CustomerId = 1,
             PorcentajeDescuento = 0,
-            Detalles = new List<CreateFacturaDetalleRequest>
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest
+                new CreateInvoiceDetailRequest
                 {
-                    ProductoId = 1,
+                    ProductId = 1,
                     Cantidad = 1,
                     PorcentajeDescuento = 10 // 10% line discount
                 }
@@ -133,10 +133,10 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/facturas", request);
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert
-        // Factura A: Gross = 1000, Line discount = 100, Subtotal = 900
+        // Invoice A: Gross = 1000, Line discount = 100, Subtotal = 900
         // VAT = 900 * 21% = 189
         // Total = 900 + 189 = 1089
         factura.Should().NotBeNull();
@@ -146,21 +146,21 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateFactura_AppliesDocumentDiscount()
+    public async Task CreateInvoice_AppliesDocumentDiscount()
     {
         // Arrange - Apply 20% document discount (overrides customer default)
-        // Using Factura A (net prices + VAT discriminated)
-        var request = new CreateFacturaRequest
+        // Using Invoice A (net prices + VAT discriminated)
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "A",  // Changed to A
-            ClienteId = 1,
+            TipoInvoice = "A",  // Changed to A
+            CustomerId = 1,
             PorcentajeDescuento = 20, // 20% document discount
-            Detalles = new List<CreateFacturaDetalleRequest>
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest
+                new CreateInvoiceDetailRequest
                 {
-                    ProductoId = 1,
+                    ProductId = 1,
                     Cantidad = 1,
                     PorcentajeDescuento = 0
                 }
@@ -169,10 +169,10 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/facturas", request);
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert
-        // Factura A: Lines subtotal = 1000
+        // Invoice A: Lines subtotal = 1000
         // Document discount = 1000 * 20% = 200
         // Net subtotal = 800
         // VAT = 800 * 21% = 168
@@ -185,21 +185,21 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateFactura_AppliesMultipleLevelDiscounts()
+    public async Task CreateInvoice_AppliesMultipleLevelDiscounts()
     {
         // Arrange - Line discount 10% + Document discount 10%
-        // Using Factura A (net prices + VAT discriminated)
-        var request = new CreateFacturaRequest
+        // Using Invoice A (net prices + VAT discriminated)
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "A",  // Changed to A
-            ClienteId = 1,
+            TipoInvoice = "A",  // Changed to A
+            CustomerId = 1,
             PorcentajeDescuento = 10, // 10% document discount
-            Detalles = new List<CreateFacturaDetalleRequest>
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest
+                new CreateInvoiceDetailRequest
                 {
-                    ProductoId = 1,
+                    ProductId = 1,
                     Cantidad = 1,
                     PorcentajeDescuento = 10 // 10% line discount
                 }
@@ -208,10 +208,10 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/facturas", request);
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert
-        // Factura A: Gross = 1000, Line discount = 100, Line subtotal = 900
+        // Invoice A: Gross = 1000, Line discount = 100, Line subtotal = 900
         // Document discount = 900 * 10% = 90
         // Net subtotal = 810
         // VAT = 810 * 21% = 170.10
@@ -224,48 +224,48 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task CreateFactura_StoresVATPercentageForImmutability()
+    public async Task CreateInvoice_StoresVATPercentageForImmutability()
     {
-        // Arrange - Using Factura A for discriminated VAT
-        var request = new CreateFacturaRequest
+        // Arrange - Using Invoice A for discriminated VAT
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "A",  // Changed to A for discriminated VAT
-            ClienteId = 1,
-            Detalles = new List<CreateFacturaDetalleRequest>
+            TipoInvoice = "A",  // Changed to A for discriminated VAT
+            CustomerId = 1,
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest { ProductoId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
             }
         };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/facturas", request);
-        var factura = await response.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert - VAT percentage should be stored in the document
         factura.Should().NotBeNull();
         
         // Verify by fetching the invoice again
         var getResponse = await _client.GetAsync($"/api/facturas/{factura!.Id}");
-        var fetchedFactura = await getResponse.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var fetchedInvoice = await getResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
         
-        // Factura A: The VAT rate (21%) should be preserved even if system VAT changes later
-        // For Factura A with Product 1: Subtotal = 1000 (PrecioFactura), IVA = 210
-        fetchedFactura!.ImporteIVA.Should().Be(210m);  // 1000 * 21%
+        // Invoice A: The VAT rate (21%) should be preserved even if system VAT changes later
+        // For Invoice A with Product 1: Subtotal = 1000 (PrecioInvoice), IVA = 210
+        fetchedInvoice!.ImporteIVA.Should().Be(210m);  // 1000 * 21%
     }
 
     [Fact]
-    public async Task CreateFactura_ReturnsBadRequest_WhenClienteNotFound()
+    public async Task CreateInvoice_ReturnsBadRequest_WhenCustomerNotFound()
     {
         // Arrange
-        var request = new CreateFacturaRequest
+        var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "B",
-            ClienteId = 99999, // Non-existent
-            Detalles = new List<CreateFacturaDetalleRequest>
+            TipoInvoice = "B",
+            CustomerId = 99999, // Non-existent
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest { ProductoId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
             }
         };
 
@@ -277,24 +277,24 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task AnularFactura_ReturnsOk_WhenExists()
+    public async Task AnularInvoice_ReturnsOk_WhenExists()
     {
         // Arrange - First create an invoice
-        var createRequest = new CreateFacturaRequest
+        var createRequest = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoFactura = "B",
-            ClienteId = 1,
-            Detalles = new List<CreateFacturaDetalleRequest>
+            TipoInvoice = "B",
+            CustomerId = 1,
+            Detalles = new List<CreateInvoiceDetailRequest>
             {
-                new CreateFacturaDetalleRequest { ProductoId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
             }
         };
         var createResponse = await _client.PostAsJsonAsync("/api/facturas", createRequest);
-        var factura = await createResponse.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
+        var factura = await createResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Act - Void the invoice
-        var anularRequest = new AnularFacturaRequest { Motivo = "Test void" };
+        var anularRequest = new AnularInvoiceRequest { Motivo = "Test void" };
         var response = await _client.PostAsJsonAsync($"/api/facturas/{factura!.Id}/anular", anularRequest);
         
         // Assert
@@ -302,7 +302,7 @@ public class FacturasEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         
         // Verify it's voided
         var getResponse = await _client.GetAsync($"/api/facturas/{factura.Id}");
-        var voidedFactura = await getResponse.Content.ReadFromJsonAsync<FacturaCompletaResponse>();
-        voidedFactura!.Anulada.Should().BeTrue();
+        var voidedInvoice = await getResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
+        voidedInvoice!.Anulada.Should().BeTrue();
     }
 }

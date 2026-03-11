@@ -3,21 +3,21 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Factura Detalle - Items (FacturaD en Access)
+/// Invoice Detalle - Items (InvoiceD en Access)
 /// </summary>
-public class FacturaDetalle
+public class InvoiceDetail
 {
     public int Id { get; set; }
     
-    // Relación con Factura
-    public int FacturaId { get; set; }
-    public Factura Factura { get; set; } = null!;
+    // Relación con Invoice
+    public int InvoiceId { get; set; }
+    public Invoice Invoice { get; set; } = null!;
     
     public int ItemNumero { get; set; }  // Número de línea
     
-    // Relación con Producto
-    public int ProductoId { get; set; }
-    public Producto Producto { get; set; } = null!;
+    // Relación con Product
+    public int ProductId { get; set; }
+    public Product Product { get; set; } = null!;
     
     [Column(TypeName = "decimal(18,2)")]
     public decimal Cantidad { get; set; } = 1;

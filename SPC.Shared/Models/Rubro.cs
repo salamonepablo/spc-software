@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Rubro / Categoría de productos
+/// Category / Categoría de productos
 /// </summary>
-public class Rubro
+public class Category
 {
     public int Id { get; set; }
     
@@ -19,5 +19,5 @@ public class Rubro
     public bool Activo { get; set; } = true;
     
     // Navegación
-    public List<Producto> Productos { get; set; } = new();
+    public List<Product> Products { get; set; } = new();
 }

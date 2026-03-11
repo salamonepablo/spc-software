@@ -27,7 +27,7 @@ public class FeatureFlags
 {
     /// <summary>
     /// Enable dual-line current account (Billing + Budget).
-    /// Budget = Presupuestos (sin IVA, no fiscal, linea de credito paralela).
+    /// Budget = Quotes (sin IVA, no fiscal, linea de credito paralela).
     /// Default: false (single-line Billing only).
     /// </summary>
     public bool DualLineCurrentAccount { get; set; } = false;

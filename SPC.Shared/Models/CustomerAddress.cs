@@ -4,15 +4,15 @@ namespace SPC.Shared.Models;
 
 /// <summary>
 /// Direcciones adicionales del cliente (entrega, sucursales, etc).
-/// La direccion fiscal principal esta en Cliente.
+/// La direccion fiscal principal esta en Customer.
 /// </summary>
 public class CustomerAddress
 {
     public int Id { get; set; }
     
-    /// <summary>Cliente al que pertenece</summary>
+    /// <summary>Customer al que pertenece</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
     /// <summary>Numero de item (1, 2, 3...)</summary>
     public int ItemNumber { get; set; }

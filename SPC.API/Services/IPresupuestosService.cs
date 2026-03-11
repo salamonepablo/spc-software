@@ -1,30 +1,30 @@
-using SPC.API.Contracts.Presupuestos;
+using SPC.API.Contracts.Quotes;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Presupuestos (Quotes) service interface
+/// Quotes (Quotes) service interface
 /// </summary>
-public interface IPresupuestosService
+public interface IQuotesService
 {
     // ===========================================
     // QUERIES
     // ===========================================
     
     /// <summary>Get all quotes (paginated)</summary>
-    Task<IEnumerable<PresupuestoResponse>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<QuoteResponse>> GetAllAsync(int skip = 0, int take = 50);
     
     /// <summary>Get quote by ID with all details</summary>
-    Task<PresupuestoCompletoResponse?> GetByIdAsync(int id);
+    Task<QuoteCompletoResponse?> GetByIdAsync(int id);
     
     /// <summary>Get quotes by customer</summary>
-    Task<IEnumerable<PresupuestoResponse>> GetByCustomerAsync(int customerId);
+    Task<IEnumerable<QuoteResponse>> GetByCustomerAsync(int customerId);
     
     /// <summary>Get quotes by date range</summary>
-    Task<IEnumerable<PresupuestoResponse>> GetByDateRangeAsync(DateTime from, DateTime to);
+    Task<IEnumerable<QuoteResponse>> GetByDateRangeAsync(DateTime from, DateTime to);
     
     /// <summary>Search quotes by number or customer name</summary>
-    Task<IEnumerable<PresupuestoResponse>> SearchAsync(string term);
+    Task<IEnumerable<QuoteResponse>> SearchAsync(string term);
     
     /// <summary>Get total count</summary>
     Task<int> GetCountAsync();
@@ -35,11 +35,11 @@ public interface IPresupuestosService
     
     /// <summary>
     /// Creates a new quote with pricing calculations.
-    /// - Uses PrecioPresupuesto from products (includes VAT by convention)
+    /// - Uses PrecioQuote from products (includes VAT by convention)
     /// - No VAT calculation (quote prices are final)
     /// - Applies customer and document-level discounts
     /// </summary>
-    Task<PresupuestoCompletoResponse> CreateAsync(CreatePresupuestoRequest request);
+    Task<QuoteCompletoResponse> CreateAsync(CreateQuoteRequest request);
     
     /// <summary>
     /// Voids a quote (soft delete)

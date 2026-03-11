@@ -1,16 +1,16 @@
-using SPC.API.Contracts.Clientes;
+using SPC.API.Contracts.Customers;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Service interface for Cliente business operations
+/// Service interface for Customer business operations
 /// </summary>
-public interface IClientesService
+public interface ICustomersService
 {
-    Task<IEnumerable<ClienteResponse>> GetAllAsync();
-    Task<ClienteResponse?> GetByIdAsync(int id);
-    Task<IEnumerable<ClienteResponse>> SearchAsync(string nombre);
-    Task<ClienteResponse> CreateAsync(CreateClienteRequest request);
-    Task<ClienteResponse?> UpdateAsync(int id, UpdateClienteRequest request);
+    Task<IEnumerable<CustomerResponse>> GetAllAsync();
+    Task<CustomerResponse?> GetByIdAsync(int id);
+    Task<IEnumerable<CustomerResponse>> SearchAsync(string nombre);
+    Task<CustomerResponse> CreateAsync(CreateCustomerRequest request);
+    Task<CustomerResponse?> UpdateAsync(int id, UpdateCustomerRequest request);
     Task<bool> DeleteAsync(int id);
 }

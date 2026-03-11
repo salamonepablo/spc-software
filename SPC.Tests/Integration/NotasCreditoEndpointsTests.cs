@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using SPC.API.Contracts.NotasCredito;
+using SPC.API.Contracts.CreditNotes;
 using SPC.Tests.Infrastructure;
 
 namespace SPC.Tests.Integration;
@@ -9,17 +9,17 @@ namespace SPC.Tests.Integration;
 /// <summary>
 /// Integration tests for Notas de Credito (Credit Notes) endpoints.
 /// </summary>
-public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory>
+public class CreditNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public NotasCreditoEndpointsTests(SPCWebApplicationFactory factory)
+    public CreditNotesEndpointsTests(SPCWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task GetNotasCredito_ReturnsOk()
+    public async Task GetCreditNotes_ReturnsOk()
     {
         // Act
         var response = await _client.GetAsync("/api/notas-credito");
@@ -29,7 +29,7 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
     }
 
     [Fact]
-    public async Task GetNotaCreditoById_ReturnsNotFound_WhenDoesNotExist()
+    public async Task GetCreditNoteById_ReturnsNotFound_WhenDoesNotExist()
     {
         // Act
         var response = await _client.GetAsync("/api/notas-credito/99999");
@@ -39,18 +39,18 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
     }
 
     [Fact]
-    public async Task CreateNotaCredito_ReturnsCreated_WithValidData()
+    public async Task CreateCreditNote_ReturnsCreated_WithValidData()
     {
         // Arrange
-        var request = new CreateNotaCreditoRequest
+        var request = new CreateCreditNoteRequest
         {
             BranchId = 1,
             VoucherType = "B",
             CustomerId = 1,
             DiscountPercent = 0,
-            Details = new List<CreateNotaCreditoDetalleRequest>
+            Details = new List<CreateCreditNoteDetalleRequest>
             {
-                new CreateNotaCreditoDetalleRequest
+                new CreateCreditNoteDetalleRequest
                 {
                     ProductId = 1,
                     Quantity = 1,
@@ -65,25 +65,25 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         
-        var note = await response.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
         note.Should().NotBeNull();
         note!.CustomerId.Should().Be(1);
         note.VoucherType.Should().Be("B");
     }
 
     [Fact]
-    public async Task CreateNotaCredito_CalculatesVATCorrectly()
+    public async Task CreateCreditNote_CalculatesVATCorrectly()
     {
-        // Arrange - Product 1: PrecioFactura = 1000, IVA = 21%
-        var request = new CreateNotaCreditoRequest
+        // Arrange - Product 1: PrecioInvoice = 1000, IVA = 21%
+        var request = new CreateCreditNoteRequest
         {
             BranchId = 1,
             VoucherType = "B",
             CustomerId = 1,
             DiscountPercent = 0,
-            Details = new List<CreateNotaCreditoDetalleRequest>
+            Details = new List<CreateCreditNoteDetalleRequest>
             {
-                new CreateNotaCreditoDetalleRequest
+                new CreateCreditNoteDetalleRequest
                 {
                     ProductId = 1,
                     Quantity = 1,
@@ -94,7 +94,7 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/notas-credito", request);
-        var note = await response.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
 
         // Assert
         note.Should().NotBeNull();
@@ -105,19 +105,19 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
     }
 
     [Fact]
-    public async Task CreateNotaCredito_AppliesIIBBPerception()
+    public async Task CreateCreditNote_AppliesIIBBPerception()
     {
         // Arrange - Apply 3% IIBB
-        var request = new CreateNotaCreditoRequest
+        var request = new CreateCreditNoteRequest
         {
             BranchId = 1,
             VoucherType = "B",
             CustomerId = 1,
             DiscountPercent = 0,
             IIBBPercent = 3,
-            Details = new List<CreateNotaCreditoDetalleRequest>
+            Details = new List<CreateCreditNoteDetalleRequest>
             {
-                new CreateNotaCreditoDetalleRequest
+                new CreateCreditNoteDetalleRequest
                 {
                     ProductId = 1,
                     Quantity = 1,
@@ -128,7 +128,7 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/notas-credito", request);
-        var note = await response.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
 
         // Assert
         // Subtotal = 1000, VAT = 210, IIBB base = 1210, IIBB = 36.30
@@ -140,23 +140,23 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
     }
 
     [Fact]
-    public async Task CreateNotaCredito_StoresVATPercentageForImmutability()
+    public async Task CreateCreditNote_StoresVATPercentageForImmutability()
     {
         // Arrange
-        var request = new CreateNotaCreditoRequest
+        var request = new CreateCreditNoteRequest
         {
             BranchId = 1,
             VoucherType = "B",
             CustomerId = 1,
-            Details = new List<CreateNotaCreditoDetalleRequest>
+            Details = new List<CreateCreditNoteDetalleRequest>
             {
-                new CreateNotaCreditoDetalleRequest { ProductId = 1, Quantity = 1 }
+                new CreateCreditNoteDetalleRequest { ProductId = 1, Quantity = 1 }
             }
         };
 
         // Act
         var response = await _client.PostAsJsonAsync("/api/notas-credito", request);
-        var note = await response.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
 
         // Assert
         note.Should().NotBeNull();
@@ -164,24 +164,24 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
     }
 
     [Fact]
-    public async Task AnularNotaCredito_ReturnsOk_WhenExists()
+    public async Task AnularCreditNote_ReturnsOk_WhenExists()
     {
         // Arrange - First create a credit note
-        var createRequest = new CreateNotaCreditoRequest
+        var createRequest = new CreateCreditNoteRequest
         {
             BranchId = 1,
             VoucherType = "B",
             CustomerId = 1,
-            Details = new List<CreateNotaCreditoDetalleRequest>
+            Details = new List<CreateCreditNoteDetalleRequest>
             {
-                new CreateNotaCreditoDetalleRequest { ProductId = 1, Quantity = 1 }
+                new CreateCreditNoteDetalleRequest { ProductId = 1, Quantity = 1 }
             }
         };
         var createResponse = await _client.PostAsJsonAsync("/api/notas-credito", createRequest);
-        var note = await createResponse.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var note = await createResponse.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
 
         // Act - Void the credit note
-        var anularRequest = new AnularNotaCreditoRequest { Reason = "Test void" };
+        var anularRequest = new AnularCreditNoteRequest { Reason = "Test void" };
         var response = await _client.PostAsJsonAsync($"/api/notas-credito/{note!.Id}/anular", anularRequest);
         
         // Assert
@@ -189,7 +189,7 @@ public class NotasCreditoEndpointsTests : IClassFixture<SPCWebApplicationFactory
         
         // Verify it's voided
         var getResponse = await _client.GetAsync($"/api/notas-credito/{note.Id}");
-        var voidedNote = await getResponse.Content.ReadFromJsonAsync<NotaCreditoCompletaResponse>();
+        var voidedNote = await getResponse.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
         voidedNote!.IsVoided.Should().BeTrue();
     }
 }

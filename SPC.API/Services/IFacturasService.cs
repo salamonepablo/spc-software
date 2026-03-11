@@ -1,33 +1,33 @@
-using SPC.API.Contracts.Facturas;
+using SPC.API.Contracts.Invoices;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Facturas service interface for invoice operations
+/// Invoices service interface for invoice operations
 /// </summary>
-public interface IFacturasService
+public interface IInvoicesService
 {
     // ===========================================
     // QUERIES
     // ===========================================
     
     /// <summary>Get all invoices (paginated)</summary>
-    Task<IEnumerable<FacturaResponse>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<InvoiceResponse>> GetAllAsync(int skip = 0, int take = 50);
     
     /// <summary>Get invoice by ID with all details</summary>
-    Task<FacturaCompletaResponse?> GetByIdAsync(int id);
+    Task<InvoiceCompletaResponse?> GetByIdAsync(int id);
     
     /// <summary>Get invoices by customer</summary>
-    Task<IEnumerable<FacturaResponse>> GetByClienteAsync(int clienteId);
+    Task<IEnumerable<InvoiceResponse>> GetByCustomerAsync(int clienteId);
     
     /// <summary>Get invoices by date range</summary>
-    Task<IEnumerable<FacturaResponse>> GetByFechaAsync(DateTime desde, DateTime hasta);
+    Task<IEnumerable<InvoiceResponse>> GetByFechaAsync(DateTime desde, DateTime hasta);
     
     /// <summary>Search invoices by number or customer name</summary>
-    Task<IEnumerable<FacturaResponse>> SearchAsync(string termino);
+    Task<IEnumerable<InvoiceResponse>> SearchAsync(string termino);
     
     /// <summary>Get invoicing summary statistics</summary>
-    Task<FacturacionResumenResponse> GetResumenAsync();
+    Task<InvoicecionResumenResponse> GetResumenAsync();
     
     /// <summary>Get total count of invoices</summary>
     Task<int> GetCountAsync();
@@ -45,7 +45,7 @@ public interface IFacturasService
     /// - Calculates IIBB perception if applicable
     /// - Stores VAT percentage in document for historical immutability
     /// </summary>
-    Task<FacturaCompletaResponse> CreateAsync(CreateFacturaRequest request);
+    Task<InvoiceCompletaResponse> CreateAsync(CreateInvoiceRequest request);
     
     /// <summary>
     /// Voids an invoice (soft delete, marks as Anulada).

@@ -1,28 +1,28 @@
 using Microsoft.EntityFrameworkCore;
-using SPC.API.Contracts.Clientes;
+using SPC.API.Contracts.Customers;
 using SPC.API.Data;
 using SPC.Shared.Models;
 
 namespace SPC.API.Services;
 
 /// <summary>
-/// Service implementation for Cliente business operations
+/// Service implementation for Customer business operations
 /// </summary>
-public class ClientesService : IClientesService
+public class CustomersService : ICustomersService
 {
     private readonly SPCDbContext _db;
 
-    public ClientesService(SPCDbContext db)
+    public CustomersService(SPCDbContext db)
     {
         _db = db;
     }
 
-    public async Task<IEnumerable<ClienteResponse>> GetAllAsync()
+    public async Task<IEnumerable<CustomerResponse>> GetAllAsync()
     {
-        var clientes = await _db.Clientes
-            .Include(c => c.CondicionIva)
-            .Include(c => c.Vendedor)
-            .Include(c => c.ZonaVenta)
+        var clientes = await _db.Customers
+            .Include(c => c.TaxCondition)
+            .Include(c => c.SalesRep)
+            .Include(c => c.SalesZone)
             .Where(c => c.Activo)
             .OrderBy(c => c.RazonSocial)
             .ToListAsync();
@@ -30,24 +30,24 @@ public class ClientesService : IClientesService
         return clientes.Select(MapToResponse);
     }
 
-    public async Task<ClienteResponse?> GetByIdAsync(int id)
+    public async Task<CustomerResponse?> GetByIdAsync(int id)
     {
-        var cliente = await _db.Clientes
-            .Include(c => c.CondicionIva)
-            .Include(c => c.Vendedor)
-            .Include(c => c.ZonaVenta)
+        var cliente = await _db.Customers
+            .Include(c => c.TaxCondition)
+            .Include(c => c.SalesRep)
+            .Include(c => c.SalesZone)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         return cliente != null ? MapToResponse(cliente) : null;
     }
 
-    public async Task<IEnumerable<ClienteResponse>> SearchAsync(string termino)
+    public async Task<IEnumerable<CustomerResponse>> SearchAsync(string termino)
     {
         // Try to parse as Id (codigo de cliente)
         int.TryParse(termino, out var clienteId);
         
-        var clientes = await _db.Clientes
-            .Include(c => c.CondicionIva)
+        var clientes = await _db.Customers
+            .Include(c => c.TaxCondition)
             .Where(c => c.Activo &&
                    (c.Id == clienteId ||
                     c.RazonSocial.Contains(termino) ||
@@ -58,9 +58,9 @@ public class ClientesService : IClientesService
         return clientes.Select(MapToResponse);
     }
 
-    public async Task<ClienteResponse> CreateAsync(CreateClienteRequest request)
+    public async Task<CustomerResponse> CreateAsync(CreateCustomerRequest request)
     {
-        var cliente = new Cliente
+        var cliente = new Customer
         {
             RazonSocial = request.RazonSocial,
             NombreFantasia = request.NombreFantasia,
@@ -72,9 +72,9 @@ public class ClientesService : IClientesService
             Telefono = request.Telefono,
             Celular = request.Celular,
             Email = request.Email,
-            CondicionIvaId = request.CondicionIvaId,
-            VendedorId = request.VendedorId,
-            ZonaVentaId = request.ZonaVentaId,
+            TaxConditionId = request.TaxConditionId,
+            SalesRepId = request.SalesRepId,
+            SalesZoneId = request.SalesZoneId,
             PorcentajeDescuento = request.PorcentajeDescuento,
             LimiteCredito = request.LimiteCredito,
             Observaciones = request.Observaciones,
@@ -82,20 +82,20 @@ public class ClientesService : IClientesService
             Activo = true
         };
 
-        _db.Clientes.Add(cliente);
+        _db.Customers.Add(cliente);
         await _db.SaveChangesAsync();
 
         // Reload with navigation properties
-        await _db.Entry(cliente).Reference(c => c.CondicionIva).LoadAsync();
-        await _db.Entry(cliente).Reference(c => c.Vendedor).LoadAsync();
-        await _db.Entry(cliente).Reference(c => c.ZonaVenta).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.TaxCondition).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.SalesRep).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.SalesZone).LoadAsync();
 
         return MapToResponse(cliente);
     }
 
-    public async Task<ClienteResponse?> UpdateAsync(int id, UpdateClienteRequest request)
+    public async Task<CustomerResponse?> UpdateAsync(int id, UpdateCustomerRequest request)
     {
-        var cliente = await _db.Clientes.FindAsync(id);
+        var cliente = await _db.Customers.FindAsync(id);
 
         if (cliente == null)
             return null;
@@ -111,9 +111,9 @@ public class ClientesService : IClientesService
         cliente.Telefono = request.Telefono;
         cliente.Celular = request.Celular;
         cliente.Email = request.Email;
-        cliente.CondicionIvaId = request.CondicionIvaId;
-        cliente.VendedorId = request.VendedorId;
-        cliente.ZonaVentaId = request.ZonaVentaId;
+        cliente.TaxConditionId = request.TaxConditionId;
+        cliente.SalesRepId = request.SalesRepId;
+        cliente.SalesZoneId = request.SalesZoneId;
         cliente.PorcentajeDescuento = request.PorcentajeDescuento;
         cliente.LimiteCredito = request.LimiteCredito;
         cliente.Observaciones = request.Observaciones;
@@ -121,16 +121,16 @@ public class ClientesService : IClientesService
         await _db.SaveChangesAsync();
 
         // Reload with navigation properties
-        await _db.Entry(cliente).Reference(c => c.CondicionIva).LoadAsync();
-        await _db.Entry(cliente).Reference(c => c.Vendedor).LoadAsync();
-        await _db.Entry(cliente).Reference(c => c.ZonaVenta).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.TaxCondition).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.SalesRep).LoadAsync();
+        await _db.Entry(cliente).Reference(c => c.SalesZone).LoadAsync();
 
         return MapToResponse(cliente);
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var cliente = await _db.Clientes.FindAsync(id);
+        var cliente = await _db.Customers.FindAsync(id);
 
         if (cliente == null)
             return false;
@@ -143,11 +143,11 @@ public class ClientesService : IClientesService
     }
 
     /// <summary>
-    /// Maps a Cliente entity to ClienteResponse DTO
+    /// Maps a Customer entity to CustomerResponse DTO
     /// </summary>
-    private static ClienteResponse MapToResponse(Cliente cliente)
+    private static CustomerResponse MapToResponse(Customer cliente)
     {
-        return new ClienteResponse
+        return new CustomerResponse
         {
             Id = cliente.Id,
             RazonSocial = cliente.RazonSocial,
@@ -165,16 +165,16 @@ public class ClientesService : IClientesService
             Observaciones = cliente.Observaciones,
             Activo = cliente.Activo,
             FechaAlta = cliente.FechaAlta,
-            CondicionIvaId = cliente.CondicionIvaId,
-            CondicionIvaDescripcion = cliente.CondicionIva?.Descripcion,
-            CondicionIvaCodigo = cliente.CondicionIva?.Codigo,
-            TipoFactura = cliente.CondicionIva?.TipoFactura,
+            TaxConditionId = cliente.TaxConditionId,
+            TaxConditionDescripcion = cliente.TaxCondition?.Descripcion,
+            TaxConditionCodigo = cliente.TaxCondition?.Codigo,
+            TipoInvoice = cliente.TaxCondition?.TipoInvoice,
             AlicuotaIIBB = cliente.AlicuotaIIBB,
             ProvinciaPadronIIBB = cliente.ProvinciaPadronIIBB,
-            VendedorId = cliente.VendedorId,
-            VendedorNombre = cliente.Vendedor?.Nombre,
-            ZonaVentaId = cliente.ZonaVentaId,
-            ZonaVentaNombre = cliente.ZonaVenta?.Nombre
+            SalesRepId = cliente.SalesRepId,
+            SalesRepNombre = cliente.SalesRep?.Nombre,
+            SalesZoneId = cliente.SalesZoneId,
+            SalesZoneNombre = cliente.SalesZone?.Nombre
         };
     }
 }

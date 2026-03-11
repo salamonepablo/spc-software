@@ -4,7 +4,7 @@ namespace SPC.Shared.Models;
 
 /// <summary>
 /// Movimiento interno de stock entre depositos.
-/// Ej: Deposito Principal -> Camioneta Vendedor X
+/// Ej: Warehouse Principal -> Camioneta SalesRep X
 /// </summary>
 public class StockMovement
 {
@@ -16,13 +16,13 @@ public class StockMovement
     /// <summary>Fecha del movimiento</summary>
     public DateTime MovementDate { get; set; }
     
-    /// <summary>Deposito origen</summary>
+    /// <summary>Warehouse origen</summary>
     public int SourceWarehouseId { get; set; }
-    public Deposito? SourceWarehouse { get; set; }
+    public Warehouse? SourceWarehouse { get; set; }
     
-    /// <summary>Deposito destino</summary>
+    /// <summary>Warehouse destino</summary>
     public int DestinationWarehouseId { get; set; }
-    public Deposito? DestinationWarehouse { get; set; }
+    public Warehouse? DestinationWarehouse { get; set; }
     
     [StringLength(500)]
     public string? Notes { get; set; }
@@ -44,7 +44,7 @@ public class StockMovementDetail
     public int ItemNumber { get; set; }
     
     public int ProductId { get; set; }
-    public Producto? Product { get; set; }
+    public Product? Product { get; set; }
     
     public decimal Quantity { get; set; }
 }

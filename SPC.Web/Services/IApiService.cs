@@ -7,46 +7,46 @@ namespace SPC.Web.Services;
 /// </summary>
 public interface IApiService
 {
-    // Clientes
-    Task<List<ClienteDto>> GetClientesAsync();
-    Task<List<ClienteDto>> BuscarClientesAsync(string nombre);
-    Task<ClienteDto?> GetClienteAsync(int id);
-    Task<ClienteDto?> CreateClienteAsync(CreateClienteDto cliente);
-    Task<bool> UpdateClienteAsync(int id, UpdateClienteDto cliente);
-    Task<bool> DeleteClienteAsync(int id);
+    // Customers
+    Task<List<CustomerDto>> GetCustomersAsync();
+    Task<List<CustomerDto>> BuscarCustomersAsync(string nombre);
+    Task<CustomerDto?> GetCustomerAsync(int id);
+    Task<CustomerDto?> CreateCustomerAsync(CreateCustomerDto cliente);
+    Task<bool> UpdateCustomerAsync(int id, UpdateCustomerDto cliente);
+    Task<bool> DeleteCustomerAsync(int id);
     
-    // Productos
-    Task<List<ProductoDto>> GetProductosAsync();
-    Task<List<ProductoDto>> BuscarProductosAsync(string termino);
-    Task<ProductoDto?> GetProductoAsync(int id);
-    Task<ProductoDto?> CreateProductoAsync(CreateProductoDto producto);
-    Task<bool> UpdateProductoAsync(int id, UpdateProductoDto producto);
-    Task<bool> DeleteProductoAsync(int id);
+    // Products
+    Task<List<ProductDto>> GetProductsAsync();
+    Task<List<ProductDto>> BuscarProductsAsync(string termino);
+    Task<ProductDto?> GetProductAsync(int id);
+    Task<ProductDto?> CreateProductAsync(CreateProductDto producto);
+    Task<bool> UpdateProductAsync(int id, UpdateProductDto producto);
+    Task<bool> DeleteProductAsync(int id);
     
     // Auxiliary data for dropdowns
-    Task<List<CondicionIvaDto>> GetCondicionesIvaAsync();
-    Task<List<VendedorDto>> GetVendedoresAsync();
-    Task<List<ZonaVentaDto>> GetZonasVentaAsync();
-    Task<List<RubroDto>> GetRubrosAsync();
-    Task<List<UnidadMedidaDto>> GetUnidadesMedidaAsync();
-    Task<List<DepositoDto>> GetDepositosAsync();
+    Task<List<TaxConditionDto>> GetCondicionesIvaAsync();
+    Task<List<SalesRepDto>> GetSalesRepesAsync();
+    Task<List<SalesZoneDto>> GetZonasVentaAsync();
+    Task<List<CategoryDto>> GetCategorysAsync();
+    Task<List<UnitOfMeasureDto>> GetUnidadesMedidaAsync();
+    Task<List<WarehouseDto>> GetWarehousesAsync();
     
     // Stock
     Task<List<StockResumenDto>> GetStockResumenAsync();
     Task<List<StockResumenDto>> BuscarStockAsync(string termino);
     Task<List<StockResumenDto>> GetStockBajoMinimoAsync();
-    Task<List<StockDetalleDto>> GetStockByProductoAsync(int productoId);
+    Task<List<StockDetalleDto>> GetStockByProductAsync(int productoId);
     
-    // Facturas
-    Task<List<FacturaDto>> GetFacturasAsync(int skip = 0, int take = 50);
-    Task<FacturaCompletaDto?> GetFacturaAsync(int id);
-    Task<List<FacturaDto>> BuscarFacturasAsync(string termino);
-    Task<List<FacturaDto>> GetFacturasByClienteAsync(int clienteId);
-    Task<List<FacturaDto>> GetFacturasByFechaAsync(DateTime desde, DateTime hasta);
-    Task<FacturacionResumenDto?> GetFacturacionResumenAsync();
-    Task<int> GetFacturasCountAsync();
-    Task<FacturaCompletaDto?> CreateFacturaAsync(CreateFacturaDto factura);
+    // Invoices
+    Task<List<InvoiceDto>> GetInvoicesAsync(int skip = 0, int take = 50);
+    Task<InvoiceCompletaDto?> GetInvoiceAsync(int id);
+    Task<List<InvoiceDto>> BuscarInvoicesAsync(string termino);
+    Task<List<InvoiceDto>> GetInvoicesByCustomerAsync(int clienteId);
+    Task<List<InvoiceDto>> GetInvoicesByFechaAsync(DateTime desde, DateTime hasta);
+    Task<InvoicecionResumenDto?> GetInvoicecionResumenAsync();
+    Task<int> GetInvoicesCountAsync();
+    Task<InvoiceCompletaDto?> CreateInvoiceAsync(CreateInvoiceDto factura);
     
-    // Sucursales
-    Task<List<SucursalDto>> GetSucursalesAsync();
+    // Branches
+    Task<List<SucursalDto>> GetBranchesAsync();
 }

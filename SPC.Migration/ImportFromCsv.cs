@@ -145,13 +145,13 @@ public static class CsvImporter
     }
 
     // Mapping dictionaries
-    private static readonly Dictionary<int, int> ClienteMap = new();
-    private static readonly Dictionary<string, int> VendedorMap = new();
-    private static readonly Dictionary<string, int> ProductoMap = new();
+    private static readonly Dictionary<int, int> CustomerMap = new();
+    private static readonly Dictionary<string, int> SalesRepMap = new();
+    private static readonly Dictionary<string, int> ProductMap = new();
     private static readonly Dictionary<int, int> BranchMap = new();
     private static readonly Dictionary<string, int> PaymentMethodMap = new();
-    private static readonly Dictionary<(string, int), int> FacturaMap = new();
-    private static readonly Dictionary<(int, int), int> RemitoMap = new();
+    private static readonly Dictionary<(string, int), int> InvoiceMap = new();
+    private static readonly Dictionary<(int, int), int> DeliveryNoteMap = new();
     private static readonly Dictionary<int, int> QuoteMap = new();
     private static readonly Dictionary<(string, int), int> CreditNoteMap = new();
     private static readonly Dictionary<(string, int), int> DebitNoteMap = new();
@@ -167,14 +167,14 @@ public static class CsvImporter
         // Phase 1: Auxiliary tables
         await ImportCondicionesIvaAsync(db);
         await ImportUnidadesMedidaAsync(db);
-        await ImportRubrosAsync(db);
+        await ImportCategorysAsync(db);
         await ImportSucursalesAsync(db);
-        await ImportVendedoresAsync(db);
-        await ImportDepositosAsync(db);
+        await ImportSalesRepesAsync(db);
+        await ImportWarehousesAsync(db);
         
         // Phase 2: Master data (with preserved IDs)
-        await ImportClientesAsync(db);
-        await ImportProductosAsync(db);
+        await ImportCustomersAsync(db);
+        await ImportProductsAsync(db);
         await ImportStockAsync(db);
         
         Console.WriteLine();
@@ -183,10 +183,10 @@ public static class CsvImporter
         Console.WriteLine();
 
         // Phase 3: Documents
-        await ImportFacturasAsync(db);
-        await ImportFacturaDetallesAsync(db);
-        await ImportRemitosAsync(db);
-        await ImportRemitoDetallesAsync(db);
+        await ImportInvoicesAsync(db);
+        await ImportInvoiceDetailsAsync(db);
+        await ImportDeliveryNotesAsync(db);
+        await ImportDeliveryNoteDetailsAsync(db);
         await ImportPresupuestosAsync(db);
         await ImportPresupuestoDetallesAsync(db);
         await ImportNotasCreditoAsync(db);
@@ -219,12 +219,12 @@ public static class CsvImporter
         if (!File.Exists(csvPath))
         {
             // Use seed data
-            var seeds = new List<CondicionIva>
+            var seeds = new List<TaxCondition>
             {
-                new() { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoFactura = "A" },
-                new() { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoFactura = "B" },
-                new() { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoFactura = "B" },
-                new() { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoFactura = "B" }
+                new() { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoInvoice = "A" },
+                new() { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoInvoice = "B" },
+                new() { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoInvoice = "B" },
+                new() { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoInvoice = "B" }
             };
             await BulkInsertWithIdentityAsync(db, seeds, "CondicionesIva");
             Console.WriteLine($"OK ({seeds.Count} seeded)");
@@ -233,7 +233,7 @@ public static class CsvImporter
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<CondicionIva>();
+        var items = new List<TaxCondition>();
         int id = 1;
 
         foreach (var line in lines.Skip(1))
@@ -243,14 +243,14 @@ public static class CsvImporter
 
             var codigo = SafeStr(row.GetValueOrDefault("IDCondicionIVA"), 10) ?? $"C{id}";
             var descripcion = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? codigo;
-            var tipoFactura = codigo == "RI" ? "A" : "B";
+            var tipoInvoice = codigo == "RI" ? "A" : "B";
 
-            items.Add(new CondicionIva
+            items.Add(new TaxCondition
             {
                 Id = id++,
                 Codigo = codigo,
                 Descripcion = descripcion,
-                TipoFactura = tipoFactura
+                TipoInvoice = tipoInvoice
             });
         }
 
@@ -271,7 +271,7 @@ public static class CsvImporter
         var csvPath = Path.Combine(DataDir, "unidades_medida.csv");
         if (!File.Exists(csvPath))
         {
-            var seeds = new List<UnidadMedida>
+            var seeds = new List<UnitOfMeasure>
             {
                 new() { Id = 1, Codigo = "UN", Nombre = "Unidades" },
                 new() { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
@@ -283,7 +283,7 @@ public static class CsvImporter
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<UnidadMedida>();
+        var items = new List<UnitOfMeasure>();
         int id = 1;
 
         foreach (var line in lines.Skip(1))
@@ -291,10 +291,10 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            items.Add(new UnidadMedida
+            items.Add(new UnitOfMeasure
             {
                 Id = id++,
-                Codigo = SafeStr(row.GetValueOrDefault("IdUnidadMedida"), 10) ?? $"U{id}",
+                Codigo = SafeStr(row.GetValueOrDefault("IdUnitOfMeasure"), 10) ?? $"U{id}",
                 Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 50) ?? "Sin nombre"
             });
         }
@@ -303,10 +303,10 @@ public static class CsvImporter
         Console.WriteLine($"OK ({items.Count} records)");
     }
 
-    private static async Task ImportRubrosAsync(SPCDbContext db)
+    private static async Task ImportCategorysAsync(SPCDbContext db)
     {
-        Console.Write("Importing Rubros... ");
-        var existingCount = await db.Rubros.CountAsync();
+        Console.Write("Importing Categorys... ");
+        var existingCount = await db.Categorys.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -316,18 +316,18 @@ public static class CsvImporter
         var csvPath = Path.Combine(DataDir, "rubros.csv");
         if (!File.Exists(csvPath))
         {
-            var seeds = new List<Rubro>
+            var seeds = new List<Category>
             {
                 new() { Id = 1, Nombre = "Nacionales", Activo = true }
             };
-            await BulkInsertWithIdentityAsync(db, seeds, "Rubros");
+            await BulkInsertWithIdentityAsync(db, seeds, "Categorys");
             Console.WriteLine($"OK ({seeds.Count} seeded)");
             return;
         }
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<Rubro>();
+        var items = new List<Category>();
         int id = 1;
 
         foreach (var line in lines.Skip(1))
@@ -335,7 +335,7 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            items.Add(new Rubro
+            items.Add(new Category
             {
                 Id = id++,
                 Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? "Sin nombre",
@@ -343,7 +343,7 @@ public static class CsvImporter
             });
         }
 
-        await BulkInsertWithIdentityAsync(db, items, "Rubros");
+        await BulkInsertWithIdentityAsync(db, items, "Categorys");
         Console.WriteLine($"OK ({items.Count} records)");
     }
 
@@ -373,7 +373,7 @@ public static class CsvImporter
         if (!File.Exists(csvPath))
         {
             // Add default branches if no CSV
-            items.Add(new Branch { Id = 2, Code = "CALLE", Name = "Calle (Vendedores)", PointOfSale = 2, IsActive = true });
+            items.Add(new Branch { Id = 2, Code = "CALLE", Name = "Calle (SalesRepes)", PointOfSale = 2, IsActive = true });
             items.Add(new Branch { Id = 5, Code = "OFICINA", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true });
             await BulkInsertWithIdentityAsync(db, items, "Branches");
             Console.WriteLine($"OK ({items.Count} seeded)");
@@ -406,10 +406,10 @@ public static class CsvImporter
         Console.WriteLine($"OK ({items.Count} records)");
     }
 
-    private static async Task ImportVendedoresAsync(SPCDbContext db)
+    private static async Task ImportSalesRepesAsync(SPCDbContext db)
     {
-        Console.Write("Importing Vendedores (Empleados)... ");
-        var existingCount = await db.Vendedores.CountAsync();
+        Console.Write("Importing SalesRepes (Empleados)... ");
+        var existingCount = await db.SalesRepes.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -425,7 +425,7 @@ public static class CsvImporter
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<Vendedor>();
+        var items = new List<SalesRep>();
         int id = 1;
 
         foreach (var line in lines.Skip(1))
@@ -436,7 +436,7 @@ public static class CsvImporter
             var legajo = SafeStr(row.GetValueOrDefault("Legajo"), 20);
             if (string.IsNullOrEmpty(legajo)) continue;
 
-            items.Add(new Vendedor
+            items.Add(new SalesRep
             {
                 Id = id++,
                 Legajo = legajo,
@@ -459,14 +459,14 @@ public static class CsvImporter
         }
 
         if (items.Count > 0)
-            await BulkInsertWithIdentityAsync(db, items, "Vendedores");
+            await BulkInsertWithIdentityAsync(db, items, "SalesRepes");
         Console.WriteLine($"OK ({items.Count} records)");
     }
 
-    private static async Task ImportDepositosAsync(SPCDbContext db)
+    private static async Task ImportWarehousesAsync(SPCDbContext db)
     {
-        Console.Write("Importing Depositos... ");
-        var existingCount = await db.Depositos.CountAsync();
+        Console.Write("Importing Warehouses... ");
+        var existingCount = await db.Warehouses.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -476,18 +476,18 @@ public static class CsvImporter
         var csvPath = Path.Combine(DataDir, "depositos.csv");
         if (!File.Exists(csvPath))
         {
-            var seeds = new List<Deposito>
+            var seeds = new List<Warehouse>
             {
-                new() { Id = 1, Nombre = "Deposito Principal", Activo = true }
+                new() { Id = 1, Nombre = "Warehouse Principal", Activo = true }
             };
-            await BulkInsertWithIdentityAsync(db, seeds, "Depositos");
+            await BulkInsertWithIdentityAsync(db, seeds, "Warehouses");
             Console.WriteLine($"OK ({seeds.Count} seeded)");
             return;
         }
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<Deposito>();
+        var items = new List<Warehouse>();
         int id = 1;
 
         foreach (var line in lines.Skip(1))
@@ -495,7 +495,7 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            items.Add(new Deposito
+            items.Add(new Warehouse
             {
                 Id = id++,
                 Nombre = SafeStr(row.GetValueOrDefault("Descripcion"), 100) ?? "Sin nombre",
@@ -504,7 +504,7 @@ public static class CsvImporter
         }
 
         if (items.Count > 0)
-            await BulkInsertWithIdentityAsync(db, items, "Depositos");
+            await BulkInsertWithIdentityAsync(db, items, "Warehouses");
         Console.WriteLine($"OK ({items.Count} records)");
     }
 
@@ -512,10 +512,10 @@ public static class CsvImporter
 
     #region Master Data (with preserved IDs)
 
-    private static async Task ImportClientesAsync(SPCDbContext db)
+    private static async Task ImportCustomersAsync(SPCDbContext db)
     {
-        Console.Write("Importing Clientes... ");
-        var existingCount = await db.Clientes.CountAsync();
+        Console.Write("Importing Customers... ");
+        var existingCount = await db.Customers.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -531,21 +531,21 @@ public static class CsvImporter
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<Cliente>();
+        var items = new List<Customer>();
 
         // Load lookups
         var condicionesIva = await db.CondicionesIva.ToDictionaryAsync(c => c.Codigo, c => c.Id);
-        var vendedores = await db.Vendedores.ToDictionaryAsync(v => v.Legajo, v => v.Id);
+        var vendedores = await db.SalesRepes.ToDictionaryAsync(v => v.Legajo, v => v.Id);
 
         foreach (var line in lines.Skip(1))
         {
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            var idCliente = SafeInt(row.GetValueOrDefault("IDCliente"));
-            if (idCliente == 0) continue;
+            var idCustomer = SafeInt(row.GetValueOrDefault("IDCliente"));
+            if (idCustomer == 0) continue;
 
-            var condIva = SafeStr(row.GetValueOrDefault("CondicionIva"), 10);
+            var condIva = SafeStr(row.GetValueOrDefault("TaxCondition"), 10);
             var vendedor = SafeStr(row.GetValueOrDefault("Vendedor"), 20);
 
             var porcentajeDesc = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento"));
@@ -556,9 +556,9 @@ public static class CsvImporter
             if (limiteCredito > 999999999999m) limiteCredito = 999999999999m;
             if (limiteCredito < 0) limiteCredito = 0;
 
-            items.Add(new Cliente
+            items.Add(new Customer
             {
-                Id = idCliente,  // PRESERVE ORIGINAL ID!
+                Id = idCustomer,  // PRESERVE ORIGINAL ID!
                 RazonSocial = SafeStr(row.GetValueOrDefault("RazonSocial"), 200) ?? "Sin Nombre",
                 NombreFantasia = SafeStr(row.GetValueOrDefault("NombreFantasia"), 200),
                 CUIT = SafeStr(row.GetValueOrDefault("CUIT"), 13),
@@ -569,9 +569,9 @@ public static class CsvImporter
                 Telefono = SafeStr(row.GetValueOrDefault("Tel"), 50),
                 Celular = SafeStr(row.GetValueOrDefault("Cel"), 50),
                 Email = SafeStr(row.GetValueOrDefault("email"), 200),
-                CondicionIvaId = !string.IsNullOrEmpty(condIva) && condicionesIva.ContainsKey(condIva) 
+                TaxConditionId = !string.IsNullOrEmpty(condIva) && condicionesIva.ContainsKey(condIva) 
                     ? condicionesIva[condIva] : null,
-                VendedorId = !string.IsNullOrEmpty(vendedor) && vendedores.ContainsKey(vendedor) 
+                SalesRepId = !string.IsNullOrEmpty(vendedor) && vendedores.ContainsKey(vendedor) 
                     ? vendedores[vendedor] : null,
                 PorcentajeDescuento = porcentajeDesc,
                 LimiteCredito = limiteCredito,
@@ -587,17 +587,17 @@ public static class CsvImporter
         for (int i = 0; i < items.Count; i += BatchSize)
         {
             var batch = items.Skip(i).Take(BatchSize).ToList();
-            await BulkInsertWithIdentityAsync(db, batch, "Clientes");
+            await BulkInsertWithIdentityAsync(db, batch, "Customers");
             Console.Write(".");
         }
 
         Console.WriteLine(" OK");
     }
 
-    private static async Task ImportProductosAsync(SPCDbContext db)
+    private static async Task ImportProductsAsync(SPCDbContext db)
     {
-        Console.Write("Importing Productos... ");
-        var existingCount = await db.Productos.CountAsync();
+        Console.Write("Importing Products... ");
+        var existingCount = await db.Products.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -613,10 +613,10 @@ public static class CsvImporter
 
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
-        var items = new List<Producto>();
+        var items = new List<Product>();
 
         // Load lookups
-        var rubros = await db.Rubros.ToDictionaryAsync(r => r.Nombre, r => r.Id);
+        var rubros = await db.Categorys.ToDictionaryAsync(r => r.Nombre, r => r.Id);
         var unidades = await db.UnidadesMedida.ToDictionaryAsync(u => u.Codigo, u => u.Id);
 
         int id = 1;
@@ -628,18 +628,18 @@ public static class CsvImporter
             var codigo = SafeStr(row.GetValueOrDefault("CodProd"), 50);
             if (string.IsNullOrEmpty(codigo)) continue;
 
-            var rubro = SafeStr(row.GetValueOrDefault("Rubro"), 100);
-            var unidad = SafeStr(row.GetValueOrDefault("UnidadMedida"), 10);
+            var rubro = SafeStr(row.GetValueOrDefault("Category"), 100);
+            var unidad = SafeStr(row.GetValueOrDefault("UnitOfMeasure"), 10);
 
-            items.Add(new Producto
+            items.Add(new Product
             {
                 Id = id++,
                 Codigo = codigo,
                 Descripcion = SafeStr(row.GetValueOrDefault("Descripcion"), 300) ?? codigo,
                 PrecioVenta = SafeDecimal(row.GetValueOrDefault("PrecioUnitarioFactura")),
                 PrecioCosto = SafeDecimal(row.GetValueOrDefault("PrecioUnitarioPresupuesto")),
-                RubroId = !string.IsNullOrEmpty(rubro) && rubros.ContainsKey(rubro) ? rubros[rubro] : null,
-                UnidadMedidaId = !string.IsNullOrEmpty(unidad) && unidades.ContainsKey(unidad) ? unidades[unidad] : null,
+                CategoryId = !string.IsNullOrEmpty(rubro) && rubros.ContainsKey(rubro) ? rubros[rubro] : null,
+                UnitOfMeasureId = !string.IsNullOrEmpty(unidad) && unidades.ContainsKey(unidad) ? unidades[unidad] : null,
                 StockMinimo = SafeInt(row.GetValueOrDefault("PuntoPedido")),
                 Observaciones = SafeStr(row.GetValueOrDefault("Observaciones"), 500),
                 PorcentajeIVA = 21m,
@@ -648,7 +648,7 @@ public static class CsvImporter
         }
 
         Console.Write($"({items.Count} records)... ");
-        await BulkInsertWithIdentityAsync(db, items, "Productos");
+        await BulkInsertWithIdentityAsync(db, items, "Products");
         Console.WriteLine("OK");
     }
 
@@ -674,8 +674,8 @@ public static class CsvImporter
         var items = new List<Stock>();
 
         // Load lookups
-        var productos = await db.Productos.ToDictionaryAsync(p => p.Codigo, p => p.Id);
-        var depositos = await db.Depositos.ToDictionaryAsync(d => d.Nombre, d => d.Id);
+        var productos = await db.Products.ToDictionaryAsync(p => p.Codigo, p => p.Id);
+        var depositos = await db.Warehouses.ToDictionaryAsync(d => d.Nombre, d => d.Id);
 
         int id = 1;
         foreach (var line in lines.Skip(1))
@@ -684,22 +684,22 @@ public static class CsvImporter
             var row = CreateDictionary(header, cols);
 
             var codProd = SafeStr(row.GetValueOrDefault("CodProd"), 50);
-            var idDeposito = SafeStr(row.GetValueOrDefault("IdDeposito"), 100);
+            var idWarehouse = SafeStr(row.GetValueOrDefault("IdDeposito"), 100);
 
             if (string.IsNullOrEmpty(codProd) || !productos.ContainsKey(codProd)) continue;
             
             // Try to find deposito by name or use default
             var depositoId = 1;
-            if (!string.IsNullOrEmpty(idDeposito) && depositos.ContainsKey(idDeposito))
+            if (!string.IsNullOrEmpty(idWarehouse) && depositos.ContainsKey(idWarehouse))
             {
-                depositoId = depositos[idDeposito];
+                depositoId = depositos[idWarehouse];
             }
 
             items.Add(new Stock
             {
                 Id = id++,
-                ProductoId = productos[codProd],
-                DepositoId = depositoId,
+                ProductId = productos[codProd],
+                WarehouseId = depositoId,
                 Cantidad = SafeDecimal(row.GetValueOrDefault("Cantidad"))
             });
         }
@@ -714,29 +714,29 @@ public static class CsvImporter
 
     private static async Task LoadMappingsAsync(SPCDbContext db)
     {
-        // Load Clientes - IDs are now preserved, so map is 1:1
-        var clientes = await db.Clientes.Select(c => c.Id).ToListAsync();
+        // Load Customers - IDs are now preserved, so map is 1:1
+        var clientes = await db.Customers.Select(c => c.Id).ToListAsync();
         foreach (var id in clientes)
         {
-            ClienteMap[id] = id;  // ID = ID (preserved from Access)
+            CustomerMap[id] = id;  // ID = ID (preserved from Access)
         }
-        Console.WriteLine($"  Clientes: {ClienteMap.Count}");
+        Console.WriteLine($"  Customers: {CustomerMap.Count}");
 
-        // Vendedores
-        var vendedores = await db.Vendedores.ToListAsync();
+        // SalesRepes
+        var vendedores = await db.SalesRepes.ToListAsync();
         foreach (var v in vendedores)
         {
-            VendedorMap[v.Legajo] = v.Id;
+            SalesRepMap[v.Legajo] = v.Id;
         }
-        Console.WriteLine($"  Vendedores: {VendedorMap.Count}");
+        Console.WriteLine($"  SalesRepes: {SalesRepMap.Count}");
 
-        // Productos
-        var productos = await db.Productos.ToListAsync();
+        // Products
+        var productos = await db.Products.ToListAsync();
         foreach (var p in productos)
         {
-            ProductoMap[p.Codigo] = p.Id;
+            ProductMap[p.Codigo] = p.Id;
         }
-        Console.WriteLine($"  Productos: {ProductoMap.Count}");
+        Console.WriteLine($"  Products: {ProductMap.Count}");
 
         // Branches
         var branches = await db.Branches.ToListAsync();
@@ -755,18 +755,18 @@ public static class CsvImporter
         Console.WriteLine($"  PaymentMethods: {PaymentMethodMap.Count}");
     }
 
-    private static async Task ImportFacturasAsync(SPCDbContext db)
+    private static async Task ImportInvoicesAsync(SPCDbContext db)
     {
-        Console.Write("Importing Facturas... ");
+        Console.Write("Importing Invoices... ");
         
-        var existingCount = await db.Facturas.CountAsync();
+        var existingCount = await db.Invoices.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
-            var existing = await db.Facturas.ToListAsync();
+            var existing = await db.Invoices.ToListAsync();
             foreach (var f in existing)
             {
-                FacturaMap[(f.TipoFactura, (int)f.NumeroFactura)] = f.Id;
+                InvoiceMap[(f.TipoInvoice, (int)f.NumeroInvoice)] = f.Id;
             }
             return;
         }
@@ -775,7 +775,7 @@ public static class CsvImporter
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
         
-        var facturas = new List<Factura>();
+        var facturas = new List<Invoice>();
         var keys = new List<(string tipo, int nro)>();
 
         for (int i = 1; i < lines.Length; i++)
@@ -784,14 +784,14 @@ public static class CsvImporter
             var cols = ParseCsvLine(lines[i]);
             var row = CreateDictionary(header, cols);
             
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var tipoRaw = row.GetValueOrDefault("TipoFactura");
             var nroRaw = row.GetValueOrDefault("NroFactura");
             if (string.IsNullOrWhiteSpace(tipoRaw) || string.IsNullOrWhiteSpace(nroRaw))
             {
-                LogSkip("facturas_c.csv", lineNumber, "Missing TipoFactura or NroFactura", row);
+                LogSkip("facturas_c.csv", lineNumber, "Missing TipoInvoice or NroInvoice", row);
                 continue;
             }
 
@@ -802,16 +802,16 @@ public static class CsvImporter
             var puntoVenta = idSucursal > 0 ? idSucursal : 2;
             var vendedorLegajo = SafeStr(row.GetValueOrDefault("CodVendedor"), 20);
 
-            var factura = new Factura
+            var factura = new Invoice
             {
                 BranchId = branchId,
-                TipoFactura = tipo,
+                TipoInvoice = tipo,
                 PuntoVenta = puntoVenta,
-                NumeroFactura = nro,
-                FechaFactura = SafeDate(row.GetValueOrDefault("FechaFactura")) ?? DateTime.Now,
-                ClienteId = ClienteMap[codCliente],
-                VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo) 
-                    ? VendedorMap[vendedorLegajo] : null,
+                NumeroInvoice = nro,
+                FechaInvoice = SafeDate(row.GetValueOrDefault("FechaFactura")) ?? DateTime.Now,
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo) 
+                    ? SalesRepMap[vendedorLegajo] : null,
                 Subtotal = SafeDecimal(row.GetValueOrDefault("SubTotalFactura")),
                 PorcentajeIVA = SafeDecimal(row.GetValueOrDefault("PorcentajeIVA")),
                 ImporteIVA = SafeDecimal(row.GetValueOrDefault("TotalIVA")),
@@ -843,7 +843,7 @@ public static class CsvImporter
             
             for (int j = 0; j < batch.Count; j++)
             {
-                FacturaMap[keys[i + j]] = batch[j].Id;
+                InvoiceMap[keys[i + j]] = batch[j].Id;
             }
             Console.Write(".");
         }
@@ -851,11 +851,11 @@ public static class CsvImporter
         Console.WriteLine(" OK");
     }
 
-    private static async Task ImportFacturaDetallesAsync(SPCDbContext db)
+    private static async Task ImportInvoiceDetailsAsync(SPCDbContext db)
     {
-        Console.Write("Importing FacturaDetalles... ");
+        Console.Write("Importing InvoiceDetails... ");
 
-        var existingCount = await db.FacturaDetalles.CountAsync();
+        var existingCount = await db.InvoiceDetails.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -866,7 +866,7 @@ public static class CsvImporter
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
 
-        var detalles = new List<FacturaDetalle>();
+        var detalles = new List<InvoiceDetail>();
 
         for (int i = 1; i < lines.Length; i++)
         {
@@ -878,7 +878,7 @@ public static class CsvImporter
             var nroRaw = row.GetValueOrDefault("NroFactura");
             if (string.IsNullOrWhiteSpace(tipoRaw) || string.IsNullOrWhiteSpace(nroRaw))
             {
-                LogSkip("facturas_d.csv", lineNumber, "Missing TipoFactura or NroFactura", row);
+                LogSkip("facturas_d.csv", lineNumber, "Missing TipoInvoice or NroInvoice", row);
                 continue;
             }
 
@@ -886,16 +886,16 @@ public static class CsvImporter
             var nro = SafeInt(nroRaw);
             var key = (tipo, nro);
 
-            if (!FacturaMap.ContainsKey(key)) continue;
+            if (!InvoiceMap.ContainsKey(key)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IDCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
-            detalles.Add(new FacturaDetalle
+            detalles.Add(new InvoiceDetail
             {
-                FacturaId = FacturaMap[key],
+                InvoiceId = InvoiceMap[key],
                 ItemNumero = SafeInt(row.GetValueOrDefault("ItemFactura")),
-                ProductoId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Cantidad = SafeDecimal(row.GetValueOrDefault("Cantidad")),
                 PrecioUnitario = SafeDecimal(row.GetValueOrDefault("PrecioUnitario")),
                 PorcentajeDescuento = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento")),
@@ -917,17 +917,17 @@ public static class CsvImporter
     }
 
     // Stub methods for remaining imports - similar pattern
-    private static async Task ImportRemitosAsync(SPCDbContext db) 
+    private static async Task ImportDeliveryNotesAsync(SPCDbContext db) 
     {
-        Console.Write("Importing Remitos... ");
-        var existingCount = await db.Remitos.CountAsync();
+        Console.Write("Importing DeliveryNotes... ");
+        var existingCount = await db.DeliveryNotes.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
-            var existing = await db.Remitos.ToListAsync();
+            var existing = await db.DeliveryNotes.ToListAsync();
             foreach (var r in existing)
             {
-                RemitoMap[(r.PuntoVenta, (int)r.NumeroRemito)] = r.Id;
+                DeliveryNoteMap[(r.PuntoVenta, (int)r.NumeroDeliveryNote)] = r.Id;
             }
             return;
         }
@@ -935,7 +935,7 @@ public static class CsvImporter
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
 
-        var remitos = new List<Remito>();
+        var remitos = new List<DeliveryNote>();
         var keys = new List<(int sucursal, int nro)>();
 
         foreach (var line in lines.Skip(1))
@@ -944,43 +944,43 @@ public static class CsvImporter
             var row = CreateDictionary(header, cols);
 
             var idSucursal = SafeInt(row.GetValueOrDefault("IdSucursal"));
-            var nroRemito = SafeInt(row.GetValueOrDefault("NroRemito"));
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var nroDeliveryNote = SafeInt(row.GetValueOrDefault("NroRemito"));
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var vendedorLegajo = SafeStr(row.GetValueOrDefault("CodVendedor"), 20);
-            var nroFactura = SafeInt(row.GetValueOrDefault("NroFactura"));
-            var tipoFactura = SafeStr(row.GetValueOrDefault("TipoFactura"), 2);
+            var nroInvoice = SafeInt(row.GetValueOrDefault("NroFactura"));
+            var tipoInvoice = SafeStr(row.GetValueOrDefault("TipoFactura"), 2);
 
             var branchId = BranchMap.GetValueOrDefault(idSucursal, 1);
             var puntoVenta = idSucursal > 0 ? idSucursal : 2;
 
             int? facturaId = null;
-            if (nroFactura > 0 && !string.IsNullOrEmpty(tipoFactura) && FacturaMap.ContainsKey((tipoFactura, nroFactura)))
+            if (nroInvoice > 0 && !string.IsNullOrEmpty(tipoInvoice) && InvoiceMap.ContainsKey((tipoInvoice, nroInvoice)))
             {
-                facturaId = FacturaMap[(tipoFactura, nroFactura)];
+                facturaId = InvoiceMap[(tipoInvoice, nroInvoice)];
             }
 
-            var remito = new Remito
+            var remito = new DeliveryNote
             {
                 BranchId = branchId,
                 PuntoVenta = puntoVenta,
-                NumeroRemito = nroRemito,
-                FechaRemito = SafeDate(row.GetValueOrDefault("FechaRemito")) ?? DateTime.Now,
-                ClienteId = ClienteMap[codCliente],
-                VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                NumeroDeliveryNote = nroDeliveryNote,
+                FechaDeliveryNote = SafeDate(row.GetValueOrDefault("FechaRemito")) ?? DateTime.Now,
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 UnidadNegocio = SafeStr(row.GetValueOrDefault("UnidadNegocio"), 50),
-                FacturaId = facturaId,
-                TipoFactura = tipoFactura,
+                InvoiceId = facturaId,
+                TipoFactura = tipoInvoice,
                 Facturado = facturaId.HasValue,
                 Aclaracion = SafeStr(row.GetValueOrDefault("AclaracionRemito"), 500),
                 Anulado = false
             };
 
             remitos.Add(remito);
-            keys.Add((idSucursal, nroRemito));
+            keys.Add((idSucursal, nroDeliveryNote));
         }
 
         Console.Write($"({remitos.Count} records)... ");
@@ -992,7 +992,7 @@ public static class CsvImporter
 
             for (int j = 0; j < batch.Count; j++)
             {
-                RemitoMap[keys[i + j]] = batch[j].Id;
+                DeliveryNoteMap[keys[i + j]] = batch[j].Id;
             }
             Console.Write(".");
         }
@@ -1000,10 +1000,10 @@ public static class CsvImporter
         Console.WriteLine(" OK");
     }
 
-    private static async Task ImportRemitoDetallesAsync(SPCDbContext db) 
+    private static async Task ImportDeliveryNoteDetailsAsync(SPCDbContext db) 
     {
-        Console.Write("Importing RemitoDetalles... ");
-        var existingCount = await db.RemitoDetalles.CountAsync();
+        Console.Write("Importing DeliveryNoteDetails... ");
+        var existingCount = await db.DeliveryNoteDetails.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
@@ -1013,7 +1013,7 @@ public static class CsvImporter
         var lines = await File.ReadAllLinesAsync(csvPath);
         var header = lines[0].Split(';');
 
-        var detalles = new List<RemitoDetalle>();
+        var detalles = new List<DeliveryNoteDetail>();
 
         foreach (var line in lines.Skip(1))
         {
@@ -1021,19 +1021,19 @@ public static class CsvImporter
             var row = CreateDictionary(header, cols);
 
             var idSucursal = SafeInt(row.GetValueOrDefault("IdSucursal"));
-            var nroRemito = SafeInt(row.GetValueOrDefault("NroRemito"));
-            var key = (idSucursal, nroRemito);
+            var nroDeliveryNote = SafeInt(row.GetValueOrDefault("NroRemito"));
+            var key = (idSucursal, nroDeliveryNote);
 
-            if (!RemitoMap.ContainsKey(key)) continue;
+            if (!DeliveryNoteMap.ContainsKey(key)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IDCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
-            detalles.Add(new RemitoDetalle
+            detalles.Add(new DeliveryNoteDetail
             {
-                RemitoId = RemitoMap[key],
+                DeliveryNoteId = DeliveryNoteMap[key],
                 ItemNumero = SafeInt(row.GetValueOrDefault("ItemRemito")),
-                ProductoId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Cantidad = SafeDecimal(row.GetValueOrDefault("Cantidad"))
             });
         }
@@ -1077,8 +1077,8 @@ public static class CsvImporter
             var row = CreateDictionary(header, cols);
 
             var nroPresu = SafeInt(row.GetValueOrDefault("NroPresu"));
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var vendedorLegajo = SafeStr(row.GetValueOrDefault("CodVendedor"), 20);
 
@@ -1087,9 +1087,9 @@ public static class CsvImporter
                 BranchId = 1,
                 QuoteNumber = nroPresu,
                 QuoteDate = SafeDate(row.GetValueOrDefault("FechaPresu")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 Subtotal = SafeDecimal(row.GetValueOrDefault("SubTotalPresu")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDesc")),
@@ -1143,13 +1143,13 @@ public static class CsvImporter
             if (!QuoteMap.ContainsKey(nroPresu)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("CodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
             detalles.Add(new QuoteDetail
             {
                 QuoteId = QuoteMap[nroPresu],
                 ItemNumber = SafeInt(row.GetValueOrDefault("ItemPresu")),
-                ProductId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Quantity = SafeDecimal(row.GetValueOrDefault("Cantidad")),
                 UnitPrice = SafeDecimal(row.GetValueOrDefault("PrecioUnitario")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento")),
@@ -1201,8 +1201,8 @@ public static class CsvImporter
             var cols = ParseCsvLine(lines[i]);
             var row = CreateDictionary(header, cols);
 
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var tipoRaw = row.GetValueOrDefault("TipoNotaCredito");
             var nroRaw = row.GetValueOrDefault("NroNotaCredito");
@@ -1231,9 +1231,9 @@ public static class CsvImporter
                 PointOfSale = 2,
                 CreditNoteNumber = nro,
                 CreditNoteDate = SafeDate(row.GetValueOrDefault("FechaNotaCredito")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 Subtotal = SafeDecimal(row.GetValueOrDefault("SubTotalNotaCredito")),
                 VATPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeIVA")),
@@ -1311,19 +1311,19 @@ public static class CsvImporter
             if (!CreditNoteMap.ContainsKey(key)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IDCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
             detalles.Add(new CreditNoteDetail
             {
                 CreditNoteId = CreditNoteMap[key],
                 ItemNumber = SafeInt(row.GetValueOrDefault("ItemNotaCredito")),
-                ProductId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Quantity = SafeDecimal(row.GetValueOrDefault("Cantidad")),
                 UnitPrice = SafeDecimal(row.GetValueOrDefault("PrecioUnitario")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento")),
                 DiscountAmount = SafeDecimal(row.GetValueOrDefault("ImporteDescuento")),
                 Subtotal = SafeDecimal(row.GetValueOrDefault("TotalLinea")),
-                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnidadMedida"), 20)
+                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnitOfMeasure"), 20)
             });
         }
 
@@ -1370,8 +1370,8 @@ public static class CsvImporter
             var cols = ParseCsvLine(lines[i]);
             var row = CreateDictionary(header, cols);
 
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var tipoRaw = row.GetValueOrDefault("TipoDebito");
             var nroRaw = row.GetValueOrDefault("NroDebito");
@@ -1397,9 +1397,9 @@ public static class CsvImporter
                 PointOfSale = 2,
                 DebitNoteNumber = nro,
                 DebitNoteDate = SafeDate(row.GetValueOrDefault("FechaDebito")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 Subtotal = SafeDecimal(row.GetValueOrDefault("SubTotalDebito")),
                 VATPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeIVA")),
@@ -1473,19 +1473,19 @@ public static class CsvImporter
             if (!DebitNoteMap.ContainsKey(key)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IDCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
             detalles.Add(new DebitNoteDetail
             {
                 DebitNoteId = DebitNoteMap[key],
                 ItemNumber = SafeInt(row.GetValueOrDefault("ItemDebito")),
-                ProductId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Quantity = SafeDecimal(row.GetValueOrDefault("Cantidad")),
                 UnitPrice = SafeDecimal(row.GetValueOrDefault("PrecioUnitario")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento")),
                 DiscountAmount = SafeDecimal(row.GetValueOrDefault("ImporteDescuento")),
                 Subtotal = SafeDecimal(row.GetValueOrDefault("TotalLinea")),
-                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnidadMedida"), 20)
+                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnitOfMeasure"), 20)
             });
         }
 
@@ -1523,8 +1523,8 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            var codCliente = SafeInt(row.GetValueOrDefault("CodCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("CodCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var tipo = SafeStr(row.GetValueOrDefault("TipoDebitoI"), 1) ?? "I";
             var nro = SafeInt(row.GetValueOrDefault("NroDebitoI"));
@@ -1539,9 +1539,9 @@ public static class CsvImporter
                 BranchId = 1,
                 InternalDebitNumber = nro,
                 DebitDate = SafeDate(row.GetValueOrDefault("FechaDebitoI")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 Subtotal = SafeDecimal(row.GetValueOrDefault("SubTotalDebitoI")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDesc")),
@@ -1601,19 +1601,19 @@ public static class CsvImporter
             if (!InternalDebitMap.ContainsKey(key)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IDCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
             detalles.Add(new InternalDebitNoteDetail
             {
                 InternalDebitNoteId = InternalDebitMap[key],
                 ItemNumber = SafeInt(row.GetValueOrDefault("ItemDebitoI")),
-                ProductId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Quantity = SafeDecimal(row.GetValueOrDefault("Cantidad")),
                 UnitPrice = SafeDecimal(row.GetValueOrDefault("PrecioUnitario")),
                 DiscountPercent = SafeDecimal(row.GetValueOrDefault("PorcentajeDescuento")),
                 DiscountAmount = SafeDecimal(row.GetValueOrDefault("ImporteDescuento")),
                 Subtotal = SafeDecimal(row.GetValueOrDefault("TotalLinea")),
-                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnidadMedida"), 20)
+                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnitOfMeasure"), 20)
             });
         }
 
@@ -1652,8 +1652,8 @@ public static class CsvImporter
             var row = CreateDictionary(header, cols);
 
             var nro = SafeInt(row.GetValueOrDefault("NroConsignacion"));
-            var codCliente = SafeInt(row.GetValueOrDefault("IdCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("IdCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var vendedorLegajo = SafeStr(row.GetValueOrDefault("CodVendedor"), 20);
 
@@ -1661,9 +1661,9 @@ public static class CsvImporter
             {
                 ConsignmentNumber = nro,
                 ConsignmentDate = SafeDate(row.GetValueOrDefault("FechaC")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorMap.ContainsKey(vendedorLegajo)
-                    ? VendedorMap[vendedorLegajo]
+                CustomerId = CustomerMap[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepMap.ContainsKey(vendedorLegajo)
+                    ? SalesRepMap[vendedorLegajo]
                     : null,
                 IsActive = true
             };
@@ -1714,15 +1714,15 @@ public static class CsvImporter
             if (!ConsignmentMap.ContainsKey(nro)) continue;
 
             var codProd = SafeStr(row.GetValueOrDefault("IdCodProd"), 50);
-            if (string.IsNullOrEmpty(codProd) || !ProductoMap.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductMap.ContainsKey(codProd)) continue;
 
             detalles.Add(new ConsignmentDetail
             {
                 ConsignmentId = ConsignmentMap[nro],
                 ItemNumber = SafeInt(row.GetValueOrDefault("ItemConsignacion")),
-                ProductId = ProductoMap[codProd],
+                ProductId = ProductMap[codProd],
                 Quantity = SafeDecimal(row.GetValueOrDefault("Cantidad")),
-                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnidadMedida"), 20)
+                UnitOfMeasure = SafeStr(row.GetValueOrDefault("UnitOfMeasure"), 20)
             });
         }
 
@@ -1762,8 +1762,8 @@ public static class CsvImporter
 
             var idSucursal = SafeInt(row.GetValueOrDefault("IdSucursal"));
             var nroPago = SafeDouble(row.GetValueOrDefault("NroPago"));
-            var codCliente = SafeInt(row.GetValueOrDefault("IDCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("IDCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             var branchId = BranchMap.GetValueOrDefault(idSucursal, 1);
             var corresponde = SafeStr(row.GetValueOrDefault("Corresponde"), 200) ?? "";
@@ -1780,7 +1780,7 @@ public static class CsvImporter
                 BranchId = branchId,
                 PaymentNumber = (long)nroPago,
                 PaymentDate = SafeDate(row.GetValueOrDefault("FechaPago")) ?? DateTime.Now,
-                CustomerId = ClienteMap[codCliente],
+                CustomerId = CustomerMap[codCustomer],
                 TotalAmount = SafeDecimal(row.GetValueOrDefault("TotalAbonado")),
                 AppliesTo = appliesTo,
                 AppliesToDescription = corresponde,
@@ -1884,12 +1884,12 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            var codCliente = SafeInt(row.GetValueOrDefault("IDCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("IDCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
             accounts.Add(new CurrentAccount
             {
-                CustomerId = ClienteMap[codCliente],
+                CustomerId = CustomerMap[codCustomer],
                 BillingBalance = SafeDecimal(row.GetValueOrDefault("SaldoL1")),
                 BudgetBalance = SafeDecimal(row.GetValueOrDefault("SaldoL2")),
                 TotalBalance = SafeDecimal(row.GetValueOrDefault("SaldoTotal")),
@@ -1934,10 +1934,10 @@ public static class CsvImporter
             var cols = ParseCsvLine(line);
             var row = CreateDictionary(header, cols);
 
-            var codCliente = SafeInt(row.GetValueOrDefault("IDCliente"));
-            if (!ClienteMap.ContainsKey(codCliente)) continue;
+            var codCustomer = SafeInt(row.GetValueOrDefault("IDCliente"));
+            if (!CustomerMap.ContainsKey(codCustomer)) continue;
 
-            var customerId = ClienteMap[codCliente];
+            var customerId = CustomerMap[codCustomer];
             if (customerId != lastCustomerId)
             {
                 runningBilling = 0;
@@ -2101,14 +2101,14 @@ public static class CsvImporter
         }
 
         var details = new List<string>();
-        AddIfPresent(details, "TipoFactura", row);
-        AddIfPresent(details, "NroFactura", row);
+        AddIfPresent(details, "TipoInvoice", row);
+        AddIfPresent(details, "NroInvoice", row);
         AddIfPresent(details, "TipoNotaCredito", row);
         AddIfPresent(details, "NroNotaCredito", row);
         AddIfPresent(details, "TipoDebito", row);
         AddIfPresent(details, "NroDebito", row);
-        AddIfPresent(details, "CodCliente", row);
-        AddIfPresent(details, "IDCliente", row);
+        AddIfPresent(details, "CodCustomer", row);
+        AddIfPresent(details, "IDCustomer", row);
 
         var detailText = details.Count > 0 ? string.Join(" ", details) : "(no key fields)";
         var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\t{fileName}\tL{lineNumber}\t{reason}\t{detailText}";

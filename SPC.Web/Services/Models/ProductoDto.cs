@@ -1,9 +1,9 @@
 namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for Producto data from API
+/// DTO for Product data from API
 /// </summary>
-public class ProductoDto
+public class ProductDto
 {
     public int Id { get; set; }
     public string Codigo { get; set; } = "";
@@ -11,18 +11,18 @@ public class ProductoDto
     public string? CodigoProveedor { get; set; }
     public decimal PrecioVenta { get; set; }
     public decimal PrecioCosto { get; set; }
-    public decimal PrecioFactura { get; set; }  // Net price for Factura A
-    public decimal PrecioPresupuesto { get; set; }  // Final price with VAT for Factura B
+    public decimal PrecioInvoice { get; set; }  // Net price for Invoice A
+    public decimal PrecioQuote { get; set; }  // Final price with VAT for Invoice B
     public decimal PorcentajeIVA { get; set; }
     public int StockMinimo { get; set; }
     public string? Observaciones { get; set; }
     public bool Activo { get; set; }
     
     // Related entity info (flattened)
-    public int? RubroId { get; set; }
-    public string? RubroNombre { get; set; }
+    public int? CategoryId { get; set; }
+    public string? CategoryNombre { get; set; }
     
-    public int? UnidadMedidaId { get; set; }
-    public string? UnidadMedidaNombre { get; set; }
-    public string? UnidadMedidaCodigo { get; set; }
+    public int? UnitOfMeasureId { get; set; }
+    public string? UnitOfMeasureNombre { get; set; }
+    public string? UnitOfMeasureCodigo { get; set; }
 }

@@ -28,13 +28,13 @@ builder.Services.AddDbContext<SPCDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register business services
-builder.Services.AddScoped<IClientesService, ClientesService>();
-builder.Services.AddScoped<IProductosService, ProductosService>();
+builder.Services.AddScoped<ICustomersService, CustomersService>();
+builder.Services.AddScoped<IProductsService, ProductsService>();
 builder.Services.AddScoped<IStockService, StockService>();
-builder.Services.AddScoped<IFacturasService, FacturasService>();
-builder.Services.AddScoped<IPresupuestosService, PresupuestosService>();
-builder.Services.AddScoped<INotasCreditoService, NotasCreditoService>();
-builder.Services.AddScoped<INotasDebitoService, NotasDebitoService>();
+builder.Services.AddScoped<IInvoicesService, InvoicesService>();
+builder.Services.AddScoped<IQuotesService, QuotesService>();
+builder.Services.AddScoped<ICreditNotesService, CreditNotesService>();
+builder.Services.AddScoped<IDebitNotesService, DebitNotesService>();
 builder.Services.AddScoped<ITaxConfigurationService, TaxConfigurationService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
@@ -52,18 +52,21 @@ builder.Services.AddCors(options =>
 
 // Swagger/OpenAPI for documentation
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "SPC API", Version = "v1" });
+});
 
 var app = builder.Build();
 
 // Enable Swagger UI in development
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.UseSwaggerUI(options =>
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "SPC API v1");
-        options.RoutePrefix = "swagger";
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SPC API v1");
+        c.RoutePrefix = "swagger";
     });
 }
 
@@ -122,14 +125,14 @@ app.MapGet("/api/license", (ILicenseService license) =>
 // =============================================
 // BUSINESS ENDPOINTS (modular)
 // =============================================
-app.MapClientesEndpoints();
-app.MapProductosEndpoints();
+app.MapCustomersEndpoints();
+app.MapProductsEndpoints();
 app.MapStockEndpoints();
-app.MapFacturasEndpoints();
-app.MapPresupuestosEndpoints();
-app.MapNotasCreditoEndpoints();
-app.MapNotasDebitoEndpoints();
-app.MapSucursalesEndpoints();
+app.MapInvoicesEndpoints();
+app.MapQuotesEndpoints();
+app.MapCreditNotesEndpoints();
+app.MapDebitNotesEndpoints();
+app.MapBranchesEndpoints();
 
 // =============================================
 // AUXILIARY TABLE ENDPOINTS
@@ -142,20 +145,20 @@ app.MapGet("/api/condicionesiva", async (SPCDbContext db) =>
     return Results.Ok(condiciones);
 });
 
-// Vendedores
+// SalesRepes
 app.MapGet("/api/vendedores", async (SPCDbContext db) =>
 {
-    var vendedores = await db.Vendedores
+    var vendedores = await db.SalesRepes
         .Where(v => v.Activo)
         .OrderBy(v => v.Nombre)
         .ToListAsync();
     return Results.Ok(vendedores);
 });
 
-app.MapPost("/api/vendedores", async (Vendedor vendedor, SPCDbContext db) =>
+app.MapPost("/api/vendedores", async (SalesRep vendedor, SPCDbContext db) =>
 {
     vendedor.Activo = true;
-    db.Vendedores.Add(vendedor);
+    db.SalesRepes.Add(vendedor);
     await db.SaveChangesAsync();
     return Results.Created($"/api/vendedores/{vendedor.Id}", vendedor);
 });
@@ -170,10 +173,10 @@ app.MapGet("/api/zonasventas", async (SPCDbContext db) =>
     return Results.Ok(zonas);
 });
 
-// Rubros
+// Categorys
 app.MapGet("/api/rubros", async (SPCDbContext db) =>
 {
-    var rubros = await db.Rubros
+    var rubros = await db.Categorys
         .Where(r => r.Activo)
         .OrderBy(r => r.Nombre)
         .ToListAsync();
@@ -183,7 +186,7 @@ app.MapGet("/api/rubros", async (SPCDbContext db) =>
 // Depósitos
 app.MapGet("/api/depositos", async (SPCDbContext db) =>
 {
-    var depositos = await db.Depositos
+    var depositos = await db.Warehouses
         .Where(d => d.Activo)
         .OrderBy(d => d.Nombre)
         .ToListAsync();

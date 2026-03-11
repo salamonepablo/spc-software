@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for updating an existing Cliente
+/// DTO for updating an existing Customer
 /// </summary>
-public class UpdateClienteDto
+public class UpdateCustomerDto
 {
     [Required(ErrorMessage = "La Razón Social es requerida")]
     [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
@@ -39,11 +39,11 @@ public class UpdateClienteDto
     [EmailAddress(ErrorMessage = "Email inválido")]
     public string? Email { get; set; }
     
-    public int? CondicionIvaId { get; set; }
+    public int? TaxConditionId { get; set; }
     
-    public int? VendedorId { get; set; }
+    public int? SalesRepId { get; set; }
     
-    public int? ZonaVentaId { get; set; }
+    public int? SalesZoneId { get; set; }
     
     [Range(0, 100, ErrorMessage = "Debe estar entre 0 y 100")]
     public decimal PorcentajeDescuento { get; set; } = 0;

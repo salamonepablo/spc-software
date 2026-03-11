@@ -20,9 +20,9 @@ public class Payment
     /// <summary>Fecha del pago</summary>
     public DateTime PaymentDate { get; set; }
     
-    /// <summary>Cliente</summary>
+    /// <summary>Customer</summary>
     public int CustomerId { get; set; }
-    public Cliente? Customer { get; set; }
+    public Customer? Customer { get; set; }
     
     /// <summary>Total abonado</summary>
     public decimal TotalAmount { get; set; }

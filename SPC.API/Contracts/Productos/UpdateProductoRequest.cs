@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SPC.API.Contracts.Productos;
+namespace SPC.API.Contracts.Products;
 
 /// <summary>
-/// Request DTO for updating an existing Producto
+/// Request DTO for updating an existing Product
 /// </summary>
-public class UpdateProductoRequest
+public class UpdateProductRequest
 {
     [Required]
     [StringLength(50)]
@@ -18,9 +18,9 @@ public class UpdateProductoRequest
     [StringLength(100)]
     public string? CodigoProveedor { get; set; }
     
-    public int? RubroId { get; set; }
+    public int? CategoryId { get; set; }
     
-    public int? UnidadMedidaId { get; set; }
+    public int? UnitOfMeasureId { get; set; }
     
     public decimal PrecioVenta { get; set; } = 0;
     

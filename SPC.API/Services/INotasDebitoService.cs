@@ -1,30 +1,30 @@
-using SPC.API.Contracts.NotasDebito;
+using SPC.API.Contracts.DebitNotes;
 
 namespace SPC.API.Services;
 
 /// <summary>
 /// Debit Notes service interface
 /// </summary>
-public interface INotasDebitoService
+public interface IDebitNotesService
 {
     // ===========================================
     // QUERIES
     // ===========================================
     
     /// <summary>Get all debit notes (paginated)</summary>
-    Task<IEnumerable<NotaDebitoResponse>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<DebitNoteResponse>> GetAllAsync(int skip = 0, int take = 50);
     
     /// <summary>Get debit note by ID with all details</summary>
-    Task<NotaDebitoCompletaResponse?> GetByIdAsync(int id);
+    Task<DebitNoteCompletaResponse?> GetByIdAsync(int id);
     
     /// <summary>Get debit notes by customer</summary>
-    Task<IEnumerable<NotaDebitoResponse>> GetByCustomerAsync(int customerId);
+    Task<IEnumerable<DebitNoteResponse>> GetByCustomerAsync(int customerId);
     
     /// <summary>Get debit notes by date range</summary>
-    Task<IEnumerable<NotaDebitoResponse>> GetByDateRangeAsync(DateTime from, DateTime to);
+    Task<IEnumerable<DebitNoteResponse>> GetByDateRangeAsync(DateTime from, DateTime to);
     
     /// <summary>Search debit notes</summary>
-    Task<IEnumerable<NotaDebitoResponse>> SearchAsync(string term);
+    Task<IEnumerable<DebitNoteResponse>> SearchAsync(string term);
     
     /// <summary>Get total count</summary>
     Task<int> GetCountAsync();
@@ -39,7 +39,7 @@ public interface INotasDebitoService
     /// - Applies customer and document-level discounts
     /// - Calculates IIBB perception if applicable
     /// </summary>
-    Task<NotaDebitoCompletaResponse> CreateAsync(CreateNotaDebitoRequest request);
+    Task<DebitNoteCompletaResponse> CreateAsync(CreateDebitNoteRequest request);
     
     /// <summary>
     /// Voids a debit note (soft delete)

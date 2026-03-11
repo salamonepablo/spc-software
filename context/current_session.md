@@ -1,69 +1,67 @@
 # Current Session Context
 
-**Last Updated:** 2026-03-08 21:00
+**Last Updated:** 2026-03-10 
 **Branch:** develop
-**Version:** 0.2.0 (unreleased)
+**Version:** 0.2.0
 
 ---
 
 ## Session Summary
 
-Implemented CRUD endpoints for Invoices (Facturas), Credit Notes, Debit Notes, and Quotes (Presupuestos) with complete business rules for pricing, discounts, and VAT calculations following Argentine tax regulations.
+Completed the **English naming convention migration** - renamed all Spanish identifiers to English across 101+ files. All 111 tests passing.
 
-Started creating Blazor UI forms for creating new invoices.
+Key changes:
+- All entity classes now use English names (Customer, Invoice, Product, etc.)
+- All services, DTOs, and contracts updated
+- API routes remain in Spanish for backwards compatibility
+- Fixed Blazor compilation error in NewInvoice.razor
 
-Key features:
-- **Factura A**: Net prices + VAT discriminated + IIBB perception
-- **Factura B**: Final prices with VAT included, shows "IVA Contenido"
-- **IIBB Perception**: Only if company is agent AND customer has AlicuotaIIBB > 0
-- **Multi-level discounts**: Customer default → Document → Line level
-- **VAT immutability**: VAT% stored at document creation
+## What Was Done Today (2026-03-10)
 
-## What Was Done Today (2026-03-08)
+### English Naming Convention (Completed)
+1. **Entity Renames** - 28 models renamed:
+   - Cliente -> Customer
+   - Producto -> Product
+   - Factura/FacturaDetalle -> Invoice/InvoiceDetail
+   - Vendedor -> SalesRep
+   - Deposito -> Warehouse
+   - Rubro -> Category
+   - UnidadMedida -> UnitOfMeasure
+   - CondicionIva -> TaxCondition
+   - ZonaVenta -> SalesZone
+   - Remito/RemitoDetalle -> DeliveryNote/DeliveryNoteDetail
+   - Presupuesto/PresupuestoDetalle -> Quote/QuoteDetail
+   - NotaCredito/NotaCreditoDetalle -> CreditNote/CreditNoteDetail
+   - NotaDebito/NotaDebitoDetalle -> DebitNote/DebitNoteDetail
+   - Sucursal -> Branch
+   - FormaPago -> PaymentMethod
+   - CtaCte/MovimientoCtaCte -> CurrentAccount/CurrentAccountMovement
 
-### API & Business Logic (Completed)
-1. **CompanySettings Entity**
-   - Created entity for company-level tax agent status
-   - IsIIBBPerceptionAgent, IsIVAWithholdingAgent flags
+2. **Services Renamed**:
+   - ClientesService -> CustomersService
+   - ProductosService -> ProductsService
+   - FacturasService -> InvoicesService
+   - PresupuestosService -> QuotesService
+   - NotasCreditoService -> CreditNotesService
+   - NotasDebitoService -> DebitNotesService
 
-2. **Cliente Updated**
-   - Added AlicuotaIIBB, ProvinciaPadronIIBB for AFIP padrón
+3. **DbContext Updates**:
+   - Added explicit EF Core relationship configurations
+   - Fixed navigation property issues after rename
 
-3. **PricingService Enhanced**
-   - CalculateDocumentTypeA() for Factura A
-   - CalculateDocumentTypeB() for Factura B (IVA Contenido)
+4. **Blazor Fix**:
+   - Fixed NewInvoice.razor `@(null)` ambiguity error
+   - Changed to `value=""` for proper compilation
 
-4. **FacturasService Updated**
-   - Selects correct price field based on document type
-   - Handles IIBB perception logic
-
-5. **Tests**
-   - Fixed Factura A vs B test expectations
-   - 111 tests passing
-
-### Blazor UI (In Progress)
-1. **NewInvoice.razor** - Form for creating new invoices
-   - Type A/B selection
-   - Customer, product, seller selection
-   - Real-time totals calculation
-   - Auto-select price based on invoice type
-
-2. **API Service Updates**
-   - Added CreateFacturaAsync method
-   - Added GetSucursalesAsync method
-   - Updated DTOs with new fields
-
-3. **Sucursales Endpoint**
-   - Created /api/sucursales endpoint
-
-## In Progress
-- Fix Blazor compilation issue with lambda in @onclick handlers
-- Complete NewInvoice.razor form
+### Documentation Updated
+- README.md - Added naming convention table
+- CHANGELOG.md - Documented v0.2.0 release with full rename details
+- context/session_2026-03-10.md - Session log created
 
 ## Test Results
 
 ```
-dotnet test --no-restore
+dotnet test --verbosity minimal
 Correctas! - Con error: 0, Superado: 111, Omitido: 0, Total: 111
 ```
 
@@ -72,11 +70,11 @@ Correctas! - Con error: 0, Superado: 111, Omitido: 0, Total: 111
 ```
 spc-software/
 ├── SPC.API/           # REST API (ASP.NET Core 10)
-├── SPC.Web/          # Blazor Frontend
-├── SPC.Shared/       # Shared models (28 entities)
-├── SPC.Tests/        # Test suite (111 tests)
-├── SPC.Migration/    # Data migration tool
-└── context/          # Session context files
+├── SPC.Web/           # Blazor Frontend
+├── SPC.Shared/        # Shared models (28 entities)
+├── SPC.Tests/         # Test suite (111 tests)
+├── SPC.Migration/     # Data migration tool
+└── context/           # Session context files
 ```
 
 ## Phase Status
@@ -107,6 +105,6 @@ dotnet build
 
 ## Files to Read for Full Context
 
-1. `context/session_2026-03- Today's detailed session
-08.md` -2. `README.md` - Project overview
+1. `context/session_2026-03-10.md` - Today's detailed session
+2. `README.md` - Project overview
 3. `CHANGELOG.md` - Version history

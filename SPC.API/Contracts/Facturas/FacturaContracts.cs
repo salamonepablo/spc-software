@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SPC.API.Contracts.Facturas;
+namespace SPC.API.Contracts.Invoices;
 
 // ===========================================
 // REQUEST DTOs (para crear/actualizar)
@@ -9,7 +9,7 @@ namespace SPC.API.Contracts.Facturas;
 /// <summary>
 /// Request DTO for creating an invoice
 /// </summary>
-public record CreateFacturaRequest
+public record CreateInvoiceRequest
 {
     /// <summary>Branch/point of sale ID</summary>
     [Required]
@@ -18,14 +18,14 @@ public record CreateFacturaRequest
     /// <summary>Invoice type: A or B</summary>
     [Required]
     [StringLength(1)]
-    public string TipoFactura { get; init; } = "B";
+    public string TipoInvoice { get; init; } = "B";
     
     /// <summary>Customer ID</summary>
     [Required]
-    public int ClienteId { get; init; }
+    public int CustomerId { get; init; }
     
     /// <summary>Sales rep ID (optional)</summary>
-    public int? VendedorId { get; init; }
+    public int? SalesRepId { get; init; }
     
     /// <summary>Document-level discount percentage (can override customer default)</summary>
     [Range(0, 100)]
@@ -46,24 +46,24 @@ public record CreateFacturaRequest
     /// <summary>Invoice line items</summary>
     [Required]
     [MinLength(1, ErrorMessage = "La factura debe tener al menos un item")]
-    public List<CreateFacturaDetalleRequest> Detalles { get; init; } = new();
+    public List<CreateInvoiceDetailRequest> Detalles { get; init; } = new();
 }
 
 /// <summary>
 /// Request DTO for invoice line item
 /// </summary>
-public record CreateFacturaDetalleRequest
+public record CreateInvoiceDetailRequest
 {
     /// <summary>Product ID</summary>
     [Required]
-    public int ProductoId { get; init; }
+    public int ProductId { get; init; }
     
     /// <summary>Quantity</summary>
     [Required]
     [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
     public decimal Cantidad { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioFactura)</summary>
+    /// <summary>Unit price (if null, uses product's PrecioInvoice)</summary>
     public decimal? PrecioUnitario { get; init; }
     
     /// <summary>Line-level discount percentage</summary>
@@ -77,7 +77,7 @@ public record CreateFacturaDetalleRequest
 /// <summary>
 /// Request DTO for voiding an invoice
 /// </summary>
-public record AnularFacturaRequest
+public record AnularInvoiceRequest
 {
     /// <summary>Reason for voiding</summary>
     [Required]
@@ -92,32 +92,32 @@ public record AnularFacturaRequest
 /// <summary>
 /// Response DTO for invoice listing
 /// </summary>
-public record FacturaResponse
+public record InvoiceResponse
 {
     public int Id { get; init; }
-    public string TipoFactura { get; init; } = "";
+    public string TipoInvoice { get; init; } = "";
     public int PuntoVenta { get; init; }
-    public long NumeroFactura { get; init; }
+    public long NumeroInvoice { get; init; }
     
     /// <summary>Formatted invoice number: A 0001-00001234</summary>
-    public string NumeroCompleto => $"{TipoFactura} {PuntoVenta:D4}-{NumeroFactura:D8}";
+    public string NumeroCompleto => $"{TipoInvoice} {PuntoVenta:D4}-{NumeroInvoice:D8}";
     
-    public DateTime FechaFactura { get; init; }
+    public DateTime FechaInvoice { get; init; }
     
-    public int ClienteId { get; init; }
-    public string ClienteRazonSocial { get; init; } = "";
-    public string? ClienteCUIT { get; init; }
+    public int CustomerId { get; init; }
+    public string CustomerRazonSocial { get; init; } = "";
+    public string? CustomerCUIT { get; init; }
     
-    public int? VendedorId { get; init; }
-    public string? VendedorNombre { get; init; }
+    public int? SalesRepId { get; init; }
+    public string? SalesRepNombre { get; init; }
     
     public decimal Subtotal { get; init; }
     
-    /// <summary>IVA discriminado (Factura A). En Factura B es 0.</summary>
+    /// <summary>IVA discriminado (Invoice A). En Invoice B es 0.</summary>
     public decimal ImporteIVA { get; init; }
     
     /// <summary>
-    /// IVA Contenido en el precio (solo Factura B).
+    /// IVA Contenido en el precio (solo Invoice B).
     /// Requerido por Ley 27.743 - Régimen de Transparencia Fiscal.
     /// </summary>
     public decimal IVAContenido { get; init; }
@@ -138,13 +138,13 @@ public record FacturaResponse
 /// <summary>
 /// Response DTO for invoice with details
 /// </summary>
-public record FacturaDetalleResponse
+public record InvoiceDetailResponse
 {
     public int Id { get; init; }
     public int ItemNumero { get; init; }
-    public int ProductoId { get; init; }
-    public string ProductoCodigo { get; init; } = "";
-    public string ProductoDescripcion { get; init; } = "";
+    public int ProductId { get; init; }
+    public string ProductCodigo { get; init; } = "";
+    public string ProductDescripcion { get; init; } = "";
     public decimal Cantidad { get; init; }
     public decimal PrecioUnitario { get; init; }
     public decimal PorcentajeDescuento { get; init; }
@@ -155,19 +155,19 @@ public record FacturaDetalleResponse
 /// <summary>
 /// Full invoice response with header and details
 /// </summary>
-public record FacturaCompletaResponse : FacturaResponse
+public record InvoiceCompletaResponse : InvoiceResponse
 {
-    public List<FacturaDetalleResponse> Detalles { get; init; } = new();
+    public List<InvoiceDetailResponse> Detalles { get; init; } = new();
 }
 
 /// <summary>
 /// Summary statistics for invoicing dashboard
 /// </summary>
-public record FacturacionResumenResponse
+public record InvoicecionResumenResponse
 {
-    public int TotalFacturas { get; init; }
-    public int FacturasHoy { get; init; }
-    public int FacturasMes { get; init; }
+    public int TotalInvoices { get; init; }
+    public int InvoicesHoy { get; init; }
+    public int InvoicesMes { get; init; }
     public decimal MontoHoy { get; init; }
     public decimal MontoMes { get; init; }
     public decimal MontoAnio { get; init; }

@@ -1,11 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SPC.API.Contracts.Clientes;
+namespace SPC.API.Contracts.Customers;
 
 /// <summary>
-/// Request DTO for creating a new Cliente
+/// Request DTO for creating a new Customer
 /// </summary>
-public class CreateClienteRequest
+public class CreateCustomerRequest
 {
     [Required]
     [StringLength(200)]
@@ -39,11 +39,11 @@ public class CreateClienteRequest
     [EmailAddress]
     public string? Email { get; set; }
     
-    public int? CondicionIvaId { get; set; }
+    public int? TaxConditionId { get; set; }
     
-    public int? VendedorId { get; set; }
+    public int? SalesRepId { get; set; }
     
-    public int? ZonaVentaId { get; set; }
+    public int? SalesZoneId { get; set; }
     
     [Range(0, 100)]
     public decimal PorcentajeDescuento { get; set; } = 0;
