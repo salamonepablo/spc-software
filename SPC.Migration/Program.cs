@@ -1,5 +1,7 @@
 using System.Data;
 using System.Data.OleDb;
+using System.Diagnostics;
+using System.Runtime.Versioning;
 using EFCore.BulkExtensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -12,50 +14,81 @@ namespace SPC.Migration;
 /// Data migration tool: Access -> SQL Server
 /// Migrates historical data from the VB6 Access database to the new SQL Server database
 /// </summary>
+[SupportedOSPlatform("windows")]
 class Program
 {
     // Access database path
     private const string AccessDbPath = @"C:\TrabajosActivos\SPC-Core\Db_SPC_SI.mdb";
+    private const string CsvDataDir = @"C:\Programmes\spc-software\SPC.Migration\data";
+    private const string CsvExportScriptPath = @"C:\Programmes\spc-software\SPC.Migration\export_access.py";
+
+    private static readonly string[] RequiredCsvFiles =
+    [
+        "unidades_medida.csv",
+        "rubros.csv",
+        "condicion_iva.csv",
+        "cod_pago.csv",
+        "sucursales.csv",
+        "clientes.csv",
+        "productos.csv",
+        "empleados.csv",
+        "depositos.csv",
+        "stock.csv",
+        "facturas_c.csv",
+        "facturas_d.csv",
+        "remitos_c.csv",
+        "remitos_d.csv",
+        "presupuestos_c.csv",
+        "presupuestos_d.csv",
+        "notas_credito_c.csv",
+        "notas_credito_d.csv",
+        "notas_debito_c.csv",
+        "notas_debito_d.csv",
+        "notas_debito_i_c.csv",
+        "notas_debito_i_d.csv",
+        "consignaciones_c.csv",
+        "consignaciones_d.csv",
+        "pagos_c.csv",
+        "pagos_d.csv",
+        "cta_cte.csv",
+        "movimientos_cta_cte.csv"
+    ];
     
     // SQL Server connection string (same as SPC.API)
     private const string SqlServerConnectionString = 
         "Server=(localdb)\\MSSQLLocalDB;Database=SPC;Trusted_Connection=True;TrustServerCertificate=True;";
 
     // Lookup dictionaries for FK mapping (Access text PK -> SQL Server int PK)
-    private static readonly Dictionary<string, int> VendedorLegajoToId = new();
-    private static readonly Dictionary<string, int> ProductoCodigoToId = new();
-    private static readonly Dictionary<string, int> DepositoCodigoToId = new();
-    private static readonly Dictionary<string, int> CondicionIvaCodigoToId = new();
-    private static readonly Dictionary<string, int> RubroCodigoToId = new();
-    private static readonly Dictionary<string, int> UnidadMedidaCodigoToId = new();
+    private static readonly Dictionary<string, int> SalesRepLegajoToId = new();
+    private static readonly Dictionary<string, int> ProductCodigoToId = new();
+    private static readonly Dictionary<string, int> WarehouseCodigoToId = new();
+    private static readonly Dictionary<string, int> TaxConditionCodigoToId = new();
+    private static readonly Dictionary<string, int> CategoryCodigoToId = new();
+    private static readonly Dictionary<string, int> UnitOfMeasureCodigoToId = new();
     private static readonly Dictionary<string, int> PaymentMethodCodigoToId = new();
-    private static readonly Dictionary<int, int> ZonaVentaAccessIdToSqlId = new();
+    private static readonly Dictionary<int, int> SalesZoneAccessIdToSqlId = new();
     private static readonly Dictionary<int, int> BranchAccessIdToSqlId = new();
-    private static readonly Dictionary<int, int> ClienteAccessIdToSqlId = new();
-    private static readonly Dictionary<(string tipo, int numero), int> FacturaAccessToSqlId = new();
-    private static readonly Dictionary<(int sucursal, int numero), int> RemitoAccessToSqlId = new();
+    private static readonly Dictionary<int, int> CustomerAccessIdToSqlId = new();
+    private static readonly Dictionary<(string tipo, int numero), int> InvoiceAccessToSqlId = new();
+    private static readonly Dictionary<(int sucursal, int numero), int> DeliveryNoteAccessToSqlId = new();
 
     static async Task Main(string[] args)
     {
         Console.WriteLine("===========================================");
-        Console.WriteLine("  SPC Data Migration: Access -> SQL Server");
+        Console.WriteLine("  SPC Data Migration: CSV -> SQL Server");
         Console.WriteLine("===========================================");
         Console.WriteLine();
-
-        // Verify Access database exists
-        if (!File.Exists(AccessDbPath))
-        {
-            Console.WriteLine($"ERROR: Access database not found at: {AccessDbPath}");
-            return;
-        }
-
-        Console.WriteLine($"Access DB: {AccessDbPath}");
         Console.WriteLine($"SQL Server: {SqlServerConnectionString}");
+        Console.WriteLine($"CSV Dir: {CsvDataDir}");
         Console.WriteLine();
 
-        // Create DbContext
+        // Create DbContext with retry on failure for transient errors
         var optionsBuilder = new DbContextOptionsBuilder<SPCDbContext>();
-        optionsBuilder.UseSqlServer(SqlServerConnectionString);
+        optionsBuilder.UseSqlServer(SqlServerConnectionString, options =>
+            options.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
         
         using var db = new SPCDbContext(optionsBuilder.Options);
 
@@ -93,105 +126,136 @@ class Program
             return;
         }
 
-        if (args.Any(a => string.Equals(a, "--csv", StringComparison.OrdinalIgnoreCase)))
+        if (args.Any(a => string.Equals(a, "--access", StringComparison.OrdinalIgnoreCase)))
         {
-            Console.WriteLine("Running CSV migration...");
-            Console.WriteLine();
-
-            try
-            {
-                await CsvImporter.RunAsync(db);
-                Console.WriteLine();
-                Console.WriteLine("===========================================");
-                Console.WriteLine("  CSV Migration completed successfully!");
-                Console.WriteLine("===========================================");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERROR during CSV migration: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
-            }
+            Console.WriteLine("Access migration is disabled. Use CSV instead.");
             return;
         }
 
-        // Build Access connection string (ACE for Office 2007+ or JET for older)
-        string accessConnectionString = 
-            $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={AccessDbPath};";
+        Console.WriteLine("Running CSV migration...");
+        Console.WriteLine();
 
         try
         {
-            using var accessConn = new OleDbConnection(accessConnectionString);
-            await accessConn.OpenAsync();
-            Console.WriteLine("Access connection: OK");
-            Console.WriteLine();
-
-            // Run migrations in order (respecting FK dependencies)
-            Console.WriteLine("Starting migration...");
-            Console.WriteLine();
-
-            // Phase 1: Auxiliary tables (no dependencies)
-            await MigrateCondicionIva(accessConn, db);
-            await MigrateUnidadesMedida(accessConn, db);
-            await MigrateRubros(accessConn, db);
-            await MigratePaymentMethods(accessConn, db);
-            await MigrateBranches(accessConn, db);
-            await MigrateZonasVenta(db);
-            
-            // Phase 2: Tables with simple dependencies
-            await MigrateVendedores(accessConn, db);
-            await MigrateDepositos(accessConn, db);
-            
-            // Phase 3: Main entities
-            await MigrateProductos(accessConn, db);
-            await MigrateClientes(accessConn, db);
-            await MigrateCustomerAddresses(accessConn, db);
-            
-            // Phase 4: Stock
-            await MigrateStock(accessConn, db);
-            
-            // Phase 5: Documents (header + detail)
-            await MigrateFacturas(accessConn, db);
-            await MigrateRemitos(accessConn, db);
-            await MigratePresupuestos(accessConn, db);
-            await MigrateNotasCredito(accessConn, db);
-            await MigrateNotasDebito(accessConn, db);
-            await MigrateNotasDebitoInternas(accessConn, db);
-            await MigrateConsignaciones(accessConn, db);
-            
-            // Phase 6: Payments
-            await MigratePagos(accessConn, db);
-            
-            // Phase 7: Current Account
-            await MigrateCtaCte(accessConn, db);
-            await MigrateMovimientosCtaCte(accessConn, db);
-
+            await EnsureCsvFilesAsync();
+            await CsvImporter.RunAsync(db);
             Console.WriteLine();
             Console.WriteLine("===========================================");
-            Console.WriteLine("  Migration completed successfully!");
+            Console.WriteLine("  CSV Migration completed successfully!");
             Console.WriteLine("===========================================");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR during migration: {ex.Message}");
+            Console.WriteLine($"ERROR during CSV migration: {ex.Message}");
             Console.WriteLine(ex.StackTrace);
         }
+        return;
+    }
+
+    private static async Task EnsureCsvFilesAsync()
+    {
+        var missing = RequiredCsvFiles
+            .Where(file => !File.Exists(Path.Combine(CsvDataDir, file)))
+            .ToList();
+
+        if (missing.Count == 0)
+        {
+            return;
+        }
+
+        Console.WriteLine("CSV files missing. Generating from Access...");
+
+        if (!File.Exists(AccessDbPath))
+        {
+            throw new FileNotFoundException($"Access database not found at: {AccessDbPath}");
+        }
+
+        if (!File.Exists(CsvExportScriptPath))
+        {
+            throw new FileNotFoundException($"CSV export script not found at: {CsvExportScriptPath}");
+        }
+
+        Directory.CreateDirectory(CsvDataDir);
+        await RunCsvExportAsync();
+
+        var stillMissing = RequiredCsvFiles
+            .Where(file => !File.Exists(Path.Combine(CsvDataDir, file)))
+            .ToList();
+
+        if (stillMissing.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Missing CSV files after export: {string.Join(", ", stillMissing)}");
+        }
+    }
+
+    private static async Task RunCsvExportAsync()
+    {
+        var pythonCommands = new[] { "python", "py" };
+        Exception? lastError = null;
+
+        foreach (var command in pythonCommands)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = command,
+                    Arguments = $"\"{CsvExportScriptPath}\"",
+                    WorkingDirectory = Path.GetDirectoryName(CsvExportScriptPath) ?? CsvDataDir,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null)
+                {
+                    continue;
+                }
+
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (!string.IsNullOrWhiteSpace(output))
+                {
+                    Console.WriteLine(output);
+                }
+
+                if (process.ExitCode == 0)
+                {
+                    return;
+                }
+
+                lastError = new InvalidOperationException(
+                    $"CSV export failed using '{command}'. Exit code {process.ExitCode}. {error}");
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+        }
+
+        throw new InvalidOperationException("Unable to run CSV export.", lastError);
     }
 
     #region Auxiliary Tables
 
-    static async Task MigrateCondicionIva(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateTaxCondition(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating CondicionIva... ");
+        Console.Write("Migrating TaxCondition... ");
         
         // Clear existing (except seed data)
         // We'll map the Access codes to our seeded IDs
         var existing = await db.CondicionesIva.ToListAsync();
         foreach (var e in existing)
         {
-            CondicionIvaCodigoToId[e.Codigo] = e.Id;
+            TaxConditionCodigoToId[e.Codigo] = e.Id;
         }
 
-        using var cmd = new OleDbCommand("SELECT IDCondicionIVA, Descripcion FROM CondicionIva", access);
+        using var cmd = new OleDbCommand("SELECT IDCondicionIVA, Descripcion FROM CondicionIVA", access);
         using var reader = cmd.ExecuteReader();
         
         int count = 0;
@@ -211,26 +275,26 @@ class Program
                 _ => codigo
             };
 
-            if (!CondicionIvaCodigoToId.ContainsKey(mappedCode))
+            if (!TaxConditionCodigoToId.ContainsKey(mappedCode))
             {
-                // Determine TipoFactura based on code
-                var tipoFactura = mappedCode == "RI" ? "A" : "B";
+                // Determine TipoInvoice based on code
+                var tipoInvoice = mappedCode == "RI" ? "A" : "B";
                 
-                var entity = new CondicionIva
+                var entity = new TaxCondition
                 {
                     Codigo = mappedCode,
                     Descripcion = descripcion,
-                    TipoFactura = tipoFactura
+                    TipoInvoice = tipoInvoice
                 };
                 db.CondicionesIva.Add(entity);
                 await db.SaveChangesAsync();
-                CondicionIvaCodigoToId[mappedCode] = entity.Id;
+                TaxConditionCodigoToId[mappedCode] = entity.Id;
             }
             
             // Also map the original code if different
-            if (codigo != mappedCode && !CondicionIvaCodigoToId.ContainsKey(codigo))
+            if (codigo != mappedCode && !TaxConditionCodigoToId.ContainsKey(codigo))
             {
-                CondicionIvaCodigoToId[codigo] = CondicionIvaCodigoToId[mappedCode];
+                TaxConditionCodigoToId[codigo] = TaxConditionCodigoToId[mappedCode];
             }
             
             count++;
@@ -246,7 +310,7 @@ class Program
         var existing = await db.UnidadesMedida.ToListAsync();
         foreach (var e in existing)
         {
-            UnidadMedidaCodigoToId[e.Codigo] = e.Id;
+            UnitOfMeasureCodigoToId[e.Codigo] = e.Id;
         }
 
         using var cmd = new OleDbCommand("SELECT IdUnidadMedida, Descripcion FROM UnidadesMedida", access);
@@ -258,16 +322,16 @@ class Program
             var codigo = reader.GetString(0).Trim();
             var descripcion = reader.GetString(1).Trim();
             
-            if (!UnidadMedidaCodigoToId.ContainsKey(codigo))
+            if (!UnitOfMeasureCodigoToId.ContainsKey(codigo))
             {
-                var entity = new UnidadMedida
+                var entity = new UnitOfMeasure
                 {
                     Codigo = codigo,
                     Nombre = descripcion
                 };
                 db.UnidadesMedida.Add(entity);
                 await db.SaveChangesAsync();
-                UnidadMedidaCodigoToId[codigo] = entity.Id;
+                UnitOfMeasureCodigoToId[codigo] = entity.Id;
             }
             count++;
         }
@@ -275,14 +339,14 @@ class Program
         Console.WriteLine($"OK ({count} records)");
     }
 
-    static async Task MigrateRubros(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateCategorys(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Rubros... ");
+        Console.Write("Migrating Categorys... ");
         
-        var existing = await db.Rubros.ToListAsync();
+        var existing = await db.Categorys.ToListAsync();
         foreach (var e in existing)
         {
-            RubroCodigoToId[e.Nombre] = e.Id;
+            CategoryCodigoToId[e.Nombre] = e.Id;
         }
 
         using var cmd = new OleDbCommand("SELECT IdRubro, Descripcion FROM Rubros", access);
@@ -294,22 +358,22 @@ class Program
             var codigo = reader.GetString(0).Trim();
             var descripcion = reader.GetString(1).Trim();
             
-            if (!RubroCodigoToId.ContainsKey(descripcion))
+            if (!CategoryCodigoToId.ContainsKey(descripcion))
             {
-                var entity = new Rubro
+                var entity = new Category
                 {
                     Nombre = descripcion,
                     Activo = true
                 };
-                db.Rubros.Add(entity);
+                db.Categorys.Add(entity);
                 await db.SaveChangesAsync();
-                RubroCodigoToId[descripcion] = entity.Id;
+                CategoryCodigoToId[descripcion] = entity.Id;
             }
             
             // Also map by code
-            if (!RubroCodigoToId.ContainsKey(codigo))
+            if (!CategoryCodigoToId.ContainsKey(codigo))
             {
-                RubroCodigoToId[codigo] = RubroCodigoToId[descripcion];
+                CategoryCodigoToId[codigo] = CategoryCodigoToId[descripcion];
             }
             
             count++;
@@ -432,7 +496,7 @@ class Program
         Console.Write("Migrating ZonasVenta... ");
         
         // Create ZonasVenta based on known values from Access
-        // Values found in qListadoClientesVendedor: 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 100
+        // Values found in qListadoCustomersSalesRep: 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 100
         var zonasAccess = new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 100 };
         
         // Map existing
@@ -443,16 +507,16 @@ class Program
             var nombre = e.Nombre;
             if (nombre.StartsWith("Zona ") && int.TryParse(nombre.Substring(5).Trim(), out var num))
             {
-                ZonaVentaAccessIdToSqlId[num] = e.Id;
+                SalesZoneAccessIdToSqlId[num] = e.Id;
             }
         }
         
         int count = 0;
         foreach (var zonaId in zonasAccess)
         {
-            if (!ZonaVentaAccessIdToSqlId.ContainsKey(zonaId))
+            if (!SalesZoneAccessIdToSqlId.ContainsKey(zonaId))
             {
-                var entity = new ZonaVenta
+                var entity = new SalesZone
                 {
                     Nombre = $"Zona {zonaId:D2}",
                     Descripcion = $"Zona de venta {zonaId}",
@@ -460,7 +524,7 @@ class Program
                 };
                 db.ZonasVenta.Add(entity);
                 await db.SaveChangesAsync();
-                ZonaVentaAccessIdToSqlId[zonaId] = entity.Id;
+                SalesZoneAccessIdToSqlId[zonaId] = entity.Id;
                 count++;
             }
         }
@@ -470,22 +534,22 @@ class Program
 
     #endregion
 
-    #region Vendedores and Depositos
+    #region SalesRepes and Warehouses
 
-    static async Task MigrateVendedores(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateSalesRepes(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Vendedores (Empleados)... ");
+        Console.Write("Migrating SalesRepes (Empleados)... ");
         
         // Load existing vendedores first
-        var existingVendedores = await db.Vendedores.ToListAsync();
-        foreach (var v in existingVendedores)
+        var existingSalesRepes = await db.SalesRepes.ToListAsync();
+        foreach (var v in existingSalesRepes)
         {
-            VendedorLegajoToId[v.Legajo] = v.Id;
+            SalesRepLegajoToId[v.Legajo] = v.Id;
         }
         
-        if (existingVendedores.Count > 0)
+        if (existingSalesRepes.Count > 0)
         {
-            Console.WriteLine($"SKIP ({existingVendedores.Count} already exist)");
+            Console.WriteLine($"SKIP ({existingSalesRepes.Count} already exist)");
             return;
         }
         
@@ -495,7 +559,7 @@ class Program
             FROM Empleados", access);
         using var reader = cmd.ExecuteReader();
         
-        var allVendedores = new List<Vendedor>();
+        var allSalesRepes = new List<SalesRep>();
         var legajoList = new List<string>();
         
         while (reader.Read())
@@ -503,7 +567,7 @@ class Program
             var legajo = GetString(reader, 0);
             if (string.IsNullOrWhiteSpace(legajo)) continue;
             
-            var entity = new Vendedor
+            var entity = new SalesRep
             {
                 Legajo = legajo,
                 Nombre = GetString(reader, 1) ?? "Sin Nombre",
@@ -523,32 +587,32 @@ class Program
                 Activo = true
             };
             
-            allVendedores.Add(entity);
+            allSalesRepes.Add(entity);
             legajoList.Add(legajo);
         }
         
-        if (allVendedores.Count > 0)
+        if (allSalesRepes.Count > 0)
         {
-            await db.BulkInsertAsync(allVendedores, new BulkConfig { SetOutputIdentity = true });
+            await db.BulkInsertAsync(allSalesRepes, new BulkConfig { SetOutputIdentity = true });
             
-            for (int i = 0; i < allVendedores.Count; i++)
+            for (int i = 0; i < allSalesRepes.Count; i++)
             {
-                VendedorLegajoToId[legajoList[i]] = allVendedores[i].Id;
+                SalesRepLegajoToId[legajoList[i]] = allSalesRepes[i].Id;
             }
         }
         
-        Console.WriteLine($"OK ({allVendedores.Count} records)");
+        Console.WriteLine($"OK ({allSalesRepes.Count} records)");
     }
 
-    static async Task MigrateDepositos(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateWarehouses(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Depositos... ");
+        Console.Write("Migrating Warehouses... ");
         
         // Map existing (seeded) deposito
-        var existing = await db.Depositos.ToListAsync();
+        var existing = await db.Warehouses.ToListAsync();
         foreach (var e in existing)
         {
-            DepositoCodigoToId[e.Nombre] = e.Id;
+            WarehouseCodigoToId[e.Nombre] = e.Id;
         }
 
         using var cmd = new OleDbCommand("SELECT IdDeposito, Descripcion, VendedorAsociado FROM Depositos", access);
@@ -561,20 +625,20 @@ class Program
             var descripcion = GetString(reader, 1) ?? codigo;
             var vendedorLegajo = GetString(reader, 2);
             
-            if (!DepositoCodigoToId.ContainsKey(codigo) && !DepositoCodigoToId.ContainsKey(descripcion))
+            if (!WarehouseCodigoToId.ContainsKey(codigo) && !WarehouseCodigoToId.ContainsKey(descripcion))
             {
-                var entity = new Deposito
+                var entity = new Warehouse
                 {
                     Nombre = descripcion,
-                    VendedorAsociadoId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                        ? VendedorLegajoToId[vendedorLegajo] 
+                    SalesRepAsociadoId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                        ? SalesRepLegajoToId[vendedorLegajo] 
                         : null,
                     Activo = true
                 };
-                db.Depositos.Add(entity);
+                db.Warehouses.Add(entity);
                 await db.SaveChangesAsync();
-                DepositoCodigoToId[codigo] = entity.Id;
-                DepositoCodigoToId[descripcion] = entity.Id;
+                WarehouseCodigoToId[codigo] = entity.Id;
+                WarehouseCodigoToId[descripcion] = entity.Id;
             }
             count++;
         }
@@ -584,22 +648,22 @@ class Program
 
     #endregion
 
-    #region Productos and Clientes
+    #region Products and Customers
 
-    static async Task MigrateProductos(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateProducts(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Productos... ");
+        Console.Write("Migrating Products... ");
         
         // Load existing productos first
-        var existingProductos = await db.Productos.ToListAsync();
-        foreach (var p in existingProductos)
+        var existingProducts = await db.Products.ToListAsync();
+        foreach (var p in existingProducts)
         {
-            ProductoCodigoToId[p.Codigo] = p.Id;
+            ProductCodigoToId[p.Codigo] = p.Id;
         }
         
-        if (existingProductos.Count > 0)
+        if (existingProducts.Count > 0)
         {
-            Console.WriteLine($"SKIP ({existingProductos.Count} already exist)");
+            Console.WriteLine($"SKIP ({existingProducts.Count} already exist)");
             return;
         }
         
@@ -609,7 +673,7 @@ class Program
             FROM Productos", access);
         using var reader = cmd.ExecuteReader();
         
-        var allProductos = new List<Producto>();
+        var allProducts = new List<Product>();
         var codigoList = new List<string>(); // Track codes in same order
         
         while (reader.Read())
@@ -620,17 +684,17 @@ class Program
             var rubro = GetString(reader, 4);
             var unidadMedida = GetString(reader, 5);
             
-            var entity = new Producto
+            var entity = new Product
             {
                 Codigo = codigo,
                 Descripcion = GetString(reader, 1) ?? codigo,
                 PrecioVenta = GetDecimal(reader, 2),
                 PrecioCosto = GetDecimal(reader, 3),
-                RubroId = !string.IsNullOrEmpty(rubro) && RubroCodigoToId.ContainsKey(rubro) 
-                    ? RubroCodigoToId[rubro] 
+                CategoryId = !string.IsNullOrEmpty(rubro) && CategoryCodigoToId.ContainsKey(rubro) 
+                    ? CategoryCodigoToId[rubro] 
                     : null,
-                UnidadMedidaId = !string.IsNullOrEmpty(unidadMedida) && UnidadMedidaCodigoToId.ContainsKey(unidadMedida) 
-                    ? UnidadMedidaCodigoToId[unidadMedida] 
+                UnitOfMeasureId = !string.IsNullOrEmpty(unidadMedida) && UnitOfMeasureCodigoToId.ContainsKey(unidadMedida) 
+                    ? UnitOfMeasureCodigoToId[unidadMedida] 
                     : null,
                 StockMinimo = int.TryParse(GetString(reader, 6), out var pp) ? pp : 0,
                 Observaciones = GetString(reader, 7),
@@ -638,52 +702,52 @@ class Program
                 Activo = true
             };
             
-            allProductos.Add(entity);
+            allProducts.Add(entity);
             codigoList.Add(codigo);
         }
         
-        Console.Write($"({allProductos.Count} records to insert)... ");
+        Console.Write($"({allProducts.Count} records to insert)... ");
         
         // Bulk insert all at once
-        await db.BulkInsertAsync(allProductos, new BulkConfig { SetOutputIdentity = true });
+        await db.BulkInsertAsync(allProducts, new BulkConfig { SetOutputIdentity = true });
         
         // Map codes to new SQL Server IDs
-        for (int i = 0; i < allProductos.Count; i++)
+        for (int i = 0; i < allProducts.Count; i++)
         {
-            ProductoCodigoToId[codigoList[i]] = allProductos[i].Id;
+            ProductCodigoToId[codigoList[i]] = allProducts[i].Id;
         }
         
-        Console.WriteLine($"OK ({allProductos.Count} records)");
+        Console.WriteLine($"OK ({allProducts.Count} records)");
     }
 
-    static async Task MigrateClientes(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateCustomers(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Clientes... ");
+        Console.Write("Migrating Customers... ");
         
         // Load existing clientes first
-        var existingCount = await db.Clientes.CountAsync();
+        var existingCount = await db.Customers.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
             
             // Load existing for FK mapping - IDs should match Access IDs now
-            var existingClientes = await db.Clientes.ToListAsync();
-            foreach (var c in existingClientes)
+            var existingCustomers = await db.Customers.ToListAsync();
+            foreach (var c in existingCustomers)
             {
-                ClienteAccessIdToSqlId[c.Id] = c.Id;
+                CustomerAccessIdToSqlId[c.Id] = c.Id;
             }
             return;
         }
         
         using var cmd = new OleDbCommand(@"
             SELECT IDCliente, RazonSocial, NombreFantasia, CUIT, Domicilio, Localidad, 
-                   Prov, CP, Tel, Cel, email, CondicionIva, Vendedor, ZonaVenta,
+                   Prov, CP, Tel, Cel, email, CondicionIVA, Vendedor, ZonaVenta,
                    PorcentajeDescuento, LimiteCredito, Observaciones
             FROM Clientes
             ORDER BY IDCliente", access);
         using var reader = cmd.ExecuteReader();
         
-        var allClientes = new List<Cliente>();
+        var allCustomers = new List<Customer>();
         
         while (reader.Read())
         {
@@ -702,7 +766,7 @@ class Program
             if (limiteCredito > 999999999999m) limiteCredito = 999999999999m;
             if (limiteCredito < 0) limiteCredito = 0;
             
-            var entity = new Cliente
+            var entity = new Customer
             {
                 Id = accessId,  // PRESERVE ORIGINAL ID!
                 RazonSocial = TruncateString(GetString(reader, 1) ?? "Sin Nombre", 200),
@@ -715,14 +779,14 @@ class Program
                 Telefono = TruncateString(GetString(reader, 8), 50),
                 Celular = TruncateString(GetString(reader, 9), 50),
                 Email = TruncateString(GetString(reader, 10), 200),
-                CondicionIvaId = !string.IsNullOrEmpty(condicionIva) && CondicionIvaCodigoToId.ContainsKey(condicionIva) 
-                    ? CondicionIvaCodigoToId[condicionIva] 
+                TaxConditionId = !string.IsNullOrEmpty(condicionIva) && TaxConditionCodigoToId.ContainsKey(condicionIva) 
+                    ? TaxConditionCodigoToId[condicionIva] 
                     : null,
-                VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
-                ZonaVentaId = ZonaVentaAccessIdToSqlId.ContainsKey(zonaVentaAccess) 
-                    ? ZonaVentaAccessIdToSqlId[zonaVentaAccess] 
+                SalesZoneId = SalesZoneAccessIdToSqlId.ContainsKey(zonaVentaAccess) 
+                    ? SalesZoneAccessIdToSqlId[zonaVentaAccess] 
                     : null,
                 PorcentajeDescuento = porcentajeDescuento,
                 LimiteCredito = limiteCredito,
@@ -731,16 +795,16 @@ class Program
                 FechaAlta = DateTime.Now
             };
             
-            allClientes.Add(entity);
-            ClienteAccessIdToSqlId[accessId] = accessId;  // ID = ID (preserved)
+            allCustomers.Add(entity);
+            CustomerAccessIdToSqlId[accessId] = accessId;  // ID = ID (preserved)
         }
         
-        Console.Write($"({allClientes.Count} records to insert)... ");
+        Console.Write($"({allCustomers.Count} records to insert)... ");
         
         // Bulk insert with IDENTITY_INSERT ON to preserve original IDs
-        await BulkInsertWithIdentityAsync(db, allClientes, "Clientes", 2000);
+        await BulkInsertWithIdentityAsync(db, allCustomers, "Customers", 2000);
         
-        Console.WriteLine($"OK ({allClientes.Count} records)");
+        Console.WriteLine($"OK ({allCustomers.Count} records)");
     }
 
     /// <summary>
@@ -891,22 +955,22 @@ class Program
             "CreditNotes",
             "QuoteDetails",
             "Quotes",
-            "RemitoDetalles",
-            "Remitos",
-            "FacturaDetalles",
-            "Facturas",
+            "DeliveryNoteDetails",
+            "DeliveryNotes",
+            "InvoiceDetails",
+            "Invoices",
             "StockMovementDetails",
             "StockMovements",
             "Stocks",
             "CustomerAddresses",
-            "Clientes",
-            "Productos",
-            "Vendedores",
-            "Depositos",
+            "Customers",
+            "Products",
+            "SalesRepes",
+            "Warehouses",
             "Branches",
             "ZonasVenta",
             "PaymentMethods",
-            "Rubros",
+            "Categorys",
             "UnidadesMedida",
             "CondicionesIva"
         };
@@ -958,7 +1022,7 @@ class Program
 
     static async Task MigrateCustomerAddresses(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating CustomerAddresses (DomiciliosClientes)... ");
+        Console.Write("Migrating CustomerAddresses (DomiciliosCustomers)... ");
         
         using var cmd = new OleDbCommand(@"
             SELECT IDCliente, Item, Domicilio, Localidad, Prov, CP, Tel, Cel, email, Observaciones
@@ -968,12 +1032,12 @@ class Program
         int count = 0;
         while (reader.Read())
         {
-            var accessClienteId = reader.GetInt32(0);
-            if (!ClienteAccessIdToSqlId.ContainsKey(accessClienteId)) continue;
+            var accessCustomerId = reader.GetInt32(0);
+            if (!CustomerAccessIdToSqlId.ContainsKey(accessCustomerId)) continue;
             
             var entity = new CustomerAddress
             {
-                CustomerId = ClienteAccessIdToSqlId[accessClienteId],
+                CustomerId = CustomerAccessIdToSqlId[accessCustomerId],
                 ItemNumber = reader.GetInt32(1),
                 AddressType = AddressType.Delivery,
                 Address = GetString(reader, 2) ?? "",
@@ -1010,15 +1074,15 @@ class Program
         while (reader.Read())
         {
             var codProd = GetString(reader, 0);
-            var idDeposito = GetString(reader, 1);
+            var idWarehouse = GetString(reader, 1);
             
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
-            if (string.IsNullOrEmpty(idDeposito) || !DepositoCodigoToId.ContainsKey(idDeposito)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(idWarehouse) || !WarehouseCodigoToId.ContainsKey(idWarehouse)) continue;
             
             var entity = new Stock
             {
-                ProductoId = ProductoCodigoToId[codProd],
-                DepositoId = DepositoCodigoToId[idDeposito],
+                ProductId = ProductCodigoToId[codProd],
+                WarehouseId = WarehouseCodigoToId[idWarehouse],
                 Cantidad = GetDecimal(reader, 2)
             };
             
@@ -1034,19 +1098,19 @@ class Program
 
     #region Documents
 
-    static async Task MigrateFacturas(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateInvoices(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Facturas... ");
+        Console.Write("Migrating Invoices... ");
         
-        var existingCount = await db.Facturas.CountAsync();
+        var existingCount = await db.Invoices.CountAsync();
         if (existingCount > 0)
         {
             Console.WriteLine($"SKIP ({existingCount} already exist)");
             // Load for FK mapping
-            var existing = await db.Facturas.ToListAsync();
+            var existing = await db.Invoices.ToListAsync();
             foreach (var f in existing)
             {
-                FacturaAccessToSqlId[(f.TipoFactura, (int)f.NumeroFactura)] = f.Id;
+                InvoiceAccessToSqlId[(f.TipoInvoice, (int)f.NumeroInvoice)] = f.Id;
             }
             return;
         }
@@ -1061,16 +1125,16 @@ class Program
             ORDER BY TipoFactura, NroFactura", access);
         using var readerH = cmdH.ExecuteReader();
         
-        var allFacturas = new List<Factura>();
+        var allInvoices = new List<Invoice>();
         var facturaKeys = new List<(string tipo, int numero)>();
         
         while (readerH.Read())
         {
-            var tipoFactura = GetString(readerH, 0) ?? "B";
-            var nroFactura = readerH.GetInt32(1);
-            var codCliente = GetInt(readerH, 3);
+            var tipoInvoice = GetString(readerH, 0) ?? "B";
+            var nroInvoice = readerH.GetInt32(1);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 4);
             var idSucursal = GetInt(readerH, 19);
@@ -1080,16 +1144,16 @@ class Program
                 : 1;
             var puntoVenta = idSucursal > 0 ? idSucursal : 2;
             
-            var entity = new Factura
+            var entity = new Invoice
             {
                 BranchId = branchId,
-                TipoFactura = tipoFactura,
+                TipoInvoice = tipoInvoice,
                 PuntoVenta = puntoVenta,
-                NumeroFactura = nroFactura,
-                FechaFactura = GetDateTime(readerH, 2) ?? DateTime.Now,
-                ClienteId = ClienteAccessIdToSqlId[codCliente],
-                VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                NumeroInvoice = nroInvoice,
+                FechaInvoice = GetDateTime(readerH, 2) ?? DateTime.Now,
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 Subtotal = GetDecimal(readerH, 5),
                 PorcentajeIVA = GetDecimal(readerH, 6),
@@ -1108,23 +1172,23 @@ class Program
                 Aclaracion = GetString(readerH, 21)
             };
             
-            allFacturas.Add(entity);
-            facturaKeys.Add((tipoFactura, nroFactura));
+            allInvoices.Add(entity);
+            facturaKeys.Add((tipoInvoice, nroInvoice));
         }
         
-        Console.Write($"({allFacturas.Count} headers)... ");
+        Console.Write($"({allInvoices.Count} headers)... ");
         
         // Insert in batches to avoid timeout
         const int batchSize = 2000;
-        for (int batch = 0; batch < allFacturas.Count; batch += batchSize)
+        for (int batch = 0; batch < allInvoices.Count; batch += batchSize)
         {
-            var batchItems = allFacturas.Skip(batch).Take(batchSize).ToList();
+            var batchItems = allInvoices.Skip(batch).Take(batchSize).ToList();
             await db.BulkInsertAsync(batchItems, new BulkConfig { SetOutputIdentity = true, BatchSize = batchSize });
             
             // Map the IDs for this batch
             for (int i = 0; i < batchItems.Count; i++)
             {
-                FacturaAccessToSqlId[facturaKeys[batch + i]] = batchItems[i].Id;
+                InvoiceAccessToSqlId[facturaKeys[batch + i]] = batchItems[i].Id;
             }
             Console.Write(".");
         }
@@ -1132,7 +1196,7 @@ class Program
         Console.WriteLine(" OK");
         
         // Details
-        Console.Write("Migrating FacturaDetalles... ");
+        Console.Write("Migrating InvoiceDetails... ");
         using var cmdD = new OleDbCommand(@"
             SELECT TipoFactura, NroFactura, ItemFactura, IDCodProd, Cantidad, 
                    PrecioUnitario, PorcentajeDescuento, TotalLinea
@@ -1140,22 +1204,22 @@ class Program
             ORDER BY TipoFactura, NroFactura, ItemFactura", access);
         using var readerD = cmdD.ExecuteReader();
         
-        var allDetalles = new List<FacturaDetalle>();
+        var allDetalles = new List<InvoiceDetail>();
         
         while (readerD.Read())
         {
-            var tipoFactura = GetString(readerD, 0) ?? "B";
-            var nroFactura = readerD.GetInt32(1);
+            var tipoInvoice = GetString(readerD, 0) ?? "B";
+            var nroInvoice = readerD.GetInt32(1);
             var codProd = GetString(readerD, 3);
             
-            if (!FacturaAccessToSqlId.ContainsKey((tipoFactura, nroFactura))) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (!InvoiceAccessToSqlId.ContainsKey((tipoInvoice, nroInvoice))) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
-            var entity = new FacturaDetalle
+            var entity = new InvoiceDetail
             {
-                FacturaId = FacturaAccessToSqlId[(tipoFactura, nroFactura)],
+                InvoiceId = InvoiceAccessToSqlId[(tipoInvoice, nroInvoice)],
                 ItemNumero = readerD.GetInt32(2),
-                ProductoId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Cantidad = GetDecimal(readerD, 4),
                 PrecioUnitario = GetDecimal(readerD, 5),
                 PorcentajeDescuento = GetDecimal(readerD, 6),
@@ -1179,9 +1243,16 @@ class Program
         Console.WriteLine(" OK");
     }
 
-    static async Task MigrateRemitos(OleDbConnection access, SPCDbContext db)
+    static async Task MigrateDeliveryNotes(OleDbConnection access, SPCDbContext db)
     {
-        Console.Write("Migrating Remitos... ");
+        Console.Write("Migrating DeliveryNotes... ");
+
+        var existingCount = await db.DeliveryNotes.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
         using var cmdH = new OleDbCommand(@"
             SELECT IdSucursal, NroRemito, FechaRemito, CodCliente, CodVendedor,
@@ -1190,20 +1261,22 @@ class Program
             ORDER BY IdSucursal, NroRemito", access);
         using var readerH = cmdH.ExecuteReader();
         
-        var allRemitos = new List<Remito>();
-        var remitoKeys = new List<(int sucursal, int numero)>();
+        var allDeliveryNotes = new List<DeliveryNote>();
+        var uniqueKeys = new List<(int branchId, int numero)>();
+        var uniqueKeyToId = new Dictionary<(int branchId, int numero), int>();
+        var accessToUniqueKey = new Dictionary<(int sucursal, int numero), (int branchId, int numero)>();
         
         while (readerH.Read())
         {
             var idSucursal = readerH.GetInt32(0);
-            var nroRemito = readerH.GetInt32(1);
-            var codCliente = GetInt(readerH, 3);
+            var nroDeliveryNote = readerH.GetInt32(1);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 4);
-            var nroFactura = GetInt(readerH, 6);
-            var tipoFactura = GetString(readerH, 7);
+            var nroInvoice = GetInt(readerH, 6);
+            var tipoInvoice = GetString(readerH, 7);
             
             var branchId = BranchAccessIdToSqlId.ContainsKey(idSucursal) 
                 ? BranchAccessIdToSqlId[idSucursal] 
@@ -1211,70 +1284,88 @@ class Program
             var puntoVenta = idSucursal > 0 ? idSucursal : 2;
             
             int? facturaId = null;
-            if (nroFactura > 0 && !string.IsNullOrEmpty(tipoFactura) && FacturaAccessToSqlId.ContainsKey((tipoFactura, nroFactura)))
+            if (nroInvoice > 0 && !string.IsNullOrEmpty(tipoInvoice) && InvoiceAccessToSqlId.ContainsKey((tipoInvoice, nroInvoice)))
             {
-                facturaId = FacturaAccessToSqlId[(tipoFactura, nroFactura)];
+                facturaId = InvoiceAccessToSqlId[(tipoInvoice, nroInvoice)];
             }
             
-            var entity = new Remito
+            var entity = new DeliveryNote
             {
                 BranchId = branchId,
                 PuntoVenta = puntoVenta,
-                NumeroRemito = nroRemito,
-                FechaRemito = GetDateTime(readerH, 2) ?? DateTime.Now,
-                ClienteId = ClienteAccessIdToSqlId[codCliente],
-                VendedorId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                NumeroDeliveryNote = nroDeliveryNote,
+                FechaDeliveryNote = GetDateTime(readerH, 2) ?? DateTime.Now,
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 UnidadNegocio = GetString(readerH, 5),
-                FacturaId = facturaId,
-                TipoFactura = tipoFactura,
+                InvoiceId = facturaId,
+                TipoFactura = tipoInvoice,
                 Facturado = facturaId.HasValue,
                 Aclaracion = GetString(readerH, 8),
                 Anulado = false
             };
             
-            allRemitos.Add(entity);
-            remitoKeys.Add((idSucursal, nroRemito));
+            var uniqueKey = (branchId, nroDeliveryNote);
+            var accessKey = (idSucursal, nroDeliveryNote);
+
+            if (!uniqueKeyToId.ContainsKey(uniqueKey))
+            {
+                allDeliveryNotes.Add(entity);
+                uniqueKeys.Add(uniqueKey);
+                uniqueKeyToId[uniqueKey] = 0; // Mark as pending
+            }
+
+            accessToUniqueKey[accessKey] = uniqueKey;
         }
         
-        Console.Write($"({allRemitos.Count} headers)... ");
+        Console.Write($"({allDeliveryNotes.Count} headers)... ");
         
-        if (allRemitos.Count > 0)
+        if (allDeliveryNotes.Count > 0)
         {
-            await db.BulkInsertAsync(allRemitos, new BulkConfig { SetOutputIdentity = true });
-            for (int i = 0; i < allRemitos.Count; i++)
+            uniqueKeyToId.Clear();
+            await db.BulkInsertAsync(allDeliveryNotes, new BulkConfig { SetOutputIdentity = true });
+            for (int i = 0; i < allDeliveryNotes.Count; i++)
             {
-                RemitoAccessToSqlId[remitoKeys[i]] = allRemitos[i].Id;
+                uniqueKeyToId[uniqueKeys[i]] = allDeliveryNotes[i].Id;
+            }
+
+            foreach (var mapping in accessToUniqueKey)
+            {
+                if (uniqueKeyToId.TryGetValue(mapping.Value, out var id))
+                {
+                    DeliveryNoteAccessToSqlId[mapping.Key] = id;
+                }
             }
         }
         
         Console.WriteLine("OK");
         
         // Details
-        Console.Write("Migrating RemitoDetalles... ");
+        Console.Write("Migrating DeliveryNoteDetails... ");
         using var cmdD = new OleDbCommand(@"
             SELECT IdSucursal, NroRemito, ItemRemito, IDCodProd, Cantidad
             FROM RemitoD
             ORDER BY IdSucursal, NroRemito, ItemRemito", access);
         using var readerD = cmdD.ExecuteReader();
         
-        var allDetalles = new List<RemitoDetalle>();
+        var allDetalles = new List<DeliveryNoteDetail>();
         
         while (readerD.Read())
         {
             var idSucursal = readerD.GetInt32(0);
-            var nroRemito = readerD.GetInt32(1);
+            var nroDeliveryNote = readerD.GetInt32(1);
             var codProd = GetString(readerD, 3);
             
-            if (!RemitoAccessToSqlId.ContainsKey((idSucursal, nroRemito))) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (!DeliveryNoteAccessToSqlId.ContainsKey((idSucursal, nroDeliveryNote))) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
-            var entity = new RemitoDetalle
+            var entity = new DeliveryNoteDetail
             {
-                RemitoId = RemitoAccessToSqlId[(idSucursal, nroRemito)],
+                DeliveryNoteId = DeliveryNoteAccessToSqlId[(idSucursal, nroDeliveryNote)],
                 ItemNumero = readerD.GetInt32(2),
-                ProductoId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Cantidad = GetDecimal(readerD, 4)
             };
             
@@ -1311,9 +1402,9 @@ class Program
         while (readerH.Read())
         {
             var nroPresu = readerH.GetInt32(0);
-            var codCliente = GetInt(readerH, 2);
+            var codCustomer = GetInt(readerH, 2);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 3);
             
@@ -1322,9 +1413,9 @@ class Program
                 BranchId = 1,
                 QuoteNumber = nroPresu,
                 QuoteDate = GetDateTime(readerH, 1) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 Subtotal = GetDecimal(readerH, 4),
                 DiscountPercent = GetDecimal(readerH, 5),
@@ -1373,13 +1464,13 @@ class Program
             var codProd = GetString(readerD, 2);
             
             if (!quoteMap.ContainsKey(nroPresu)) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
             var entity = new QuoteDetail
             {
                 QuoteId = quoteMap[nroPresu],
                 ItemNumber = readerD.GetInt32(1),
-                ProductId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Quantity = GetDecimal(readerD, 3),
                 UnitPrice = GetDecimal(readerD, 4),
                 DiscountPercent = GetDecimal(readerD, 5),
@@ -1406,8 +1497,15 @@ class Program
     static async Task MigrateNotasCredito(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating NotasCredito (CreditNotes)... ");
+
+        var existingCount = await db.CreditNotes.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
-        var ncMap = new Dictionary<(string, int), int>();
+        var ncMap = new Dictionary<(VoucherType, int), int>();
         
         using var cmdH = new OleDbCommand(@"
             SELECT TipoNotaCredito, NroNotaCredito, FechaNotaCredito, CodCliente, CodVendedor,
@@ -1418,15 +1516,15 @@ class Program
         using var readerH = cmdH.ExecuteReader();
         
         var allNotes = new List<CreditNote>();
-        var noteKeys = new List<(string tipo, int numero)>();
+        var noteKeys = new List<(VoucherType tipo, int numero)>();
         
         while (readerH.Read())
         {
             var tipoNC = GetString(readerH, 0) ?? "B";
             var nroNC = readerH.GetInt32(1);
-            var codCliente = GetInt(readerH, 3);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 4);
             var voucherType = tipoNC == "A" ? VoucherType.CreditNoteA : VoucherType.CreditNoteB;
@@ -1438,9 +1536,9 @@ class Program
                 PointOfSale = 2,
                 CreditNoteNumber = nroNC,
                 CreditNoteDate = GetDateTime(readerH, 2) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 Subtotal = GetDecimal(readerH, 5),
                 VATPercent = GetDecimal(readerH, 6),
@@ -1456,14 +1554,22 @@ class Program
                 IsVoided = GetString(readerH, 16)?.ToUpper() == "S" || GetBool(readerH, 16)
             };
             
-            allNotes.Add(entity);
-            noteKeys.Add((tipoNC, nroNC));
+            // Only add if not a duplicate (same VoucherType + PointOfSale + Number)
+            var key = (voucherType, nroNC);
+            if (!ncMap.ContainsKey(key))
+            {
+                allNotes.Add(entity);
+                noteKeys.Add(key);
+                ncMap[key] = 0; // Mark as pending
+            }
         }
         
         Console.Write($"({allNotes.Count} headers)... ");
         
         if (allNotes.Count > 0)
         {
+            // Clear the map and rebuild with actual IDs after insert
+            ncMap.Clear();
             await db.BulkInsertAsync(allNotes, new BulkConfig { SetOutputIdentity = true });
             for (int i = 0; i < allNotes.Count; i++)
             {
@@ -1488,16 +1594,17 @@ class Program
         {
             var tipoNC = GetString(readerD, 0) ?? "B";
             var nroNC = readerD.GetInt32(1);
+            var voucherType = tipoNC == "A" ? VoucherType.CreditNoteA : VoucherType.CreditNoteB;
             var codProd = GetString(readerD, 3);
             
-            if (!ncMap.ContainsKey((tipoNC, nroNC))) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (!ncMap.ContainsKey((voucherType, nroNC))) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
             var entity = new CreditNoteDetail
             {
-                CreditNoteId = ncMap[(tipoNC, nroNC)],
+                CreditNoteId = ncMap[(voucherType, nroNC)],
                 ItemNumber = readerD.GetInt32(2),
-                ProductId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Quantity = GetDecimal(readerD, 4),
                 UnitPrice = GetDecimal(readerD, 5),
                 DiscountPercent = GetDecimal(readerD, 6),
@@ -1521,8 +1628,15 @@ class Program
     static async Task MigrateNotasDebito(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating NotasDebito (DebitNotes)... ");
+
+        var existingCount = await db.DebitNotes.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
-        var ndMap = new Dictionary<(string, int), int>();
+        var ndMap = new Dictionary<(VoucherType, int), int>();
         
         using var cmdH = new OleDbCommand(@"
             SELECT TipoDebito, NroDebito, FechaDebito, CodCliente, CodVendedor,
@@ -1533,15 +1647,15 @@ class Program
         using var readerH = cmdH.ExecuteReader();
         
         var allNotes = new List<DebitNote>();
-        var noteKeys = new List<(string tipo, int numero)>();
+        var noteKeys = new List<(VoucherType tipo, int numero)>();
         
         while (readerH.Read())
         {
             var tipoND = GetString(readerH, 0) ?? "B";
             var nroND = readerH.GetInt32(1);
-            var codCliente = GetInt(readerH, 3);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 4);
             var voucherType = tipoND == "A" ? VoucherType.DebitNoteA : VoucherType.DebitNoteB;
@@ -1553,9 +1667,9 @@ class Program
                 PointOfSale = 2,
                 DebitNoteNumber = nroND,
                 DebitNoteDate = GetDateTime(readerH, 2) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 Subtotal = GetDecimal(readerH, 5),
                 VATPercent = GetDecimal(readerH, 6),
@@ -1571,14 +1685,22 @@ class Program
                 IsVoided = GetString(readerH, 16)?.ToUpper() == "S" || GetBool(readerH, 16)
             };
             
-            allNotes.Add(entity);
-            noteKeys.Add((tipoND, nroND));
+            // Only add if not a duplicate (same VoucherType + PointOfSale + Number)
+            var key = (voucherType, nroND);
+            if (!ndMap.ContainsKey(key))
+            {
+                allNotes.Add(entity);
+                noteKeys.Add(key);
+                ndMap[key] = 0; // Mark as pending
+            }
         }
         
         Console.Write($"({allNotes.Count} headers)... ");
         
         if (allNotes.Count > 0)
         {
+            // Clear the map and rebuild with actual IDs after insert
+            ndMap.Clear();
             await db.BulkInsertAsync(allNotes, new BulkConfig { SetOutputIdentity = true });
             for (int i = 0; i < allNotes.Count; i++)
             {
@@ -1603,16 +1725,17 @@ class Program
         {
             var tipoND = GetString(readerD, 0) ?? "B";
             var nroND = readerD.GetInt32(1);
+            var voucherType = tipoND == "A" ? VoucherType.DebitNoteA : VoucherType.DebitNoteB;
             var codProd = GetString(readerD, 3);
             
-            if (!ndMap.ContainsKey((tipoND, nroND))) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (!ndMap.ContainsKey((voucherType, nroND))) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
             var entity = new DebitNoteDetail
             {
-                DebitNoteId = ndMap[(tipoND, nroND)],
+                DebitNoteId = ndMap[(voucherType, nroND)],
                 ItemNumber = readerD.GetInt32(2),
-                ProductId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Quantity = GetDecimal(readerD, 4),
                 UnitPrice = GetDecimal(readerD, 5),
                 DiscountPercent = GetDecimal(readerD, 6),
@@ -1635,6 +1758,13 @@ class Program
     static async Task MigrateNotasDebitoInternas(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating NotasDebitoInternas (InternalDebitNotes)... ");
+
+        var existingCount = await db.InternalDebitNotes.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
         var ndiMap = new Dictionary<(string, int), int>();
         
@@ -1653,9 +1783,9 @@ class Program
         {
             var tipoNDI = GetString(readerH, 0) ?? "I";
             var nroNDI = readerH.GetInt32(1);
-            var codCliente = GetInt(readerH, 3);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 4);
             
@@ -1665,9 +1795,9 @@ class Program
                 BranchId = 1,
                 InternalDebitNumber = nroNDI,
                 DebitDate = GetDateTime(readerH, 2) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 Subtotal = GetDecimal(readerH, 5),
                 DiscountPercent = GetDecimal(readerH, 6),
@@ -1713,13 +1843,13 @@ class Program
             var codProd = GetString(readerD, 3);
             
             if (!ndiMap.ContainsKey((tipoNDI, nroNDI))) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
             var entity = new InternalDebitNoteDetail
             {
                 InternalDebitNoteId = ndiMap[(tipoNDI, nroNDI)],
                 ItemNumber = readerD.GetInt32(2),
-                ProductId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Quantity = GetDecimal(readerD, 4),
                 UnitPrice = GetDecimal(readerD, 5),
                 DiscountPercent = GetDecimal(readerD, 6),
@@ -1743,6 +1873,13 @@ class Program
     static async Task MigrateConsignaciones(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating Consignaciones... ");
+
+        var existingCount = await db.Consignments.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
         var consigMap = new Dictionary<int, int>();
         
@@ -1756,9 +1893,9 @@ class Program
         while (readerH.Read())
         {
             var nroConsig = readerH.GetInt32(0);
-            var codCliente = GetInt(readerH, 2);
+            var codCustomer = GetInt(readerH, 2);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var vendedorLegajo = GetString(readerH, 3);
             
@@ -1766,9 +1903,9 @@ class Program
             {
                 ConsignmentNumber = nroConsig,
                 ConsignmentDate = GetDateTime(readerH, 1) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
-                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && VendedorLegajoToId.ContainsKey(vendedorLegajo) 
-                    ? VendedorLegajoToId[vendedorLegajo] 
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
+                SalesRepId = !string.IsNullOrEmpty(vendedorLegajo) && SalesRepLegajoToId.ContainsKey(vendedorLegajo) 
+                    ? SalesRepLegajoToId[vendedorLegajo] 
                     : null,
                 IsActive = true
             };
@@ -1796,13 +1933,13 @@ class Program
             var codProd = GetString(readerD, 2);
             
             if (!consigMap.ContainsKey(nroConsig)) continue;
-            if (string.IsNullOrEmpty(codProd) || !ProductoCodigoToId.ContainsKey(codProd)) continue;
+            if (string.IsNullOrEmpty(codProd) || !ProductCodigoToId.ContainsKey(codProd)) continue;
             
             var entity = new ConsignmentDetail
             {
                 ConsignmentId = consigMap[nroConsig],
                 ItemNumber = readerD.GetInt32(1),
-                ProductId = ProductoCodigoToId[codProd],
+                ProductId = ProductCodigoToId[codProd],
                 Quantity = GetDecimal(readerD, 3),
                 UnitOfMeasure = GetString(readerD, 4)
             };
@@ -1822,6 +1959,13 @@ class Program
     static async Task MigratePagos(OleDbConnection access, SPCDbContext db)
     {
         Console.Write("Migrating Pagos... ");
+
+        var existingCount = await db.Payments.CountAsync();
+        if (existingCount > 0)
+        {
+            Console.WriteLine($"SKIP ({existingCount} already exist)");
+            return;
+        }
         
         var pagoMap = new Dictionary<(int, double), int>();
         
@@ -1836,9 +1980,9 @@ class Program
         {
             var idSucursal = readerH.GetInt32(0);
             var nroPago = readerH.GetDouble(1);
-            var codCliente = GetInt(readerH, 3);
+            var codCustomer = GetInt(readerH, 3);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             // Map sucursal to branch using lookup
             var branchId = BranchAccessIdToSqlId.ContainsKey(idSucursal) 
@@ -1856,7 +2000,7 @@ class Program
                 BranchId = branchId,
                 PaymentNumber = (long)nroPago,
                 PaymentDate = GetDateTime(readerH, 2) ?? DateTime.Now,
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
                 TotalAmount = GetDecimal(readerH, 4),
                 AppliesTo = appliesTo,
                 AppliesToDescription = corresponde,
@@ -1924,13 +2068,13 @@ class Program
         int count = 0;
         while (reader.Read())
         {
-            var codCliente = reader.GetInt32(0);
+            var codCustomer = reader.GetInt32(0);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
             var entity = new CurrentAccount
             {
-                CustomerId = ClienteAccessIdToSqlId[codCliente],
+                CustomerId = CustomerAccessIdToSqlId[codCustomer],
                 BillingBalance = GetDecimal(reader, 1),
                 BudgetBalance = GetDecimal(reader, 2),
                 TotalBalance = GetDecimal(reader, 3),
@@ -1952,7 +2096,7 @@ class Program
         using var cmd = new OleDbCommand(@"
             SELECT Fecha, IDCliente, TipoDoc, NroDoc, ImporteLinea1, ImporteLinea2
             FROM MovimientosCtaCte
-            ORDER BY Fecha, IDCliente", access);
+            ORDER BY Fecha, IDCustomer", access);
         using var reader = cmd.ExecuteReader();
         
         int count = 0;
@@ -1962,11 +2106,11 @@ class Program
         
         while (reader.Read())
         {
-            var codCliente = (int)GetDouble(reader, 1);
+            var codCustomer = (int)GetDouble(reader, 1);
             
-            if (!ClienteAccessIdToSqlId.ContainsKey(codCliente)) continue;
+            if (!CustomerAccessIdToSqlId.ContainsKey(codCustomer)) continue;
             
-            var customerId = ClienteAccessIdToSqlId[codCliente];
+            var customerId = CustomerAccessIdToSqlId[codCustomer];
             
             // Reset running balances when customer changes
             if (customerId != lastCustomerId)

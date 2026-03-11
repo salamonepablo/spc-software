@@ -50,7 +50,7 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var condiciones = await response.Content.ReadFromJsonAsync<List<CondicionIva>>();
+        var condiciones = await response.Content.ReadFromJsonAsync<List<TaxCondition>>();
         condiciones.Should().NotBeNull();
         condiciones.Should().HaveCount(4);
         condiciones.Should().Contain(c => c.Codigo == "RI" && c.Descripcion == "Responsable Inscripto");
@@ -60,32 +60,34 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetCondicionesIva_ReturnsCorrectTipoFactura()
+    public async Task GetCondicionesIva_ReturnsCorrectTipoInvoice()
     {
         // Act
         var response = await _client.GetAsync("/api/condicionesiva");
-        var condiciones = await response.Content.ReadFromJsonAsync<List<CondicionIva>>();
+        var condiciones = await response.Content.ReadFromJsonAsync<List<TaxCondition>>();
 
-        // Assert - Responsable Inscripto gets Factura A, others get B
-        condiciones!.First(c => c.Codigo == "RI").TipoFactura.Should().Be("A");
-        condiciones.First(c => c.Codigo == "MO").TipoFactura.Should().Be("B");
-        condiciones.First(c => c.Codigo == "CF").TipoFactura.Should().Be("B");
-        condiciones.First(c => c.Codigo == "EX").TipoFactura.Should().Be("B");
+        // Assert - Responsable Inscripto gets Invoice A, others get B
+        condiciones.Should().NotBeNull();
+        var condicionesList = condiciones!;
+        condicionesList.First(c => c.Codigo == "RI").TipoInvoice.Should().Be("A");
+        condicionesList.First(c => c.Codigo == "MO").TipoInvoice.Should().Be("B");
+        condicionesList.First(c => c.Codigo == "CF").TipoInvoice.Should().Be("B");
+        condicionesList.First(c => c.Codigo == "EX").TipoInvoice.Should().Be("B");
     }
 
     // ===========================================
-    // Rubros
+    // Categorys
     // ===========================================
 
     [Fact]
-    public async Task GetRubros_ReturnsSeedData()
+    public async Task GetCategorys_ReturnsSeedData()
     {
         // Act
         var response = await _client.GetAsync("/api/rubros");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var rubros = await response.Content.ReadFromJsonAsync<List<Rubro>>();
+        var rubros = await response.Content.ReadFromJsonAsync<List<Category>>();
         rubros.Should().NotBeNull();
         rubros.Should().HaveCount(4);
         rubros.Should().Contain(r => r.Nombre == "Baterias Auto");
@@ -95,44 +97,44 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     // ===========================================
-    // Depositos
+    // Warehouses
     // ===========================================
 
     [Fact]
-    public async Task GetDepositos_ReturnsSeedData()
+    public async Task GetWarehouses_ReturnsSeedData()
     {
         // Act
         var response = await _client.GetAsync("/api/depositos");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var depositos = await response.Content.ReadFromJsonAsync<List<Deposito>>();
+        var depositos = await response.Content.ReadFromJsonAsync<List<Warehouse>>();
         depositos.Should().NotBeNull();
-        depositos.Should().ContainSingle(d => d.Nombre == "Deposito Principal");
+        depositos.Should().ContainSingle(d => d.Nombre == "Warehouse Principal");
     }
 
     // ===========================================
-    // Vendedores
+    // SalesRepes
     // ===========================================
 
     [Fact]
-    public async Task GetVendedores_ReturnsEmptyList_WhenNoVendedores()
+    public async Task GetSalesRepes_ReturnsEmptyList_WhenNoSalesRepes()
     {
         // Act
         var response = await _client.GetAsync("/api/vendedores");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var vendedores = await response.Content.ReadFromJsonAsync<List<Vendedor>>();
+        var vendedores = await response.Content.ReadFromJsonAsync<List<SalesRep>>();
         vendedores.Should().NotBeNull();
         vendedores.Should().BeEmpty(); // No seed data for vendedores
     }
 
     [Fact]
-    public async Task PostVendedor_CreatesVendedor_ReturnsCreated()
+    public async Task PostSalesRep_CreatesSalesRep_ReturnsCreated()
     {
         // Arrange
-        var nuevoVendedor = new Vendedor
+        var nuevoSalesRep = new SalesRep
         {
             Legajo = "V001",
             Nombre = "Juan",
@@ -141,11 +143,11 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/vendedores", nuevoVendedor);
+        var response = await _client.PostAsJsonAsync("/api/vendedores", nuevoSalesRep);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var vendedorCreado = await response.Content.ReadFromJsonAsync<Vendedor>();
+        var vendedorCreado = await response.Content.ReadFromJsonAsync<SalesRep>();
         vendedorCreado.Should().NotBeNull();
         vendedorCreado!.Id.Should().BeGreaterThan(0);
         vendedorCreado.Legajo.Should().Be("V001");
@@ -164,7 +166,7 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var zonas = await response.Content.ReadFromJsonAsync<List<ZonaVenta>>();
+        var zonas = await response.Content.ReadFromJsonAsync<List<SalesZone>>();
         zonas.Should().NotBeNull();
         zonas.Should().BeEmpty(); // No seed data for zonas
     }
