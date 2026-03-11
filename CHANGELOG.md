@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MINOR** version: New functionality (backwards compatible)
 - **PATCH** version: Bug fixes (backwards compatible)
 
+## [Unreleased]
+
+### Added
+- CSV migration is now the default and required path for data imports.
+- Automatic CSV generation via `SPC.Migration/export_access.py` when files are missing.
+- SQL Server migrations consolidated under `SPC.API/Migrations`.
+
+### Changed
+- Migration runner marked Windows-only to match OleDb dependencies.
+
+### Fixed
+- Test nullability warning in `AuxiliaryEndpointsTests`.
+
 ## [0.2.0] - 2026-03-10
 
 ### Major Changes
@@ -151,5 +164,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Repository](https://github.com/salamonepablo/spc-software)
 - [Issues](https://github.com/salamonepablo/spc-software/issues)
 
+[Unreleased]: https://github.com/salamonepablo/spc-software/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/salamonepablo/spc-software/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/salamonepablo/spc-software/releases/tag/v0.1.0

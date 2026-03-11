@@ -1,6 +1,6 @@
 # Current Session Context
 
-**Last Updated:** 2026-03-10 
+**Last Updated:** 2026-03-11
 **Branch:** develop
 **Version:** 0.2.0
 
@@ -8,15 +8,24 @@
 
 ## Session Summary
 
-Completed the **English naming convention migration** - renamed all Spanish identifiers to English across 101+ files. All 111 tests passing.
+Completed the **English naming convention migration** and finalized CSV-based data migration flow. All 111 tests passing.
 
 Key changes:
 - All entity classes now use English names (Customer, Invoice, Product, etc.)
 - All services, DTOs, and contracts updated
 - API routes remain in Spanish for backwards compatibility
+- CSV migration is now the default and required path
+- Missing CSV files are auto-generated via `export_access.py`
+- Migration runner marked Windows-only to match OleDb dependencies
 - Fixed Blazor compilation error in NewInvoice.razor
 
-## What Was Done Today (2026-03-10)
+## What Was Done Today (2026-03-11)
+
+### CSV Migration Flow (Completed)
+1. **CSV import enforced** in `SPC.Migration/Program.cs`.
+2. **Auto-export** from Access when CSV files are missing.
+3. **Windows-only marker** added to avoid OleDb platform warnings.
+4. **Test warning** resolved in `AuxiliaryEndpointsTests`.
 
 ### English Naming Convention (Completed)
 1. **Entity Renames** - 28 models renamed:
@@ -105,6 +114,6 @@ dotnet build
 
 ## Files to Read for Full Context
 
-1. `context/session_2026-03-10.md` - Today's detailed session
+1. `context/session_2026-03-10.md` - Session history and addendum
 2. `README.md` - Project overview
 3. `CHANGELOG.md` - Version history

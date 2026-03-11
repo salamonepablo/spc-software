@@ -211,6 +211,26 @@ dotnet test --logger "console;verbosity=detailed"
 
 ---
 
+### Data Migration (CSV)
+
+The migration tool runs **CSV imports by default** and auto-generates missing CSVs from Access.
+
+```bash
+# Recreate database (optional)
+cd SPC.API
+dotnet ef database drop --force
+dotnet ef database update
+
+# Import data from CSV (auto-export from Access if missing)
+cd ..\SPC.Migration
+dotnet run
+```
+
+CSV files are expected in `SPC.Migration/data`. If any are missing, the tool runs
+`SPC.Migration/export_access.py` to regenerate them. The CSV export step requires Windows.
+
+---
+
 ## API Endpoints
 
 ### Customers
@@ -332,6 +352,7 @@ All internal code uses **English identifiers** for classes, properties, methods,
 - Integration and Unit tests (111 tests passing)
 - Architecture Decision Records (ADRs)
 - CSV-based data migration tool with bulk inserts and skip logging
+- CSV import enforced with automatic export when files are missing
 - **English naming convention** for all code identifiers (v0.2.0)
 
 ### In Progress
