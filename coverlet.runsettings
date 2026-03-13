@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Include>
+            [SPC.API]SPC.API.Services.PricingService*
+            [SPC.API]SPC.API.Services.InvoicesService*
+            [SPC.API]SPC.API.Services.QuotesService*
+          </Include>
+          <ExcludeByAttribute>GeneratedCodeAttribute;CompilerGeneratedAttribute;ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <ExcludeByFile>
+            **/bin/**;
+            **/obj/**;
+            **/*.Designer.cs;
+            **/*.g.cs;
+            **/*.generated.cs
+          </ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
