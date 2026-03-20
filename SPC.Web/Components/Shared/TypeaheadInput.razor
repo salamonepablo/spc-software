@@ -1,0 +1,278 @@
+@typeparam TItem
+@using Microsoft.AspNetCore.Components.Web
+
+<div class="position-relative">
+    <input class="@InputClass"
+           placeholder="@Placeholder"
+           value="@_searchText"
+           @oninput="HandleInput"
+           @onkeydown="HandleKeyDown"
+           @onblur="HandleBlur"
+           disabled="@Disabled" />
+
+    @if (_showDropdown)
+    {
+        <div class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000;">
+            @if (_isSearching)
+            {
+                <div class="list-group-item text-muted">Buscando...</div>
+            }
+            else if (_results.Count == 0)
+            {
+                <div class="list-group-item text-muted">Sin resultados</div>
+            }
+            else
+            {
+                @for (var index = 0; index < _results.Count; index++)
+                {
+                    var item = _results[index];
+                    var isHighlighted = index == _highlightedIndex;
+                    <button type="button"
+                            class="list-group-item list-group-item-action @(isHighlighted ? "active" : "")"
+                            @onmousedown="SuppressBlurSelection"
+                            @onclick="() => SelectItem(item)">
+                        @DisplaySelector(item)
+                    </button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _searchText = "";
+    private List<TItem> _results = new();
+    private bool _showDropdown;
+    private bool _isSearching;
+    private int _highlightedIndex = -1;
+    private CancellationTokenSource? _cts;
+    private bool _suppressBlurSelection;
+
+    [Parameter]
+    public Func<string, Task<List<TItem>>> SearchAsync { get; set; } = default!;
+
+    [Parameter]
+    public Func<TItem, string> DisplaySelector { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<TItem> OnSelected { get; set; }
+
+    [Parameter]
+    public int MinLength { get; set; } = 2;
+
+    [Parameter]
+    public int DebounceMs { get; set; } = 300;
+
+    [Parameter]
+    public string Placeholder { get; set; } = "";
+
+    [Parameter]
+    public string InputClass { get; set; } = "form-control";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? SelectedText { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedText != null && SelectedText != _searchText)
+        {
+            _searchText = SelectedText;
+        }
+    }
+
+    private async Task HandleInput(ChangeEventArgs e)
+    {
+        _searchText = e.Value?.ToString() ?? "";
+
+        _cts?.Cancel();
+
+        if (_searchText.Length < MinLength)
+        {
+            _results.Clear();
+            _showDropdown = false;
+            _isSearching = false;
+            _highlightedIndex = -1;
+            return;
+        }
+
+        _isSearching = true;
+        var cts = new CancellationTokenSource();
+        _cts = cts;
+
+        try
+        {
+            await Task.Delay(DebounceMs, cts.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (cts.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var results = await SearchAsync(_searchText);
+        if (cts.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _results = results ?? new List<TItem>();
+        _showDropdown = true;
+        _isSearching = false;
+        _highlightedIndex = _results.Count > 0 ? 0 : -1;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        if (e.Key == "ArrowDown")
+        {
+            if (_results.Count > 0)
+            {
+                if (_highlightedIndex < 0)
+                {
+                    _highlightedIndex = 0;
+                }
+                else
+                {
+                    _highlightedIndex = Math.Min(_highlightedIndex + 1, _results.Count - 1);
+                }
+                _showDropdown = true;
+            }
+            return;
+        }
+
+        if (e.Key == "ArrowUp")
+        {
+            if (_results.Count > 0)
+            {
+                if (_highlightedIndex < 0)
+                {
+                    _highlightedIndex = 0;
+                }
+                else
+                {
+                    _highlightedIndex = Math.Max(_highlightedIndex - 1, 0);
+                }
+                _showDropdown = true;
+            }
+            return;
+        }
+
+        if (e.Key == "Escape")
+        {
+            _showDropdown = false;
+            _highlightedIndex = -1;
+            return;
+        }
+
+        if (e.Key == "Enter")
+        {
+            if (_highlightedIndex >= 0 && _highlightedIndex < _results.Count)
+            {
+                await SelectItem(_results[_highlightedIndex]);
+                return;
+            }
+
+            var trimmedSearch = _searchText.Trim();
+            if (trimmedSearch.Length < MinLength)
+            {
+                return;
+            }
+
+            if (!TryGetExactMatch(trimmedSearch, out var exactMatch))
+            {
+                if (!_isSearching && _results.Count == 0)
+                {
+                    var results = await SearchAsync(trimmedSearch);
+                    _results = results ?? new List<TItem>();
+                }
+
+                if (!TryGetExactMatch(trimmedSearch, out exactMatch))
+                {
+                    return;
+                }
+            }
+
+            await SelectItem(exactMatch);
+        }
+    }
+
+    private async Task HandleBlur(FocusEventArgs _)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+
+        if (_suppressBlurSelection)
+        {
+            _suppressBlurSelection = false;
+            return;
+        }
+
+        var trimmedSearch = _searchText.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedSearch))
+        {
+            _showDropdown = false;
+            _highlightedIndex = -1;
+            return;
+        }
+
+        if (trimmedSearch.Length >= MinLength && !_isSearching && _results.Count == 0)
+        {
+            var results = await SearchAsync(trimmedSearch);
+            _results = results ?? new List<TItem>();
+        }
+
+        if (TryGetExactMatch(trimmedSearch, out var exactMatch))
+        {
+            await SelectItem(exactMatch);
+            return;
+        }
+
+        _showDropdown = false;
+        _highlightedIndex = -1;
+    }
+
+    private void SuppressBlurSelection()
+    {
+        _suppressBlurSelection = true;
+    }
+
+    private bool TryGetExactMatch(string trimmedSearch, out TItem exactMatch)
+    {
+        foreach (var item in _results)
+        {
+            if (string.Equals(DisplaySelector(item).Trim(), trimmedSearch, StringComparison.OrdinalIgnoreCase))
+            {
+                exactMatch = item;
+                return true;
+            }
+        }
+
+        exactMatch = default!;
+        return false;
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        _searchText = DisplaySelector(item);
+        _results.Clear();
+        _showDropdown = false;
+        _isSearching = false;
+        _highlightedIndex = -1;
+
+        await OnSelected.InvokeAsync(item);
+    }
+}
