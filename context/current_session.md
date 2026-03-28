@@ -478,3 +478,37 @@ Result:
 - Validation: Not run (file restore only).
 - Follow-ups:
   - None.
+
+---
+
+## Session Update (2026-03-28) - SDD Apply: veamos-en-que-punto-estamos
+
+- Scope: Execute stabilization apply phase with validation gates, migration safety rehearsal, and traceability synchronization.
+- Files changed:
+  - `SPC.API/Endpoints/SucursalesEndpoints.cs`
+  - `docs/pr-checklist.md`
+  - `context/current_session.md`
+  - `context/session_2026-03.md`
+  - `MIGRATION_INSTRUCTIONS_DocumentTypes.md`
+- Architectural impact:
+  - Architecture guard reinforced by removing endpoint-to-DbContext shortcut in legacy branches endpoint and delegating to `IAuxiliaryTablesService`.
+  - No public contract expansion; existing routes remain unchanged.
+- TDD/tests:
+  - Regression evidence executed for invoices/quotes/credit/debit endpoint suites and current-account unit suite.
+- Validation:
+  - `dotnet build SPC.slnx` -> PASS (0 errors, 0 warnings) before final endpoint guard refactor.
+  - `dotnet test SPC.slnx --verbosity minimal` -> PASS (236/236) before final endpoint guard refactor.
+  - `dotnet build SPC.slnx -c Release` -> PASS (0 errors, 0 warnings) after final endpoint guard refactor.
+  - `dotnet test SPC.slnx -c Release --verbosity minimal` -> PASS (236/236) after final endpoint guard refactor.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj --filter "FullyQualifiedName~InvoicesEndpointsTests"` -> PASS.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj --filter "FullyQualifiedName~QuotesEndpointsTests"` -> PASS.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj --filter "FullyQualifiedName~CreditNotesEndpointsTests"` -> PASS.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj --filter "FullyQualifiedName~DebitNotesEndpointsTests"` -> PASS.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj --filter "FullyQualifiedName~CurrentAccountServiceTests"` -> PASS (23/23).
+  - `dotnet ef database update 20260320000032_SplitServicesCQRSLite --project SPC.API --startup-project SPC.API` -> PASS.
+  - `dotnet ef database update 20260311102049_InitialCreate --project SPC.API --startup-project SPC.API` -> PASS (rollback).
+  - Re-apply migration to `20260320000032_SplitServicesCQRSLite` -> PASS.
+- Follow-ups:
+  - Commit slicing remains pending (traceability matrix uses placeholder commit hash until user performs commits).
+  - Seeded staging migration rehearsal still recommended before merge.
+  - Debug build can fail while local `SPC.API`/`SPC.Web` processes are running and locking output binaries.

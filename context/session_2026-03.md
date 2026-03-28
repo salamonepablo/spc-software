@@ -282,3 +282,38 @@
 - Tests updated: No.
 - Validation: Not run (file restore only).
 - Follow-ups: None.
+
+## 2026-03-28 - SDD Apply (veamos-en-que-punto-estamos)
+
+- Scope: Execute stabilization apply gates for current WIP, capture migration safety evidence, and sync traceability artifacts.
+- Files changed:
+  - SPC.API/Endpoints/SucursalesEndpoints.cs
+  - docs/pr-checklist.md
+  - context/current_session.md
+  - context/session_2026-03.md
+  - MIGRATION_INSTRUCTIONS_DocumentTypes.md
+- Architectural impact:
+  - Removed direct `SPCDbContext` dependency from legacy branches endpoint; endpoint now delegates to `IAuxiliaryTablesService` (Clean Architecture guard).
+  - Public API behavior kept frozen; no route contract expansion.
+- TDD/tests evidence:
+  - Full suite: `dotnet test SPC.slnx --verbosity minimal` passed (236/236).
+  - Targeted regression gates passed:
+    - `InvoicesEndpointsTests` (11/11)
+    - `QuotesEndpointsTests` (12/12)
+    - `CreditNotesEndpointsTests` (7/7)
+    - `DebitNotesEndpointsTests` (5/5)
+    - `CurrentAccountServiceTests` (23/23)
+- Migration safety evidence:
+  - Apply target migration passed:
+    - `dotnet ef database update 20260320000032_SplitServicesCQRSLite --project SPC.API --startup-project SPC.API`
+  - Rollback to previous migration passed:
+    - `dotnet ef database update 20260311102049_InitialCreate --project SPC.API --startup-project SPC.API`
+  - Re-apply target migration passed (final state restored).
+- Validation:
+  - `dotnet build SPC.slnx` passed before final endpoint guard refactor.
+  - `dotnet build SPC.slnx -c Release` passed (0 errors, 0 warnings) after final endpoint guard refactor.
+  - `dotnet test SPC.slnx -c Release --verbosity minimal` passed (236/236) after final endpoint guard refactor.
+- Follow-ups:
+  - Commit hashes remain `pending-uncommitted-worktree` in traceability matrix until user-defined commit slicing.
+  - Run seeded staging migration rehearsal before merge for stronger operational confidence.
+  - Debug build can fail while local API/Web processes are running and locking Debug binaries.

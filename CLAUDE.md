@@ -1,14 +1,19 @@
 # SPC - AI Assistant Context
 
-This project uses **AGENTS.md** as the primary context file for AI assistants.
+This repository uses AGENTS.md as the primary orchestration source.
 
-Please read **AGENTS.md** for complete project context, architecture, and guidelines.
+Read first:
+- AGENTS.md
+- context/current_session.md
 
----
+If a task is medium/high impact, update session logs before closing the task.
 
-## Quick Links
-
-- [AGENTS.md](./AGENTS.md) - Complete project documentation
-- [README.md](./README.md) - Project overview
-- [CHANGELOG.md](./CHANGELOG.md) - Version history
-- [context/session_2026-03-08.md](./context/session_2026-03-08.md) - Today's session details
+Quick links:
+- AGENTS.md
+- README.md
+- CHANGELOG.md
+- context/current_session.md
+- context/session_2026-03.md
+- context/session_entry_template.md
+- docs/pr-checklist.md
+- AGENTS_BILINGUAL.md
