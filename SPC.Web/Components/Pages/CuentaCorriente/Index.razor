@@ -1,0 +1,310 @@
+@page "/cuenta-corriente"
+@page "/current-account"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@rendermode InteractiveServer
+
+<PageTitle>Cuenta Corriente - SPC</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Cuenta Corriente</h3>
+    </div>
+
+    @* Customer selector *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Seleccionar Cliente</label>
+                    <TypeaheadInput TItem="CustomerDto"
+                                    SearchAsync="SearchCustomers"
+                                    DisplaySelector="@(c => $"{c.Id} - {c.CompanyName}")"
+                                    OnSelected="HandleCustomerSelected"
+                                    Placeholder="Buscar por codigo o razon social..."
+                                    MinLength="1" />
+                </div>
+                @if (selectedCustomer != null)
+                {
+                    <div class="col-md-6">
+                        <div class="mt-4">
+                            <strong>@selectedCustomer.CompanyName</strong>
+                            @if (!string.IsNullOrEmpty(selectedCustomer.CUIT))
+                            {
+                                <span class="text-muted ms-2">CUIT: @selectedCustomer.CUIT</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando cuenta corriente..." />
+    }
+    else if (selectedCustomer == null)
+    {
+        <div class="alert alert-info">
+            Seleccione un cliente para ver su cuenta corriente.
+        </div>
+    }
+    else if (account == null)
+    {
+        <div class="alert alert-warning">
+            El cliente no tiene movimientos en su cuenta corriente.
+        </div>
+    }
+    else
+    {
+        @* Balance cards *@
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card @(account.BillingBalance >= 0 ? "bg-success" : "bg-danger") text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Facturacion (L1)</h6>
+                        <h3 class="mb-0 text-nowrap">@account.BillingBalance.ToString("C2")</h3>
+                        <small>Facturas, NC, ND, Pagos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card @(account.BudgetBalance >= 0 ? "bg-info" : "bg-warning") text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Presupuestos (L2)</h6>
+                        <h3 class="mb-0 text-nowrap">@account.BudgetBalance.ToString("C2")</h3>
+                        <small>Presupuestos, Pagos Ppto</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card @(account.TotalBalance >= 0 ? "bg-primary" : "bg-danger") text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Saldo Total</h6>
+                        <h3 class="mb-0 text-nowrap">@account.TotalBalance.ToString("C2")</h3>
+                        <small>L1 + L2</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Filters *@
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Desde</label>
+                        <input type="date" class="form-control" @bind="dateFrom" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hasta</label>
+                        <input type="date" class="form-control" @bind="dateTo" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Linea</label>
+                        <select class="form-select" @bind="lineFilter">
+                            <option value="">Todas</option>
+                            <option value="1">Facturacion (L1)</option>
+                            <option value="2">Presupuestos (L2)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" @onclick="ApplyFilters">
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Movements table *@
+        @if (movements == null || movements.Movements.Count == 0)
+        {
+            <div class="alert alert-info">
+                No se encontraron movimientos con los filtros seleccionados.
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Movimientos</span>
+                    <span class="text-muted">@movements.TotalCount movimientos</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Numero</th>
+                                    <th class="text-end">Fact. (L1)</th>
+                                    <th class="text-end">Ppto (L2)</th>
+                                    <th class="text-end">Saldo L1</th>
+                                    <th class="text-end">Saldo L2</th>
+                                    <th>Descripcion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var mov in movements.Movements)
+                                {
+                                    <tr>
+                                        <td>@mov.MovementDate.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <span class="badge @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
+                                                @mov.DocumentType
+                                            </span>
+                                        </td>
+                                        <td><code>@mov.DocumentNumber</code></td>
+                                        <td class="text-end text-nowrap @(mov.BillingAmount < 0 ? "text-success" : mov.BillingAmount > 0 ? "text-danger" : "")">
+                                            @if (mov.BillingAmount != 0)
+                                            {
+                                                @mov.BillingAmount.ToString("C2")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap @(mov.BudgetAmount < 0 ? "text-success" : mov.BudgetAmount > 0 ? "text-info" : "")">
+                                            @if (mov.BudgetAmount != 0)
+                                            {
+                                                @mov.BudgetAmount.ToString("C2")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">@mov.BillingRunningBalance.ToString("C2")</td>
+                                        <td class="text-end text-nowrap">@mov.BudgetRunningBalance.ToString("C2")</td>
+                                        <td><small>@(mov.Description ?? "-")</small></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @if (movements.Movements.Count < movements.TotalCount)
+                {
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Mostrando @movements.Movements.Count de @movements.TotalCount</span>
+                            <button class="btn btn-outline-primary" @onclick="LoadMore">
+                                Cargar mas...
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private CustomerDto? selectedCustomer;
+    private CurrentAccountDto? account;
+    private CurrentAccountMovementsDto? movements;
+    private bool loading;
+
+    // Filters
+    private DateTime? dateFrom;
+    private DateTime? dateTo;
+    private string lineFilter = "";
+    private int pageSize = 50;
+    private int currentSkip = 0;
+
+    private async Task<List<CustomerDto>> SearchCustomers(string term)
+    {
+        return await Api.SearchCustomersAsync(term);
+    }
+
+    private async Task HandleCustomerSelected(CustomerDto customer)
+    {
+        selectedCustomer = customer;
+        currentSkip = 0;
+        await LoadAccountData();
+    }
+
+    private async Task LoadAccountData()
+    {
+        if (selectedCustomer == null) return;
+
+        loading = true;
+        try
+        {
+            var accountTask = Api.GetCurrentAccountAsync(selectedCustomer.Id);
+            var movementsTask = Api.GetCurrentAccountMovementsAsync(
+                selectedCustomer.Id,
+                dateFrom,
+                dateTo,
+                string.IsNullOrEmpty(lineFilter) ? null : int.Parse(lineFilter),
+                0,
+                pageSize);
+
+            await Task.WhenAll(accountTask, movementsTask);
+
+            account = await accountTask;
+            movements = await movementsTask;
+            currentSkip = movements?.Movements.Count ?? 0;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentSkip = 0;
+        await LoadAccountData();
+    }
+
+    private async Task LoadMore()
+    {
+        if (selectedCustomer == null || movements == null) return;
+
+        var more = await Api.GetCurrentAccountMovementsAsync(
+            selectedCustomer.Id,
+            dateFrom,
+            dateTo,
+            string.IsNullOrEmpty(lineFilter) ? null : int.Parse(lineFilter),
+            currentSkip,
+            pageSize);
+
+        if (more != null && more.Movements.Count > 0)
+        {
+            movements.Movements.AddRange(more.Movements);
+            currentSkip += more.Movements.Count;
+        }
+    }
+
+    private string GetDocumentTypeBadgeClass(int documentTypeCode)
+    {
+        // Billing documents (100s) - blue
+        // Budget documents (120s) - teal
+        // Payments (30s, 108, 122) - green
+        // Credit notes - success
+        // Debit notes - warning
+        // Voids - danger
+        return documentTypeCode switch
+        {
+            101 or 102 => "bg-primary",      // Invoice A/B
+            103 or 104 => "bg-success",      // Credit Note A/B
+            105 or 106 => "bg-warning",      // Debit Note A/B
+            108 => "bg-success",             // Payment Billing
+            109 => "bg-danger",              // Payment Void Billing
+            20 => "bg-info",                 // Quote
+            121 => "bg-danger",              // Quote Void
+            122 => "bg-success",             // Payment Budget
+            123 => "bg-danger",              // Payment Void Budget
+            124 or 125 => "bg-warning",      // Internal Debit A/B
+            30 or 31 => "bg-success",        // Payment/Receipt
+            _ => "bg-secondary"
+        };
+    }
+}
