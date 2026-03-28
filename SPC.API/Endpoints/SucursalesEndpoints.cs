@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using SPC.API.Data;
-using SPC.Shared.Models;
+using SPC.API.Services;
 
 namespace SPC.API.Endpoints;
 
@@ -11,10 +9,9 @@ public static class BranchesEndpoints
         app.MapGet("/api/sucursales", GetBranches);
     }
 
-    private static async Task<IResult> GetBranches(SPCDbContext db)
+    private static async Task<IResult> GetBranches(IAuxiliaryTablesService auxiliaryTablesService)
     {
-        var sucursales = await db.Branches
-            .Where(b => b.IsActive)
+        var sucursales = (await auxiliaryTablesService.GetBranchesAsync())
             .Select(b => new
             {
                 b.Id,
@@ -22,7 +19,7 @@ public static class BranchesEndpoints
                 b.Name,
                 b.PointOfSale
             })
-            .ToListAsync();
+            .ToList();
 
         return Results.Ok(sucursales);
     }
