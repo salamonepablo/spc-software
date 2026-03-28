@@ -71,3 +71,17 @@ appsettings.*.local.json
 
 # Agent Teams Lite (SDD session artifacts)
 .atl/
+
+# Temporary utility scripts
+CheckPrices.ps1
+MigratePrices.ps1
+ShowColumns.ps1
+ShowData.ps1
+ShowTables.ps1
+
+# Work-in-progress notes
+sdd-tasks-*.md
+MIGRATION_INSTRUCTIONS_*.md
+
+# Windows null device artifact
+nul
