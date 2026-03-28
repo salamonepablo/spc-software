@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.API.Contracts.CreditNotes;
 
@@ -63,10 +63,10 @@ public record CreateCreditNoteDetalleRequest
     
     /// <summary>Quantity</summary>
     [Required]
-    [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
+    [Range(0.01, 999999.99, ErrorMessage = "La Quantity debe ser mayor a 0")]
     public decimal Quantity { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioInvoice)</summary>
+    /// <summary>Unit price (if null, uses product's InvoicePrice)</summary>
     public decimal? UnitPrice { get; init; }
     
     /// <summary>Line-level discount percentage</summary>

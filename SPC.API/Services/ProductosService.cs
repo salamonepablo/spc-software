@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SPC.API.Contracts.Products;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -22,8 +22,8 @@ public class ProductsService : IProductsService
         var productos = await _db.Products
             .Include(p => p.Category)
             .Include(p => p.UnitOfMeasure)
-            .Where(p => p.Activo)
-            .OrderBy(p => p.Descripcion)
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Description)
             .ToListAsync();
 
         return productos.Select(MapToResponse);
@@ -39,13 +39,14 @@ public class ProductsService : IProductsService
         return producto != null ? MapToResponse(producto) : null;
     }
 
-    public async Task<IEnumerable<ProductResponse>> SearchAsync(string descripcion)
+    public async Task<IEnumerable<ProductResponse>> SearchAsync(string Description)
     {
         var productos = await _db.Products
             .Include(p => p.Category)
-            .Where(p => p.Activo &&
-                   (p.Descripcion.Contains(descripcion) || p.Codigo.Contains(descripcion)))
-            .OrderBy(p => p.Descripcion)
+            .Where(p => p.IsActive &&
+                   (p.Description.Contains(Description) || p.Code.Contains(Description)))
+            .OrderBy(p => p.Description)
+            .Take(20)
             .ToListAsync();
 
         return productos.Select(MapToResponse);
@@ -55,17 +56,17 @@ public class ProductsService : IProductsService
     {
         var producto = new Product
         {
-            Codigo = request.Codigo,
-            Descripcion = request.Descripcion,
-            CodigoProveedor = request.CodigoProveedor,
+            Code = request.Code,
+            Description = request.Description,
+            SupplierCode = request.SupplierCode,
             CategoryId = request.CategoryId,
             UnitOfMeasureId = request.UnitOfMeasureId,
-            PrecioVenta = request.PrecioVenta,
-            PrecioCosto = request.PrecioCosto,
-            PorcentajeIVA = request.PorcentajeIVA,
-            StockMinimo = request.StockMinimo,
-            Observaciones = request.Observaciones,
-            Activo = true
+            SalePrice = request.SalePrice,
+            CostPrice = request.CostPrice,
+            VATPercent = request.VATPercent,
+            MinimumStock = request.MinimumStock,
+            Notes = request.Notes,
+            IsActive = true
         };
 
         _db.Products.Add(producto);
@@ -86,16 +87,16 @@ public class ProductsService : IProductsService
             return null;
 
         // Update properties
-        producto.Codigo = request.Codigo;
-        producto.Descripcion = request.Descripcion;
-        producto.CodigoProveedor = request.CodigoProveedor;
+        producto.Code = request.Code;
+        producto.Description = request.Description;
+        producto.SupplierCode = request.SupplierCode;
         producto.CategoryId = request.CategoryId;
         producto.UnitOfMeasureId = request.UnitOfMeasureId;
-        producto.PrecioVenta = request.PrecioVenta;
-        producto.PrecioCosto = request.PrecioCosto;
-        producto.PorcentajeIVA = request.PorcentajeIVA;
-        producto.StockMinimo = request.StockMinimo;
-        producto.Observaciones = request.Observaciones;
+        producto.SalePrice = request.SalePrice;
+        producto.CostPrice = request.CostPrice;
+        producto.VATPercent = request.VATPercent;
+        producto.MinimumStock = request.MinimumStock;
+        producto.Notes = request.Notes;
 
         await _db.SaveChangesAsync();
 
@@ -114,7 +115,7 @@ public class ProductsService : IProductsService
             return false;
 
         // Soft delete
-        producto.Activo = false;
+        producto.IsActive = false;
         await _db.SaveChangesAsync();
 
         return true;
@@ -128,20 +129,22 @@ public class ProductsService : IProductsService
         return new ProductResponse
         {
             Id = producto.Id,
-            Codigo = producto.Codigo,
-            Descripcion = producto.Descripcion,
-            CodigoProveedor = producto.CodigoProveedor,
-            PrecioVenta = producto.PrecioVenta,
-            PrecioCosto = producto.PrecioCosto,
-            PorcentajeIVA = producto.PorcentajeIVA,
-            StockMinimo = producto.StockMinimo,
-            Observaciones = producto.Observaciones,
-            Activo = producto.Activo,
+            Code = producto.Code,
+            Description = producto.Description,
+            SupplierCode = producto.SupplierCode,
+            SalePrice = producto.SalePrice,
+            CostPrice = producto.CostPrice,
+            InvoicePrice = producto.InvoicePrice,
+            QuotePrice = producto.QuotePrice,
+            VATPercent = producto.VATPercent,
+            MinimumStock = producto.MinimumStock,
+            Notes = producto.Notes,
+            IsActive = producto.IsActive,
             CategoryId = producto.CategoryId,
-            CategoryNombre = producto.Category?.Nombre,
+            CategoryName = producto.Category?.Name,
             UnitOfMeasureId = producto.UnitOfMeasureId,
-            UnitOfMeasureNombre = producto.UnitOfMeasure?.Nombre,
-            UnitOfMeasureCodigo = producto.UnitOfMeasure?.Codigo
+            UnitOfMeasureName = producto.UnitOfMeasure?.Name,
+            UnitOfMeasureCode = producto.UnitOfMeasure?.Code
         };
     }
 }

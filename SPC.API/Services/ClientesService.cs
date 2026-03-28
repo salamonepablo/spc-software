@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SPC.API.Contracts.Customers;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -17,14 +17,34 @@ public class CustomersService : ICustomersService
         _db = db;
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await _db.Customers.CountAsync(c => c.IsActive);
+    }
+
     public async Task<IEnumerable<CustomerResponse>> GetAllAsync()
     {
         var clientes = await _db.Customers
             .Include(c => c.TaxCondition)
             .Include(c => c.SalesRep)
             .Include(c => c.SalesZone)
-            .Where(c => c.Activo)
-            .OrderBy(c => c.RazonSocial)
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.CompanyName)
+            .ToListAsync();
+
+        return clientes.Select(MapToResponse);
+    }
+
+    public async Task<IEnumerable<CustomerResponse>> GetPagedAsync(int skip, int take)
+    {
+        var clientes = await _db.Customers
+            .Include(c => c.TaxCondition)
+            .Include(c => c.SalesRep)
+            .Include(c => c.SalesZone)
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.CompanyName)
+            .Skip(skip)
+            .Take(take)
             .ToListAsync();
 
         return clientes.Select(MapToResponse);
@@ -43,16 +63,17 @@ public class CustomersService : ICustomersService
 
     public async Task<IEnumerable<CustomerResponse>> SearchAsync(string termino)
     {
-        // Try to parse as Id (codigo de cliente)
+        // Try to parse as Id (Code de cliente)
         int.TryParse(termino, out var clienteId);
         
         var clientes = await _db.Customers
             .Include(c => c.TaxCondition)
-            .Where(c => c.Activo &&
+            .Where(c => c.IsActive &&
                    (c.Id == clienteId ||
-                    c.RazonSocial.Contains(termino) ||
-                    (c.NombreFantasia != null && c.NombreFantasia.Contains(termino))))
-            .OrderBy(c => c.RazonSocial)
+                    c.CompanyName.Contains(termino) ||
+                    (c.TradeName != null && c.TradeName.Contains(termino))))
+            .OrderBy(c => c.CompanyName)
+            .Take(20)
             .ToListAsync();
 
         return clientes.Select(MapToResponse);
@@ -62,24 +83,24 @@ public class CustomersService : ICustomersService
     {
         var cliente = new Customer
         {
-            RazonSocial = request.RazonSocial,
-            NombreFantasia = request.NombreFantasia,
+            CompanyName = request.CompanyName,
+            TradeName = request.TradeName,
             CUIT = request.CUIT,
-            Direccion = request.Direccion,
-            Localidad = request.Localidad,
-            Provincia = request.Provincia,
-            CodigoPostal = request.CodigoPostal,
-            Telefono = request.Telefono,
-            Celular = request.Celular,
+            Address = request.Address,
+            City = request.City,
+            Province = request.Province,
+            PostalCode = request.PostalCode,
+            Phone = request.Phone,
+            Mobile = request.Mobile,
             Email = request.Email,
             TaxConditionId = request.TaxConditionId,
             SalesRepId = request.SalesRepId,
             SalesZoneId = request.SalesZoneId,
-            PorcentajeDescuento = request.PorcentajeDescuento,
-            LimiteCredito = request.LimiteCredito,
-            Observaciones = request.Observaciones,
-            FechaAlta = DateTime.Now,
-            Activo = true
+            DiscountPercent = request.DiscountPercent,
+            CreditLimit = request.CreditLimit,
+            Notes = request.Notes,
+            CreatedDate = DateTime.Now,
+            IsActive = true
         };
 
         _db.Customers.Add(cliente);
@@ -101,22 +122,22 @@ public class CustomersService : ICustomersService
             return null;
 
         // Update properties
-        cliente.RazonSocial = request.RazonSocial;
-        cliente.NombreFantasia = request.NombreFantasia;
+        cliente.CompanyName = request.CompanyName;
+        cliente.TradeName = request.TradeName;
         cliente.CUIT = request.CUIT;
-        cliente.Direccion = request.Direccion;
-        cliente.Localidad = request.Localidad;
-        cliente.Provincia = request.Provincia;
-        cliente.CodigoPostal = request.CodigoPostal;
-        cliente.Telefono = request.Telefono;
-        cliente.Celular = request.Celular;
+        cliente.Address = request.Address;
+        cliente.City = request.City;
+        cliente.Province = request.Province;
+        cliente.PostalCode = request.PostalCode;
+        cliente.Phone = request.Phone;
+        cliente.Mobile = request.Mobile;
         cliente.Email = request.Email;
         cliente.TaxConditionId = request.TaxConditionId;
         cliente.SalesRepId = request.SalesRepId;
         cliente.SalesZoneId = request.SalesZoneId;
-        cliente.PorcentajeDescuento = request.PorcentajeDescuento;
-        cliente.LimiteCredito = request.LimiteCredito;
-        cliente.Observaciones = request.Observaciones;
+        cliente.DiscountPercent = request.DiscountPercent;
+        cliente.CreditLimit = request.CreditLimit;
+        cliente.Notes = request.Notes;
 
         await _db.SaveChangesAsync();
 
@@ -136,7 +157,7 @@ public class CustomersService : ICustomersService
             return false;
 
         // Soft delete
-        cliente.Activo = false;
+        cliente.IsActive = false;
         await _db.SaveChangesAsync();
 
         return true;
@@ -150,31 +171,31 @@ public class CustomersService : ICustomersService
         return new CustomerResponse
         {
             Id = cliente.Id,
-            RazonSocial = cliente.RazonSocial,
-            NombreFantasia = cliente.NombreFantasia,
+            CompanyName = cliente.CompanyName,
+            TradeName = cliente.TradeName,
             CUIT = cliente.CUIT,
-            Direccion = cliente.Direccion,
-            Localidad = cliente.Localidad,
-            Provincia = cliente.Provincia,
-            CodigoPostal = cliente.CodigoPostal,
-            Telefono = cliente.Telefono,
-            Celular = cliente.Celular,
+            Address = cliente.Address,
+            City = cliente.City,
+            Province = cliente.Province,
+            PostalCode = cliente.PostalCode,
+            Phone = cliente.Phone,
+            Mobile = cliente.Mobile,
             Email = cliente.Email,
-            PorcentajeDescuento = cliente.PorcentajeDescuento,
-            LimiteCredito = cliente.LimiteCredito,
-            Observaciones = cliente.Observaciones,
-            Activo = cliente.Activo,
-            FechaAlta = cliente.FechaAlta,
+            DiscountPercent = cliente.DiscountPercent,
+            CreditLimit = cliente.CreditLimit,
+            Notes = cliente.Notes,
+            IsActive = cliente.IsActive,
+            CreatedDate = cliente.CreatedDate,
             TaxConditionId = cliente.TaxConditionId,
-            TaxConditionDescripcion = cliente.TaxCondition?.Descripcion,
-            TaxConditionCodigo = cliente.TaxCondition?.Codigo,
-            TipoInvoice = cliente.TaxCondition?.TipoInvoice,
-            AlicuotaIIBB = cliente.AlicuotaIIBB,
-            ProvinciaPadronIIBB = cliente.ProvinciaPadronIIBB,
+            TaxConditionDescription = cliente.TaxCondition?.Description,
+            TaxConditionCode = cliente.TaxCondition?.Code,
+            InvoiceType = cliente.TaxCondition?.InvoiceType,
+            IIBBPercent = cliente.IIBBPercent,
+            IIBBRegistryProvince = cliente.IIBBRegistryProvince,
             SalesRepId = cliente.SalesRepId,
-            SalesRepNombre = cliente.SalesRep?.Nombre,
+            SalesRepFirstName = cliente.SalesRep?.FirstName,
             SalesZoneId = cliente.SalesZoneId,
-            SalesZoneNombre = cliente.SalesZone?.Nombre
+            SalesZoneName = cliente.SalesZone?.Name
         };
     }
 }

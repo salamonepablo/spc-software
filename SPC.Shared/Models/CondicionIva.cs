@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Condición ante IVA - Responsable Inscripto, Monotributo, etc.
+/// Tax condition - Responsable Inscripto, Monotributo, etc.
 /// </summary>
 public class TaxCondition
 {
@@ -11,16 +11,16 @@ public class TaxCondition
     
     [Required]
     [StringLength(5)]
-    public string Codigo { get; set; } = "";  // RI, MO, CF, EX, etc.
+    public string Code { get; set; } = "";  // RI, MO, CF, EX, etc.
     
     [Required]
     [StringLength(100)]
-    public string Descripcion { get; set; } = "";  // Responsable Inscripto, Monotributo, etc.
+    public string Description { get; set; } = "";  // Responsable Inscripto, Monotributo, etc.
     
-    // Tipo de factura que corresponde
+    /// <summary>Invoice type determined by this tax condition (A or B).</summary>
     [StringLength(1)]
-    public string TipoInvoice { get; set; } = "B";  // A o B
+    public string InvoiceType { get; set; } = "B";
     
-    // Navegación
+    // Navigation
     public List<Customer> Customers { get; set; } = new();
 }

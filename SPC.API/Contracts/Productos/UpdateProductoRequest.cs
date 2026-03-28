@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.API.Contracts.Products;
 
@@ -9,28 +9,28 @@ public class UpdateProductRequest
 {
     [Required]
     [StringLength(50)]
-    public string Codigo { get; set; } = "";
+    public string Code { get; set; } = "";
     
     [Required]
     [StringLength(300)]
-    public string Descripcion { get; set; } = "";
+    public string Description { get; set; } = "";
     
     [StringLength(100)]
-    public string? CodigoProveedor { get; set; }
+    public string? SupplierCode { get; set; }
     
     public int? CategoryId { get; set; }
     
     public int? UnitOfMeasureId { get; set; }
     
-    public decimal PrecioVenta { get; set; } = 0;
+    public decimal SalePrice { get; set; } = 0;
     
-    public decimal PrecioCosto { get; set; } = 0;
+    public decimal CostPrice { get; set; } = 0;
     
     [Range(0, 100)]
-    public decimal PorcentajeIVA { get; set; } = 21;
+    public decimal VATPercent { get; set; } = 21;
     
-    public int StockMinimo { get; set; } = 0;
+    public int MinimumStock { get; set; } = 0;
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
 }

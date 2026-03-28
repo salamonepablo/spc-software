@@ -3,65 +3,64 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// SalesRep / Representante de ventas.
-/// En Access era "Empleados" pero solo se usa para vendedores.
+/// Sales representative.
 /// </summary>
 public class SalesRep
 {
     public int Id { get; set; }
     
-    /// <summary>Codigo/Legajo del vendedor (PK original en Access)</summary>
+    /// <summary>Employee code (original PK in Access).</summary>
     [Required]
     [StringLength(20)]
-    public string Legajo { get; set; } = "";
+    public string EmployeeCode { get; set; } = "";
     
     [Required]
     [StringLength(100)]
-    public string Nombre { get; set; } = "";
+    public string FirstName { get; set; } = "";
     
     [StringLength(100)]
-    public string? Apellido { get; set; }
+    public string? LastName { get; set; }
     
     [StringLength(13)]
     public string? CUIL { get; set; }
     
     [StringLength(300)]
-    public string? Domicilio { get; set; }
+    public string? Address { get; set; }
     
     [StringLength(100)]
-    public string? Localidad { get; set; }
+    public string? City { get; set; }
     
     [StringLength(100)]
-    public string? Provincia { get; set; }
+    public string? Province { get; set; }
     
     [StringLength(10)]
-    public string? CodigoPostal { get; set; }
+    public string? PostalCode { get; set; }
     
     [StringLength(15)]
     public string? DNI { get; set; }
     
     [StringLength(50)]
-    public string? Telefono { get; set; }
+    public string? Phone { get; set; }
     
     [StringLength(50)]
-    public string? Celular { get; set; }
+    public string? Mobile { get; set; }
     
     [StringLength(200)]
     public string? Email { get; set; }
     
-    public DateTime? FechaNacimiento { get; set; }
+    public DateTime? DateOfBirth { get; set; }
     
-    public DateTime? FechaIngreso { get; set; }
+    public DateTime? HireDate { get; set; }
     
     [Range(0, 100)]
-    public decimal PorcentajeComision { get; set; } = 0;
+    public decimal CommissionPercent { get; set; } = 0;
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
     
-    public bool Activo { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     
-    // Navegacion
+    // Navigation
     public List<Customer> Customers { get; set; } = new();
-    public List<Warehouse> WarehousesAsignados { get; set; } = new();
+    public List<Warehouse> AssignedWarehouses { get; set; } = new();
 }

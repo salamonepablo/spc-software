@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SPC.Shared.Models;
 
 namespace SPC.API.Data;
@@ -63,15 +63,16 @@ public class SPCDbContext : DbContext
     // ===========================================
     
     public DbSet<Branch> Branches => Set<Branch>();
-    public DbSet<TaxCondition> CondicionesIva => Set<TaxCondition>();
-    public DbSet<SalesRep> SalesRepes => Set<SalesRep>();
-    public DbSet<SalesZone> ZonasVenta => Set<SalesZone>();
-    public DbSet<Category> Categorys => Set<Category>();
-    public DbSet<UnitOfMeasure> UnidadesMedida => Set<UnitOfMeasure>();
+    public DbSet<TaxCondition> TaxConditions => Set<TaxCondition>();
+    public DbSet<SalesRep> SalesReps => Set<SalesRep>();
+    public DbSet<SalesZone> SalesZones => Set<SalesZone>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
     public DbSet<TaxSetting> TaxSettings => Set<TaxSetting>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<DocumentTypeMaster> DocumentTypes => Set<DocumentTypeMaster>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,24 +82,24 @@ public class SPCDbContext : DbContext
         
         modelBuilder.Entity<Customer>(entity =>
         {
-            entity.Property(c => c.LimiteCredito).HasPrecision(18, 2);
-            entity.Property(c => c.PorcentajeDescuento).HasPrecision(5, 2);
-            entity.Property(c => c.AlicuotaIIBB).HasPrecision(5, 2);
+            entity.Property(c => c.CreditLimit).HasPrecision(18, 2);
+            entity.Property(c => c.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(c => c.IIBBPercent).HasPrecision(5, 2);
         });
 
         modelBuilder.Entity<SalesRep>(entity =>
         {
-            entity.Property(v => v.PorcentajeComision).HasPrecision(5, 2);
-            entity.HasIndex(v => v.Legajo).IsUnique();
+            entity.Property(v => v.CommissionPercent).HasPrecision(5, 2);
+            entity.HasIndex(v => v.EmployeeCode).IsUnique();
         });
 
         // Invoices
         modelBuilder.Entity<Invoice>(entity =>
         {
-            entity.Property(f => f.PorcentajeIVA).HasPrecision(5, 2);
-            entity.Property(f => f.AlicuotaIIBB).HasPrecision(5, 2);
-            entity.Property(f => f.PorcentajeDescuento).HasPrecision(5, 2);
-            entity.Property(f => f.ImporteDescuento).HasPrecision(18, 2);
+            entity.Property(f => f.VATPercent).HasPrecision(5, 2);
+            entity.Property(f => f.IIBBPercent).HasPrecision(5, 2);
+            entity.Property(f => f.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(f => f.DiscountAmount).HasPrecision(18, 2);
         });
 
         // Quotes
@@ -224,7 +225,7 @@ public class SPCDbContext : DbContext
         // DeliveryNote details
         modelBuilder.Entity<DeliveryNoteDetail>(entity =>
         {
-            entity.Property(d => d.Cantidad).HasPrecision(18, 2);
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<CasualDeliveryNoteDetail>(entity =>
@@ -241,7 +242,7 @@ public class SPCDbContext : DbContext
             .IsUnique();
         
         modelBuilder.Entity<Invoice>()
-            .HasIndex(f => new { f.TipoInvoice, f.PuntoVenta, f.NumeroInvoice })
+            .HasIndex(f => new { f.InvoiceType, f.PointOfSale, f.InvoiceNumber })
             .IsUnique();
 
         modelBuilder.Entity<Quote>()
@@ -265,7 +266,7 @@ public class SPCDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<DeliveryNote>()
-            .HasIndex(r => new { r.BranchId, r.NumeroDeliveryNote })
+            .HasIndex(r => new { r.BranchId, r.DeliveryNoteNumber })
             .IsUnique();
 
         modelBuilder.Entity<Branch>()
@@ -302,7 +303,7 @@ public class SPCDbContext : DbContext
 
         modelBuilder.Entity<InvoiceDetail>()
             .HasOne(d => d.Invoice)
-            .WithMany(f => f.Detalles)
+            .WithMany(f => f.Details)
             .HasForeignKey(d => d.InvoiceId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -344,34 +345,34 @@ public class SPCDbContext : DbContext
         
         // Condiciones IVA
         modelBuilder.Entity<TaxCondition>().HasData(
-            new TaxCondition { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoInvoice = "A" },
-            new TaxCondition { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoInvoice = "B" },
-            new TaxCondition { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoInvoice = "B" },
-            new TaxCondition { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoInvoice = "B" }
+            new TaxCondition { Id = 1, Code = "RI", Description = "Responsable Inscripto", InvoiceType = "A" },
+            new TaxCondition { Id = 2, Code = "MO", Description = "Monotributo", InvoiceType = "B" },
+            new TaxCondition { Id = 3, Code = "CF", Description = "Consumidor Final", InvoiceType = "B" },
+            new TaxCondition { Id = 4, Code = "EX", Description = "Exento", InvoiceType = "B" }
         );
         
         // Unidades de Medida
         modelBuilder.Entity<UnitOfMeasure>().HasData(
-            new UnitOfMeasure { Id = 1, Codigo = "UN", Nombre = "Unidades" },
-            new UnitOfMeasure { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+            new UnitOfMeasure { Id = 1, Code = "UN", Name = "Unidades" },
+            new UnitOfMeasure { Id = 2, Code = "CJ", Name = "Cajas" }
         );
         
         // Warehouse principal
         modelBuilder.Entity<Warehouse>().HasData(
-            new Warehouse { Id = 1, Nombre = "Warehouse Principal", Activo = true }
+            new Warehouse { Id = 1, Name = "Warehouse Principal", IsActive = true }
         );
         
-        // Categorys
+        // Categories
         modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Nombre = "Baterias Auto", Activo = true },
-            new Category { Id = 2, Nombre = "Baterias Moto", Activo = true },
-            new Category { Id = 3, Nombre = "Baterias Camion", Activo = true },
-            new Category { Id = 4, Nombre = "Accesorios", Activo = true }
+            new Category { Id = 1, Name = "Baterias Auto", IsActive = true },
+            new Category { Id = 2, Name = "Baterias Moto", IsActive = true },
+            new Category { Id = 3, Name = "Baterias Camion", IsActive = true },
+            new Category { Id = 4, Name = "Accesorios", IsActive = true }
         );
 
         // Branches
         modelBuilder.Entity<Branch>().HasData(
-            new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesRepes)", PointOfSale = 2, IsActive = true },
+            new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesReps)", PointOfSale = 2, IsActive = true },
             new Branch { Id = 2, Code = "DISTRIB", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true }
         );
 
@@ -393,6 +394,16 @@ public class SPCDbContext : DbContext
             new TaxSetting { Id = 3, TaxCode = "VAT_EXEMPT", Description = "IVA Exento", Rate = 0.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
             new TaxSetting { Id = 4, TaxCode = "IIBB_BA", Description = "IIBB Buenos Aires", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
             new TaxSetting { Id = 5, TaxCode = "IIBB_CABA", Description = "IIBB CABA", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) }
+        );
+
+        // Document Types for Current Account
+        modelBuilder.Entity<DocumentTypeMaster>().HasData(
+            new DocumentTypeMaster { Id = 1, Code = "FA", Description = "Factura", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 2, Code = "NC", Description = "Nota de Crédito", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 3, Code = "ND", Description = "Nota de Débito", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 4, Code = "RE", Description = "Recibo", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 5, Code = "PR", Description = "Presupuesto", BalanceImpact = 1, IsBillingLine = false, IsActive = true },
+            new DocumentTypeMaster { Id = 6, Code = "NDI", Description = "Nota de Débito Interna", BalanceImpact = 1, IsBillingLine = false, IsActive = true }
         );
     }
 }

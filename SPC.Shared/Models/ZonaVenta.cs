@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Zona de Venta - Agrupación geográfica de clientes
+/// Sales zone - geographic grouping of customers.
 /// </summary>
 public class SalesZone
 {
@@ -11,13 +11,13 @@ public class SalesZone
     
     [Required]
     [StringLength(100)]
-    public string Nombre { get; set; } = "";
+    public string Name { get; set; } = "";
     
     [StringLength(300)]
-    public string? Descripcion { get; set; }
+    public string? Description { get; set; }
     
-    public bool Activa { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     
-    // Navegación
+    // Navigation
     public List<Customer> Customers { get; set; } = new();
 }

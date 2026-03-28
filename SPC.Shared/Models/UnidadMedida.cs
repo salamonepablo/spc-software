@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Unidad de Medida - Unidades, Cajas, etc.
+/// Unit of measure - Units, Boxes, etc.
 /// </summary>
 public class UnitOfMeasure
 {
@@ -11,12 +11,12 @@ public class UnitOfMeasure
     
     [Required]
     [StringLength(10)]
-    public string Codigo { get; set; } = "";  // UN, CJ, KG, etc.
+    public string Code { get; set; } = "";  // UN, CJ, KG, etc.
     
     [Required]
     [StringLength(50)]
-    public string Nombre { get; set; } = "";  // Unidades, Cajas, Kilogramos
+    public string Name { get; set; } = "";  // Unidades, Cajas, Kilogramos
     
-    // Navegación
+    // Navigation
     public List<Product> Products { get; set; } = new();
 }

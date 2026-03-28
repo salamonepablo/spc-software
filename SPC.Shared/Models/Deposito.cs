@@ -3,8 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Warehouse / Almacen.
-/// Puede ser un deposito fijo o una camioneta de vendedor.
+/// Warehouse. Can be a fixed warehouse or a sales rep delivery truck.
 /// </summary>
 public class Warehouse
 {
@@ -12,20 +11,20 @@ public class Warehouse
     
     [Required]
     [StringLength(100)]
-    public string Nombre { get; set; } = "";
+    public string Name { get; set; } = "";
     
     [StringLength(300)]
-    public string? Direccion { get; set; }
+    public string? Address { get; set; }
     
     /// <summary>
-    /// SalesRep asociado (para camionetas de reparto).
-    /// Si es null, es un deposito fijo.
+    /// Associated sales rep (for delivery trucks).
+    /// Null means it is a fixed warehouse.
     /// </summary>
-    public int? SalesRepAsociadoId { get; set; }
-    public SalesRep? SalesRepAsociado { get; set; }
+    public int? AssociatedSalesRepId { get; set; }
+    public SalesRep? AssociatedSalesRep { get; set; }
     
-    public bool Activo { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     
-    // Navegacion
+    // Navigation
     public List<Stock> Stocks { get; set; } = new();
 }

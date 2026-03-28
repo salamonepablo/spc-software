@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.API.Contracts.Invoices;
 
@@ -18,7 +18,7 @@ public record CreateInvoiceRequest
     /// <summary>Invoice type: A or B</summary>
     [Required]
     [StringLength(1)]
-    public string TipoInvoice { get; init; } = "B";
+    public string InvoiceType { get; init; } = "B";
     
     /// <summary>Customer ID</summary>
     [Required]
@@ -29,24 +29,24 @@ public record CreateInvoiceRequest
     
     /// <summary>Document-level discount percentage (can override customer default)</summary>
     [Range(0, 100)]
-    public decimal PorcentajeDescuento { get; init; } = 0;
+    public decimal DiscountPercent { get; init; } = 0;
     
     /// <summary>IIBB perception rate (optional)</summary>
     [Range(0, 100)]
-    public decimal AlicuotaIIBB { get; init; } = 0;
+    public decimal IIBBPercent { get; init; } = 0;
     
     /// <summary>Payment condition</summary>
     [StringLength(50)]
-    public string? CondicionVenta { get; init; }
+    public string? SalesCondition { get; init; }
     
     /// <summary>Notes/observations</summary>
     [StringLength(500)]
-    public string? Observaciones { get; init; }
+    public string? Notes { get; init; }
     
     /// <summary>Invoice line items</summary>
     [Required]
     [MinLength(1, ErrorMessage = "La factura debe tener al menos un item")]
-    public List<CreateInvoiceDetailRequest> Detalles { get; init; } = new();
+    public List<CreateInvoiceDetailRequest> Details { get; init; } = new();
 }
 
 /// <summary>
@@ -60,18 +60,18 @@ public record CreateInvoiceDetailRequest
     
     /// <summary>Quantity</summary>
     [Required]
-    [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
-    public decimal Cantidad { get; init; }
+    [Range(0.01, 999999.99, ErrorMessage = "La Quantity debe ser mayor a 0")]
+    public decimal Quantity { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioInvoice)</summary>
-    public decimal? PrecioUnitario { get; init; }
+    /// <summary>Unit price (if null, uses product's InvoicePrice)</summary>
+    public decimal? UnitPrice { get; init; }
     
     /// <summary>Line-level discount percentage</summary>
     [Range(0, 100)]
-    public decimal PorcentajeDescuento { get; init; } = 0;
+    public decimal DiscountPercent { get; init; } = 0;
     
-    /// <summary>VAT percentage (if null, uses product's PorcentajeIVA)</summary>
-    public decimal? PorcentajeIVA { get; init; }
+    /// <summary>VAT percentage (if null, uses product's VATPercent)</summary>
+    public decimal? VATPercent { get; init; }
 }
 
 /// <summary>
@@ -95,44 +95,44 @@ public record AnularInvoiceRequest
 public record InvoiceResponse
 {
     public int Id { get; init; }
-    public string TipoInvoice { get; init; } = "";
-    public int PuntoVenta { get; init; }
-    public long NumeroInvoice { get; init; }
+    public string InvoiceType { get; init; } = "";
+    public int PointOfSale { get; init; }
+    public long InvoiceNumber { get; init; }
     
     /// <summary>Formatted invoice number: A 0001-00001234</summary>
-    public string NumeroCompleto => $"{TipoInvoice} {PuntoVenta:D4}-{NumeroInvoice:D8}";
+    public string NumeroCompleto => $"{InvoiceType} {PointOfSale:D4}-{InvoiceNumber:D8}";
     
-    public DateTime FechaInvoice { get; init; }
+    public DateTime InvoiceDate { get; init; }
     
     public int CustomerId { get; init; }
-    public string CustomerRazonSocial { get; init; } = "";
+    public string CustomerCompanyName { get; init; } = "";
     public string? CustomerCUIT { get; init; }
     
     public int? SalesRepId { get; init; }
-    public string? SalesRepNombre { get; init; }
+    public string? SalesRepFirstName { get; init; }
     
     public decimal Subtotal { get; init; }
     
     /// <summary>IVA discriminado (Invoice A). En Invoice B es 0.</summary>
-    public decimal ImporteIVA { get; init; }
+    public decimal VATAmount { get; init; }
     
     /// <summary>
     /// IVA Contenido en el precio (solo Invoice B).
     /// Requerido por Ley 27.743 - Régimen de Transparencia Fiscal.
     /// </summary>
-    public decimal IVAContenido { get; init; }
+    public decimal IncludedVAT { get; init; }
     
-    public decimal ImportePercepcionIIBB { get; init; }
-    public decimal ImporteDescuento { get; init; }
+    public decimal IIBBPerceptionAmount { get; init; }
+    public decimal DiscountAmount { get; init; }
     public decimal Total { get; init; }
     
     public string? CAE { get; init; }
-    public DateTime? FechaVencimientoCAE { get; init; }
+    public DateTime? CAEExpirationDate { get; init; }
     public bool TieneCAE => !string.IsNullOrEmpty(CAE);
     
-    public bool Anulada { get; init; }
+    public bool IsVoided { get; init; }
     
-    public int CantidadItems { get; init; }
+    public int ItemCount { get; init; }
 }
 
 /// <summary>
@@ -141,14 +141,14 @@ public record InvoiceResponse
 public record InvoiceDetailResponse
 {
     public int Id { get; init; }
-    public int ItemNumero { get; init; }
+    public int ItemNumber { get; init; }
     public int ProductId { get; init; }
-    public string ProductCodigo { get; init; } = "";
-    public string ProductDescripcion { get; init; } = "";
-    public decimal Cantidad { get; init; }
-    public decimal PrecioUnitario { get; init; }
-    public decimal PorcentajeDescuento { get; init; }
-    public decimal PorcentajeIVA { get; init; }
+    public string ProductCode { get; init; } = "";
+    public string ProductDescription { get; init; } = "";
+    public decimal Quantity { get; init; }
+    public decimal UnitPrice { get; init; }
+    public decimal DiscountPercent { get; init; }
+    public decimal VATPercent { get; init; }
     public decimal Subtotal { get; init; }
 }
 
@@ -157,7 +157,7 @@ public record InvoiceDetailResponse
 /// </summary>
 public record InvoiceCompletaResponse : InvoiceResponse
 {
-    public List<InvoiceDetailResponse> Detalles { get; init; } = new();
+    public List<InvoiceDetailResponse> Details { get; init; } = new();
 }
 
 /// <summary>

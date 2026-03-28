@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SPC.API.Contracts.Stock;
 using SPC.API.Data;
 
@@ -21,21 +21,21 @@ public class StockService : IStockService
         var stocks = await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Warehouse)
-            .Where(s => s.Product.Activo && s.Warehouse.Activo)
-            .OrderBy(s => s.Product.Descripcion)
-            .ThenBy(s => s.Warehouse.Nombre)
+            .Where(s => s.Product.IsActive && s.Warehouse.IsActive)
+            .OrderBy(s => s.Product.Description)
+            .ThenBy(s => s.Warehouse.Name)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
             ProductId = s.ProductId,
-            ProductCodigo = s.Product.Codigo,
-            ProductDescripcion = s.Product.Descripcion,
+            ProductCode = s.Product.Code,
+            ProductDescription = s.Product.Description,
             WarehouseId = s.WarehouseId,
-            WarehouseNombre = s.Warehouse.Nombre,
-            Cantidad = s.Cantidad,
-            StockMinimo = s.Product.StockMinimo
+            WarehouseName = s.Warehouse.Name,
+            Quantity = s.Quantity,
+            MinimumStock = s.Product.MinimumStock
         });
     }
 
@@ -44,19 +44,19 @@ public class StockService : IStockService
         var productos = await _db.Products
             .Include(p => p.Category)
             .Include(p => p.Stocks)
-            .Where(p => p.Activo)
-            .OrderBy(p => p.Descripcion)
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Description)
             .ToListAsync();
 
         return productos.Select(p => new StockResumenResponse
         {
             ProductId = p.Id,
-            ProductCodigo = p.Codigo,
-            ProductDescripcion = p.Descripcion,
-            CategoryNombre = p.Category?.Nombre,
-            StockTotal = p.Stocks.Sum(s => s.Cantidad),
-            StockMinimo = p.StockMinimo,
-            PrecioVenta = p.PrecioVenta
+            ProductCode = p.Code,
+            ProductDescription = p.Description,
+            CategoryName = p.Category?.Name,
+            StockTotal = p.Stocks.Sum(s => s.Quantity),
+            MinimumStock = p.MinimumStock,
+            SalePrice = p.SalePrice
         });
     }
 
@@ -65,20 +65,20 @@ public class StockService : IStockService
         var stocks = await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Warehouse)
-            .Where(s => s.ProductId == productoId && s.Warehouse.Activo)
-            .OrderBy(s => s.Warehouse.Nombre)
+            .Where(s => s.ProductId == productoId && s.Warehouse.IsActive)
+            .OrderBy(s => s.Warehouse.Name)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
             ProductId = s.ProductId,
-            ProductCodigo = s.Product.Codigo,
-            ProductDescripcion = s.Product.Descripcion,
+            ProductCode = s.Product.Code,
+            ProductDescription = s.Product.Description,
             WarehouseId = s.WarehouseId,
-            WarehouseNombre = s.Warehouse.Nombre,
-            Cantidad = s.Cantidad,
-            StockMinimo = s.Product.StockMinimo
+            WarehouseName = s.Warehouse.Name,
+            Quantity = s.Quantity,
+            MinimumStock = s.Product.MinimumStock
         });
     }
 
@@ -87,20 +87,20 @@ public class StockService : IStockService
         var stocks = await _db.Stocks
             .Include(s => s.Product)
             .Include(s => s.Warehouse)
-            .Where(s => s.WarehouseId == depositoId && s.Product.Activo)
-            .OrderBy(s => s.Product.Descripcion)
+            .Where(s => s.WarehouseId == depositoId && s.Product.IsActive)
+            .OrderBy(s => s.Product.Description)
             .ToListAsync();
 
         return stocks.Select(s => new StockResponse
         {
             Id = s.Id,
             ProductId = s.ProductId,
-            ProductCodigo = s.Product.Codigo,
-            ProductDescripcion = s.Product.Descripcion,
+            ProductCode = s.Product.Code,
+            ProductDescription = s.Product.Description,
             WarehouseId = s.WarehouseId,
-            WarehouseNombre = s.Warehouse.Nombre,
-            Cantidad = s.Cantidad,
-            StockMinimo = s.Product.StockMinimo
+            WarehouseName = s.Warehouse.Name,
+            Quantity = s.Quantity,
+            MinimumStock = s.Product.MinimumStock
         });
     }
 
@@ -109,22 +109,22 @@ public class StockService : IStockService
         var productos = await _db.Products
             .Include(p => p.Category)
             .Include(p => p.Stocks)
-            .Where(p => p.Activo && p.StockMinimo > 0)
+            .Where(p => p.IsActive && p.MinimumStock > 0)
             .ToListAsync();
 
         return productos
-            .Where(p => p.Stocks.Sum(s => s.Cantidad) < p.StockMinimo)
+            .Where(p => p.Stocks.Sum(s => s.Quantity) < p.MinimumStock)
             .Select(p => new StockResumenResponse
             {
                 ProductId = p.Id,
-                ProductCodigo = p.Codigo,
-                ProductDescripcion = p.Descripcion,
-                CategoryNombre = p.Category?.Nombre,
-                StockTotal = p.Stocks.Sum(s => s.Cantidad),
-                StockMinimo = p.StockMinimo,
-                PrecioVenta = p.PrecioVenta
+                ProductCode = p.Code,
+                ProductDescription = p.Description,
+                CategoryName = p.Category?.Name,
+                StockTotal = p.Stocks.Sum(s => s.Quantity),
+                MinimumStock = p.MinimumStock,
+                SalePrice = p.SalePrice
             })
-            .OrderBy(p => p.ProductDescripcion);
+            .OrderBy(p => p.ProductDescription);
     }
 
     public async Task<IEnumerable<StockResumenResponse>> SearchAsync(string termino)
@@ -132,20 +132,20 @@ public class StockService : IStockService
         var productos = await _db.Products
             .Include(p => p.Category)
             .Include(p => p.Stocks)
-            .Where(p => p.Activo &&
-                   (p.Codigo.Contains(termino) || p.Descripcion.Contains(termino)))
-            .OrderBy(p => p.Descripcion)
+            .Where(p => p.IsActive &&
+                   (p.Code.Contains(termino) || p.Description.Contains(termino)))
+            .OrderBy(p => p.Description)
             .ToListAsync();
 
         return productos.Select(p => new StockResumenResponse
         {
             ProductId = p.Id,
-            ProductCodigo = p.Codigo,
-            ProductDescripcion = p.Descripcion,
-            CategoryNombre = p.Category?.Nombre,
-            StockTotal = p.Stocks.Sum(s => s.Cantidad),
-            StockMinimo = p.StockMinimo,
-            PrecioVenta = p.PrecioVenta
+            ProductCode = p.Code,
+            ProductDescription = p.Description,
+            CategoryName = p.Category?.Name,
+            StockTotal = p.Stocks.Sum(s => s.Quantity),
+            MinimumStock = p.MinimumStock,
+            SalePrice = p.SalePrice
         });
     }
 }

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.API.Contracts.Customers;
 
@@ -9,31 +9,31 @@ public class CreateCustomerRequest
 {
     [Required]
     [StringLength(200)]
-    public string RazonSocial { get; set; } = "";
+    public string CompanyName { get; set; } = "";
     
     [StringLength(200)]
-    public string? NombreFantasia { get; set; }
+    public string? TradeName { get; set; }
     
     [StringLength(13)]
     public string? CUIT { get; set; }
     
     [StringLength(300)]
-    public string? Direccion { get; set; }
+    public string? Address { get; set; }
     
     [StringLength(100)]
-    public string? Localidad { get; set; }
+    public string? City { get; set; }
     
     [StringLength(100)]
-    public string? Provincia { get; set; }
+    public string? Province { get; set; }
     
     [StringLength(10)]
-    public string? CodigoPostal { get; set; }
+    public string? PostalCode { get; set; }
     
     [StringLength(50)]
-    public string? Telefono { get; set; }
+    public string? Phone { get; set; }
     
     [StringLength(50)]
-    public string? Celular { get; set; }
+    public string? Mobile { get; set; }
     
     [StringLength(200)]
     [EmailAddress]
@@ -46,10 +46,10 @@ public class CreateCustomerRequest
     public int? SalesZoneId { get; set; }
     
     [Range(0, 100)]
-    public decimal PorcentajeDescuento { get; set; } = 0;
+    public decimal DiscountPercent { get; set; } = 0;
     
-    public decimal LimiteCredito { get; set; } = 0;
+    public decimal CreditLimit { get; set; } = 0;
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
 }

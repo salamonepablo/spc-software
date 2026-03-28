@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Category / Categoría de productos
+/// Product category.
 /// </summary>
 public class Category
 {
@@ -11,13 +11,13 @@ public class Category
     
     [Required]
     [StringLength(100)]
-    public string Nombre { get; set; } = "";
+    public string Name { get; set; } = "";
     
     [StringLength(300)]
-    public string? Descripcion { get; set; }
+    public string? Description { get; set; }
     
-    public bool Activo { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     
-    // Navegación
+    // Navigation
     public List<Product> Products { get; set; } = new();
 }

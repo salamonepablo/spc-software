@@ -1,4 +1,4 @@
-using SPC.API.Contracts.Products;
+﻿using SPC.API.Contracts.Products;
 
 namespace SPC.API.Services;
 
@@ -9,7 +9,7 @@ public interface IProductsService
 {
     Task<IEnumerable<ProductResponse>> GetAllAsync();
     Task<ProductResponse?> GetByIdAsync(int id);
-    Task<IEnumerable<ProductResponse>> SearchAsync(string descripcion);
+    Task<IEnumerable<ProductResponse>> SearchAsync(string Description);
     Task<ProductResponse> CreateAsync(CreateProductRequest request);
     Task<ProductResponse?> UpdateAsync(int id, UpdateProductRequest request);
     Task<bool> DeleteAsync(int id);

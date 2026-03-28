@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.API.Contracts.Quotes;
 
@@ -51,10 +51,10 @@ public record CreateQuoteDetalleRequest
     
     /// <summary>Quantity</summary>
     [Required]
-    [Range(0.01, 999999.99, ErrorMessage = "La cantidad debe ser mayor a 0")]
+    [Range(0.01, 999999.99, ErrorMessage = "La Quantity debe ser mayor a 0")]
     public decimal Quantity { get; init; }
     
-    /// <summary>Unit price (if null, uses product's PrecioQuote)</summary>
+    /// <summary>Unit price (if null, uses product's QuotePrice)</summary>
     public decimal? UnitPrice { get; init; }
     
     /// <summary>Line-level discount percentage</summary>
@@ -87,7 +87,7 @@ public record QuoteResponse
     public string? BranchName { get; init; }
     public long QuoteNumber { get; init; }
     
-    /// <summary>Formatted quote number: CALLE-00001234</summary>
+    /// <summary>Formatted quote number shown to users</summary>
     public string NumeroCompleto { get; init; } = "";
     
     public DateTime QuoteDate { get; init; }
@@ -133,4 +133,17 @@ public record QuoteCompletoResponse : QuoteResponse
     public string? BusinessUnit { get; init; }
     public string? Notes { get; init; }
     public List<QuoteDetalleResponse> Details { get; init; } = new();
+}
+
+/// <summary>
+/// Summary statistics for quotes
+/// </summary>
+public record QuotesResumenResponse
+{
+    public int TotalQuotes { get; init; }
+    public int QuotesHoy { get; init; }
+    public int QuotesMes { get; init; }
+    public decimal MontoHoy { get; init; }
+    public decimal MontoMes { get; init; }
+    public decimal MontoAnio { get; init; }
 }

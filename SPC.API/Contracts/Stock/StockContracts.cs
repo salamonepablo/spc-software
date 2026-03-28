@@ -1,4 +1,4 @@
-namespace SPC.API.Contracts.Stock;
+﻿namespace SPC.API.Contracts.Stock;
 
 /// <summary>
 /// Response DTO for stock query - shows stock by product and warehouse
@@ -7,13 +7,13 @@ public record StockResponse
 {
     public int Id { get; init; }
     public int ProductId { get; init; }
-    public string ProductCodigo { get; init; } = "";
-    public string ProductDescripcion { get; init; } = "";
+    public string ProductCode { get; init; } = "";
+    public string ProductDescription { get; init; } = "";
     public int WarehouseId { get; init; }
-    public string WarehouseNombre { get; init; } = "";
-    public decimal Cantidad { get; init; }
-    public decimal StockMinimo { get; init; }
-    public bool BajoMinimo => Cantidad < StockMinimo;
+    public string WarehouseName { get; init; } = "";
+    public decimal Quantity { get; init; }
+    public decimal MinimumStock { get; init; }
+    public bool BajoMinimo => Quantity < MinimumStock;
 }
 
 /// <summary>
@@ -22,12 +22,12 @@ public record StockResponse
 public record StockResumenResponse
 {
     public int ProductId { get; init; }
-    public string ProductCodigo { get; init; } = "";
-    public string ProductDescripcion { get; init; } = "";
-    public string? CategoryNombre { get; init; }
+    public string ProductCode { get; init; } = "";
+    public string ProductDescription { get; init; } = "";
+    public string? CategoryName { get; init; }
     public decimal StockTotal { get; init; }
-    public int StockMinimo { get; init; }
-    public bool BajoMinimo => StockTotal < StockMinimo;
-    public decimal PrecioVenta { get; init; }
-    public decimal ValorStock => StockTotal * PrecioVenta;
+    public int MinimumStock { get; init; }
+    public bool BajoMinimo => StockTotal < MinimumStock;
+    public decimal SalePrice { get; init; }
+    public decimal ValorStock => StockTotal * SalePrice;
 }
