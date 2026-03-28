@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using SPC.API.Services;
 
 namespace SPC.Tests.Unit;
@@ -28,7 +28,7 @@ public class InvoiceCalculationTests
     [Fact]
     public void InvoiceA_CalculatesVATOnNetPrice()
     {
-        // Arrange - Invoice A uses PrecioInvoice (net, without VAT)
+        // Arrange - Invoice A uses InvoicePrice (net, without VAT)
         // Product price: 1000 (net)
         // Expected: Subtotal=1000, VAT=210, Total=1210
         
@@ -74,7 +74,7 @@ public class InvoiceCalculationTests
     {
         // Arrange - Invoice B: price already includes VAT
         // Product price: 1210 (with VAT included)
-        // Expected: Total=1210, IVAContenido=210
+        // Expected: Total=1210, IncludedVAT=210
         
         var lines = new[]
         {

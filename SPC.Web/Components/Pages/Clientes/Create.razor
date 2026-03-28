@@ -1,4 +1,4 @@
-@page "/clientes/nuevo"
+﻿@page "/clientes/nuevo"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
@@ -35,14 +35,14 @@
                         <h5 class="mb-3">Datos Principales</h5>
                         
                         <div class="mb-3">
-                            <label for="razonSocial" class="form-label">Razón Social *</label>
-                            <InputText id="razonSocial" class="form-control" @bind-Value="cliente.RazonSocial" />
-                            <ValidationMessage For="() => cliente.RazonSocial" class="text-danger" />
+                            <label for="CompanyName" class="form-label">Razón Social *</label>
+                            <InputText id="CompanyName" class="form-control" @bind-Value="cliente.CompanyName" />
+                            <ValidationMessage For="() => cliente.CompanyName" class="text-danger" />
                         </div>
 
                         <div class="mb-3">
-                            <label for="nombreFantasia" class="form-label">Nombre Fantasía</label>
-                            <InputText id="nombreFantasia" class="form-control" @bind-Value="cliente.NombreFantasia" />
+                            <label for="TradeName" class="form-label">Name Fantasía</label>
+                            <InputText id="TradeName" class="form-control" @bind-Value="cliente.TradeName" />
                         </div>
 
                         <div class="mb-3">
@@ -55,9 +55,9 @@
                             <label for="condicionIva" class="form-label">Condición IVA</label>
                             <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.TaxConditionId">
                                 <option value="">-- Seleccionar --</option>
-                                @foreach (var cond in condicionesIva)
+                                @foreach (var cond in TaxConditions)
                                 {
-                                    <option value="@cond.Id">@cond.Descripcion (@cond.TipoInvoice)</option>
+                                    <option value="@cond.Id">@cond.Description (@cond.InvoiceType)</option>
                                 }
                             </InputSelect>
                         </div>
@@ -73,34 +73,34 @@
                         <h5 class="mb-3">Dirección y Contacto</h5>
 
                         <div class="mb-3">
-                            <label for="direccion" class="form-label">Dirección</label>
-                            <InputText id="direccion" class="form-control" @bind-Value="cliente.Direccion" />
+                            <label for="Address" class="form-label">Dirección</label>
+                            <InputText id="Address" class="form-control" @bind-Value="cliente.Address" />
                         </div>
 
                         <div class="row">
                             <div class="col-md-8 mb-3">
-                                <label for="localidad" class="form-label">Localidad</label>
-                                <InputText id="localidad" class="form-control" @bind-Value="cliente.Localidad" />
+                                <label for="City" class="form-label">City</label>
+                                <InputText id="City" class="form-control" @bind-Value="cliente.City" />
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="codigoPostal" class="form-label">CP</label>
-                                <InputText id="codigoPostal" class="form-control" @bind-Value="cliente.CodigoPostal" />
+                                <label for="PostalCode" class="form-label">CP</label>
+                                <InputText id="PostalCode" class="form-control" @bind-Value="cliente.PostalCode" />
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="provincia" class="form-label">Provincia</label>
-                            <InputText id="provincia" class="form-control" @bind-Value="cliente.Provincia" />
+                            <InputText id="provincia" class="form-control" @bind-Value="cliente.Province" />
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="telefono" class="form-label">Teléfono</label>
-                                <InputText id="telefono" class="form-control" @bind-Value="cliente.Telefono" />
+                                <label for="Phone" class="form-label">Teléfono</label>
+                                <InputText id="Phone" class="form-control" @bind-Value="cliente.Phone" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="celular" class="form-label">Celular</label>
-                                <InputText id="celular" class="form-control" @bind-Value="cliente.Celular" />
+                                <label for="Mobile" class="form-label">Mobile</label>
+                                <InputText id="Mobile" class="form-control" @bind-Value="cliente.Mobile" />
                             </div>
                         </div>
                     </div>
@@ -118,7 +118,7 @@
                                 <option value="">-- Sin asignar --</option>
                                 @foreach (var v in vendedores)
                                 {
-                                    <option value="@v.Id">@v.Nombre</option>
+                                    <option value="@v.Id">@v.Name</option>
                                 }
                             </InputSelect>
                         </div>
@@ -127,9 +127,9 @@
                             <label for="zonaVenta" class="form-label">Zona de Venta</label>
                             <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.SalesZoneId">
                                 <option value="">-- Sin asignar --</option>
-                                @foreach (var z in zonasVenta)
+                                @foreach (var z in SalesZones)
                                 {
-                                    <option value="@z.Id">@z.Nombre</option>
+                                    <option value="@z.Id">@z.Name</option>
                                 }
                             </InputSelect>
                         </div>
@@ -137,22 +137,22 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="descuento" class="form-label">% Descuento</label>
-                                <InputNumber id="descuento" class="form-control" @bind-Value="cliente.PorcentajeDescuento" />
-                                <ValidationMessage For="() => cliente.PorcentajeDescuento" class="text-danger" />
+                                <InputNumber id="descuento" class="form-control" @bind-Value="cliente.DiscountPercent" />
+                                <ValidationMessage For="() => cliente.DiscountPercent" class="text-danger" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="limiteCredito" class="form-label">Límite Crédito</label>
-                                <InputNumber id="limiteCredito" class="form-control" @bind-Value="cliente.LimiteCredito" />
+                                <label for="CreditLimit" class="form-label">Límite Crédito</label>
+                                <InputNumber id="CreditLimit" class="form-control" @bind-Value="cliente.CreditLimit" />
                             </div>
                         </div>
                     </div>
 
                     <div class="col-md-6">
-                        <h5 class="mb-3">Observaciones</h5>
+                        <h5 class="mb-3">Notes</h5>
                         
                         <div class="mb-3">
-                            <InputTextArea id="observaciones" class="form-control" rows="5" @bind-Value="cliente.Observaciones" />
-                            <ValidationMessage For="() => cliente.Observaciones" class="text-danger" />
+                            <InputTextArea id="Notes" class="form-control" rows="5" @bind-Value="cliente.Notes" />
+                            <ValidationMessage For="() => cliente.Notes" class="text-danger" />
                         </div>
                     </div>
                 </div>
@@ -176,9 +176,9 @@
 
 @code {
     private CreateCustomerDto cliente = new();
-    private List<TaxConditionDto> condicionesIva = new();
+    private List<TaxConditionDto> TaxConditions = new();
     private List<SalesRepDto> vendedores = new();
-    private List<SalesZoneDto> zonasVenta = new();
+    private List<SalesZoneDto> SalesZones = new();
     
     private bool saving = false;
     private string? errorMessage;
@@ -192,9 +192,9 @@
 
         await Task.WhenAll(condicionesTask, vendedoresTask, zonasTask);
 
-        condicionesIva = await condicionesTask;
+        TaxConditions = await condicionesTask;
         vendedores = await vendedoresTask;
-        zonasVenta = await zonasTask;
+        SalesZones = await zonasTask;
     }
 
     private async Task HandleSubmit()

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,43 +77,43 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
     private static void SeedTestData(SPCDbContext db)
     {
         // Only seed if empty (avoid duplicates)
-        if (!db.CondicionesIva.Any())
+        if (!db.TaxConditions.Any())
         {
-            db.CondicionesIva.AddRange(
-                new TaxCondition { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoInvoice = "A" },
-                new TaxCondition { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoInvoice = "B" },
-                new TaxCondition { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoInvoice = "B" },
-                new TaxCondition { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoInvoice = "B" }
+            db.TaxConditions.AddRange(
+                new TaxCondition { Id = 1, Code = "RI", Description = "Responsable Inscripto", InvoiceType = "A" },
+                new TaxCondition { Id = 2, Code = "MO", Description = "Monotributo", InvoiceType = "B" },
+                new TaxCondition { Id = 3, Code = "CF", Description = "Consumidor Final", InvoiceType = "B" },
+                new TaxCondition { Id = 4, Code = "EX", Description = "Exento", InvoiceType = "B" }
             );
         }
         
-        if (!db.UnidadesMedida.Any())
+        if (!db.UnitsOfMeasure.Any())
         {
-            db.UnidadesMedida.AddRange(
-                new UnitOfMeasure { Id = 1, Codigo = "UN", Nombre = "Unidades" },
-                new UnitOfMeasure { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+            db.UnitsOfMeasure.AddRange(
+                new UnitOfMeasure { Id = 1, Code = "UN", Name = "Unidades" },
+                new UnitOfMeasure { Id = 2, Code = "CJ", Name = "Cajas" }
             );
         }
         
         if (!db.Warehouses.Any())
         {
-            db.Warehouses.Add(new Warehouse { Id = 1, Nombre = "Warehouse Principal", Activo = true });
+            db.Warehouses.Add(new Warehouse { Id = 1, Name = "Warehouse Principal", IsActive = true });
         }
         
-        if (!db.Categorys.Any())
+        if (!db.Categories.Any())
         {
-            db.Categorys.AddRange(
-                new Category { Id = 1, Nombre = "Baterias Auto", Activo = true },
-                new Category { Id = 2, Nombre = "Baterias Moto", Activo = true },
-                new Category { Id = 3, Nombre = "Baterias Camion", Activo = true },
-                new Category { Id = 4, Nombre = "Accesorios", Activo = true }
+            db.Categories.AddRange(
+                new Category { Id = 1, Name = "Baterias Auto", IsActive = true },
+                new Category { Id = 2, Name = "Baterias Moto", IsActive = true },
+                new Category { Id = 3, Name = "Baterias Camion", IsActive = true },
+                new Category { Id = 4, Name = "Accesorios", IsActive = true }
             );
         }
         
         if (!db.Branches.Any())
         {
             db.Branches.AddRange(
-                new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesRepes)", PointOfSale = 2, IsActive = true },
+                new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesReps)", PointOfSale = 2, IsActive = true },
                 new Branch { Id = 2, Code = "DISTRIB", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true }
             );
         }
@@ -159,20 +159,55 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
             });
         }
         
-        // Add a test customer with discount for testing
+        // Add test customers for testing
         if (!db.Customers.Any())
         {
-            db.Customers.Add(new Customer 
-            { 
-                Id = 1, 
-                RazonSocial = "Customer Test", 
-                CUIT = "20-12345678-9",
-                TaxConditionId = 1, 
-                PorcentajeDescuento = 10m, // 10% default discount
-                LimiteCredito = 50000m,
-                Activo = true,
-                FechaAlta = DateTime.Now
-            });
+            db.Customers.AddRange(
+                new Customer 
+                { 
+                    Id = 1, 
+                    CompanyName = "Customer Test", 
+                    CUIT = "20-12345678-9",
+                    TaxConditionId = 1, 
+                    DiscountPercent = 10m, // 10% default discount
+                    CreditLimit = 50000m,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                },
+                new Customer 
+                { 
+                    Id = 2, 
+                    CompanyName = "Customer Two", 
+                    CUIT = "20-22222222-2",
+                    TaxConditionId = 1, 
+                    DiscountPercent = 0m,
+                    CreditLimit = 30000m,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                },
+                new Customer 
+                { 
+                    Id = 3, 
+                    CompanyName = "Customer Three", 
+                    CUIT = "20-33333333-3",
+                    TaxConditionId = 2, // Monotributo
+                    DiscountPercent = 5m,
+                    CreditLimit = 20000m,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                },
+                new Customer 
+                { 
+                    Id = 4, 
+                    CompanyName = "Customer Four", 
+                    CUIT = "20-44444444-4",
+                    TaxConditionId = 3, // Consumidor Final
+                    DiscountPercent = 0m,
+                    CreditLimit = 10000m,
+                    IsActive = true,
+                    CreatedDate = DateTime.Now
+                }
+            );
         }
         
         // Add test products with dual pricing
@@ -182,26 +217,26 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
                 new Product 
                 { 
                     Id = 1, 
-                    Codigo = "BAT001", 
-                    Descripcion = "Bateria 12V 65AH", 
-                    PrecioInvoice = 1000m,  // Invoice price (without VAT)
-                    PrecioQuote = 1210m,  // Quote price (with VAT included)
-                    PrecioVenta = 1000m,
-                    PorcentajeIVA = 21m,
+                    Code = "BAT001", 
+                    Description = "Bateria 12V 65AH", 
+                    InvoicePrice = 1000m,  // Invoice price (without VAT)
+                    QuotePrice = 1210m,  // Quote price (with VAT included)
+                    SalePrice = 1000m,
+                    VATPercent = 21m,
                     CategoryId = 1,
-                    Activo = true 
+                    IsActive = true 
                 },
                 new Product 
                 { 
                     Id = 2, 
-                    Codigo = "BAT002", 
-                    Descripcion = "Bateria 12V 75AH", 
-                    PrecioInvoice = 1500m,
-                    PrecioQuote = 1815m,
-                    PrecioVenta = 1500m,
-                    PorcentajeIVA = 21m,
+                    Code = "BAT002", 
+                    Description = "Bateria 12V 75AH", 
+                    InvoicePrice = 1500m,
+                    QuotePrice = 1815m,
+                    SalePrice = 1500m,
+                    VATPercent = 21m,
                     CategoryId = 1,
-                    Activo = true 
+                    IsActive = true 
                 }
             );
         }

@@ -1,4 +1,4 @@
-namespace SPC.Web.Services.Models;
+﻿namespace SPC.Web.Services.Models;
 
 /// <summary>
 /// DTO for stock summary by product
@@ -6,13 +6,13 @@ namespace SPC.Web.Services.Models;
 public class StockResumenDto
 {
     public int ProductId { get; set; }
-    public string ProductCodigo { get; set; } = "";
-    public string ProductDescripcion { get; set; } = "";
-    public string? CategoryNombre { get; set; }
+    public string ProductCode { get; set; } = "";
+    public string ProductDescription { get; set; } = "";
+    public string? CategoryName { get; set; }
     public decimal StockTotal { get; set; }
-    public int StockMinimo { get; set; }
+    public int MinimumStock { get; set; }
     public bool BajoMinimo { get; set; }
-    public decimal PrecioVenta { get; set; }
+    public decimal SalePrice { get; set; }
     public decimal ValorStock { get; set; }
 }
 
@@ -23,12 +23,12 @@ public class StockDetalleDto
 {
     public int Id { get; set; }
     public int ProductId { get; set; }
-    public string ProductCodigo { get; set; } = "";
-    public string ProductDescripcion { get; set; } = "";
+    public string ProductCode { get; set; } = "";
+    public string ProductDescription { get; set; } = "";
     public int WarehouseId { get; set; }
-    public string WarehouseNombre { get; set; } = "";
-    public decimal Cantidad { get; set; }
-    public decimal StockMinimo { get; set; }
+    public string WarehouseName { get; set; } = "";
+    public decimal Quantity { get; set; }
+    public decimal MinimumStock { get; set; }
     public bool BajoMinimo { get; set; }
 }
 
@@ -38,5 +38,5 @@ public class StockDetalleDto
 public class WarehouseDto
 {
     public int Id { get; set; }
-    public string Nombre { get; set; } = "";
+    public string Name { get; set; } = "";
 }

@@ -1,4 +1,4 @@
-namespace SPC.Web.Services.Models;
+﻿namespace SPC.Web.Services.Models;
 
 /// <summary>
 /// DTO for TaxCondition dropdown data
@@ -6,6 +6,6 @@ namespace SPC.Web.Services.Models;
 public class TaxConditionDto
 {
     public int Id { get; set; }
-    public string Descripcion { get; set; } = "";
-    public string TipoInvoice { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string InvoiceType { get; set; } = "";
 }

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using SPC.Shared.Models;
 
 namespace SPC.Tests.Unit;
@@ -20,12 +20,12 @@ public class CustomerIIBBTests
         // Arrange & Act
         var cliente = new Customer
         {
-            RazonSocial = "Test Customer",
-            AlicuotaIIBB = 3.5m
+            CompanyName = "Test Customer",
+            IIBBPercent = 3.5m
         };
 
         // Assert
-        cliente.AlicuotaIIBB.Should().Be(3.5m);
+        cliente.IIBBPercent.Should().Be(3.5m);
     }
 
     [Fact]
@@ -34,11 +34,11 @@ public class CustomerIIBBTests
         // Arrange & Act
         var cliente = new Customer
         {
-            RazonSocial = "Test Customer"
+            CompanyName = "Test Customer"
         };
 
         // Assert - Default is 0 (no perception)
-        cliente.AlicuotaIIBB.Should().Be(0m);
+        cliente.IIBBPercent.Should().Be(0m);
     }
 
     [Fact]
@@ -47,13 +47,13 @@ public class CustomerIIBBTests
         // Arrange - Simulate loading from ARBA padrón
         var cliente = new Customer
         {
-            RazonSocial = "DAVID ALFONSO ALVAREZ",
+            CompanyName = "DAVID ALFONSO ALVAREZ",
             CUIT = "20-08345589-7",
-            AlicuotaIIBB = 4m  // From ARBA padrón
+            IIBBPercent = 4m  // From ARBA padrón
         };
 
         // Assert
-        cliente.AlicuotaIIBB.Should().Be(4m);
+        cliente.IIBBPercent.Should().Be(4m);
     }
 
     [Fact]
@@ -62,12 +62,12 @@ public class CustomerIIBBTests
         // Arrange - Customer is exento in padrón
         var cliente = new Customer
         {
-            RazonSocial = "Customer Exento IIBB",
-            AlicuotaIIBB = 0m
+            CompanyName = "Customer Exento IIBB",
+            IIBBPercent = 0m
         };
 
         // Assert
-        cliente.AlicuotaIIBB.Should().Be(0m);
+        cliente.IIBBPercent.Should().Be(0m);
     }
 
     [Fact]
@@ -76,13 +76,13 @@ public class CustomerIIBBTests
         // Arrange - Province determines which padrón applies
         var cliente = new Customer
         {
-            RazonSocial = "Test",
-            Provincia = "Buenos Aires",
-            AlicuotaIIBB = 3m,
-            ProvinciaPadronIIBB = "BA"  // ARBA
+            CompanyName = "Test",
+            Province = "Buenos Aires",
+            IIBBPercent = 3m,
+            IIBBRegistryProvince = "BA"  // ARBA
         };
 
         // Assert
-        cliente.ProvinciaPadronIIBB.Should().Be("BA");
+        cliente.IIBBRegistryProvince.Should().Be("BA");
     }
 }

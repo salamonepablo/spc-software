@@ -1,8 +1,10 @@
 @typeparam TItem
 @using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
 
 <div class="position-relative">
-    <input class="@InputClass"
+    <input @ref="_inputRef"
+           class="@InputClass"
            placeholder="@Placeholder"
            value="@_searchText"
            @oninput="HandleInput"
@@ -47,6 +49,7 @@
     private int _highlightedIndex = -1;
     private CancellationTokenSource? _cts;
     private bool _suppressBlurSelection;
+    private ElementReference _inputRef;
 
     [Parameter]
     public Func<string, Task<List<TItem>>> SearchAsync { get; set; } = default!;
@@ -56,6 +59,12 @@
 
     [Parameter]
     public EventCallback<TItem> OnSelected { get; set; }
+
+    /// <summary>
+    /// Fires after an item is selected via Enter key. Use for keyboard navigation flow.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnEnterAfterSelect { get; set; }
 
     [Parameter]
     public int MinLength { get; set; } = 2;
@@ -74,6 +83,14 @@
 
     [Parameter]
     public string? SelectedText { get; set; }
+
+    /// <summary>
+    /// Focus the input element programmatically.
+    /// </summary>
+    public async Task FocusAsync()
+    {
+        await _inputRef.FocusAsync();
+    }
 
     protected override void OnParametersSet()
     {
@@ -176,11 +193,11 @@
             return;
         }
 
-        if (e.Key == "Enter")
+        if (e.Key == "Enter" || e.Key == "Tab")
         {
             if (_highlightedIndex >= 0 && _highlightedIndex < _results.Count)
             {
-                await SelectItem(_results[_highlightedIndex]);
+                await SelectItem(_results[_highlightedIndex], viaEnterKey: true);
                 return;
             }
 
@@ -204,7 +221,7 @@
                 }
             }
 
-            await SelectItem(exactMatch);
+            await SelectItem(exactMatch, viaEnterKey: true);
         }
     }
 
@@ -265,7 +282,7 @@
         return false;
     }
 
-    private async Task SelectItem(TItem item)
+    private async Task SelectItem(TItem item, bool viaEnterKey = false)
     {
         _searchText = DisplaySelector(item);
         _results.Clear();
@@ -274,5 +291,10 @@
         _highlightedIndex = -1;
 
         await OnSelected.InvokeAsync(item);
+
+        if (viaEnterKey && OnEnterAfterSelect.HasDelegate)
+        {
+            await OnEnterAfterSelect.InvokeAsync();
+        }
     }
 }

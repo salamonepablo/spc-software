@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.Web.Services.Models;
 
@@ -9,31 +9,31 @@ public class UpdateCustomerDto
 {
     [Required(ErrorMessage = "La Razón Social es requerida")]
     [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
-    public string RazonSocial { get; set; } = "";
+    public string CompanyName { get; set; } = "";
     
     [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
-    public string? NombreFantasia { get; set; }
+    public string? TradeName { get; set; }
     
     [StringLength(13, ErrorMessage = "Máximo 13 caracteres")]
     public string? CUIT { get; set; }
     
     [StringLength(300, ErrorMessage = "Máximo 300 caracteres")]
-    public string? Direccion { get; set; }
+    public string? Address { get; set; }
     
     [StringLength(100, ErrorMessage = "Máximo 100 caracteres")]
-    public string? Localidad { get; set; }
+    public string? City { get; set; }
     
     [StringLength(100, ErrorMessage = "Máximo 100 caracteres")]
-    public string? Provincia { get; set; }
+    public string? Province { get; set; }
     
     [StringLength(10, ErrorMessage = "Máximo 10 caracteres")]
-    public string? CodigoPostal { get; set; }
+    public string? PostalCode { get; set; }
     
     [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
-    public string? Telefono { get; set; }
+    public string? Phone { get; set; }
     
     [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
-    public string? Celular { get; set; }
+    public string? Mobile { get; set; }
     
     [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
     [EmailAddress(ErrorMessage = "Email inválido")]
@@ -46,11 +46,11 @@ public class UpdateCustomerDto
     public int? SalesZoneId { get; set; }
     
     [Range(0, 100, ErrorMessage = "Debe estar entre 0 y 100")]
-    public decimal PorcentajeDescuento { get; set; } = 0;
+    public decimal DiscountPercent { get; set; } = 0;
     
     [Range(0, double.MaxValue, ErrorMessage = "Debe ser mayor o igual a 0")]
-    public decimal LimiteCredito { get; set; } = 0;
+    public decimal CreditLimit { get; set; } = 0;
     
     [StringLength(500, ErrorMessage = "Máximo 500 caracteres")]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
 }

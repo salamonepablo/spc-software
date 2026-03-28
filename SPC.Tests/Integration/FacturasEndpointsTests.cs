@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using SPC.API.Contracts.Invoices;
@@ -29,6 +29,16 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetInvoices_EnglishRoute_ReturnsOk()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/invoices");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task GetInvoiceById_ReturnsNotFound_WhenDoesNotExist()
     {
         // Act
@@ -45,16 +55,16 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
                 new CreateInvoiceDetailRequest
                 {
                     ProductId = 1,
-                    Cantidad = 2,
-                    PorcentajeDescuento = 0
+                    Quantity = 2,
+                    DiscountPercent = 0
                 }
             }
         };
@@ -68,28 +78,28 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
         factura.Should().NotBeNull();
         factura!.CustomerId.Should().Be(1);
-        factura.Detalles.Should().HaveCount(1);
-        factura.Detalles[0].Cantidad.Should().Be(2);
+        factura.Details.Should().HaveCount(1);
+        factura.Details[0].Quantity.Should().Be(2);
     }
 
     [Fact]
     public async Task CreateInvoice_CalculatesVATCorrectly()
     {
-        // Arrange - Product 1 has PrecioInvoice = 1000, PrecioQuote = 1210, IVA = 21%
+        // Arrange - Product 1 has InvoicePrice = 1000, QuotePrice = 1210, IVA = 21%
         // Using Invoice A (net prices + VAT discriminated)
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",  // Changed to A for discriminated VAT
+            InvoiceType = "A",  // Changed to A for discriminated VAT
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
                 new CreateInvoiceDetailRequest
                 {
                     ProductId = 1,
-                    Cantidad = 1,
-                    PorcentajeDescuento = 0
+                    Quantity = 1,
+                    DiscountPercent = 0
                 }
             }
         };
@@ -99,34 +109,34 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var factura = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
 
         // Assert
-        // Invoice A: Uses PrecioInvoice = 1000
+        // Invoice A: Uses InvoicePrice = 1000
         // Subtotal = 1000 (1 x 1000)
         // VAT = 1000 * 21% = 210
         // Total = 1000 + 210 = 1210
         factura.Should().NotBeNull();
         factura!.Subtotal.Should().Be(1000m);
-        factura.ImporteIVA.Should().Be(210m);
+        factura.VATAmount.Should().Be(210m);
         factura.Total.Should().Be(1210m);
     }
 
     [Fact]
     public async Task CreateInvoice_AppliesLineDiscount()
     {
-        // Arrange - Product 1: PrecioInvoice = 1000, apply 10% line discount
+        // Arrange - Product 1: InvoicePrice = 1000, apply 10% line discount
         // Using Invoice A (net prices + VAT discriminated)
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",  // Changed to A
+            InvoiceType = "A",  // Changed to A
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
                 new CreateInvoiceDetailRequest
                 {
                     ProductId = 1,
-                    Cantidad = 1,
-                    PorcentajeDescuento = 10 // 10% line discount
+                    Quantity = 1,
+                    DiscountPercent = 10 // 10% line discount
                 }
             }
         };
@@ -141,7 +151,7 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Total = 900 + 189 = 1089
         factura.Should().NotBeNull();
         factura!.Subtotal.Should().Be(900m);
-        factura.ImporteIVA.Should().Be(189m);
+        factura.VATAmount.Should().Be(189m);
         factura.Total.Should().Be(1089m);
     }
 
@@ -153,16 +163,16 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",  // Changed to A
+            InvoiceType = "A",  // Changed to A
             CustomerId = 1,
-            PorcentajeDescuento = 20, // 20% document discount
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 20, // 20% document discount
+            Details = new List<CreateInvoiceDetailRequest>
             {
                 new CreateInvoiceDetailRequest
                 {
                     ProductId = 1,
-                    Cantidad = 1,
-                    PorcentajeDescuento = 0
+                    Quantity = 1,
+                    DiscountPercent = 0
                 }
             }
         };
@@ -178,9 +188,9 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // VAT = 800 * 21% = 168
         // Total = 800 + 168 = 968
         factura.Should().NotBeNull();
-        factura!.ImporteDescuento.Should().Be(200m);
+        factura!.DiscountAmount.Should().Be(200m);
         factura.Subtotal.Should().Be(800m);
-        factura.ImporteIVA.Should().Be(168m);
+        factura.VATAmount.Should().Be(168m);
         factura.Total.Should().Be(968m);
     }
 
@@ -192,16 +202,16 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",  // Changed to A
+            InvoiceType = "A",  // Changed to A
             CustomerId = 1,
-            PorcentajeDescuento = 10, // 10% document discount
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 10, // 10% document discount
+            Details = new List<CreateInvoiceDetailRequest>
             {
                 new CreateInvoiceDetailRequest
                 {
                     ProductId = 1,
-                    Cantidad = 1,
-                    PorcentajeDescuento = 10 // 10% line discount
+                    Quantity = 1,
+                    DiscountPercent = 10 // 10% line discount
                 }
             }
         };
@@ -217,9 +227,9 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // VAT = 810 * 21% = 170.10
         // Total = 810 + 170.10 = 980.10
         factura.Should().NotBeNull();
-        factura!.ImporteDescuento.Should().Be(90m);
+        factura!.DiscountAmount.Should().Be(90m);
         factura.Subtotal.Should().Be(810m);
-        factura.ImporteIVA.Should().Be(170.10m);
+        factura.VATAmount.Should().Be(170.10m);
         factura.Total.Should().Be(980.10m);
     }
 
@@ -230,11 +240,11 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",  // Changed to A for discriminated VAT
+            InvoiceType = "A",  // Changed to A for discriminated VAT
             CustomerId = 1,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Quantity = 1 }
             }
         };
 
@@ -250,8 +260,8 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var fetchedInvoice = await getResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
         
         // Invoice A: The VAT rate (21%) should be preserved even if system VAT changes later
-        // For Invoice A with Product 1: Subtotal = 1000 (PrecioInvoice), IVA = 210
-        fetchedInvoice!.ImporteIVA.Should().Be(210m);  // 1000 * 21%
+        // For Invoice A with Product 1: Subtotal = 1000 (InvoicePrice), IVA = 210
+        fetchedInvoice!.VATAmount.Should().Be(210m);  // 1000 * 21%
     }
 
     [Fact]
@@ -261,11 +271,11 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 99999, // Non-existent
-            Detalles = new List<CreateInvoiceDetailRequest>
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Quantity = 1 }
             }
         };
 
@@ -283,11 +293,11 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var createRequest = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new CreateInvoiceDetailRequest { ProductId = 1, Cantidad = 1 }
+                new CreateInvoiceDetailRequest { ProductId = 1, Quantity = 1 }
             }
         };
         var createResponse = await _client.PostAsJsonAsync("/api/facturas", createRequest);
@@ -303,6 +313,6 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Verify it's voided
         var getResponse = await _client.GetAsync($"/api/facturas/{factura.Id}");
         var voidedInvoice = await getResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
-        voidedInvoice!.Anulada.Should().BeTrue();
+        voidedInvoice!.IsVoided.Should().BeTrue();
     }
 }

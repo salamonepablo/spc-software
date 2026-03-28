@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using SPC.Web.Services.Models;
 
 namespace SPC.Web.Services;
@@ -19,11 +19,25 @@ public class ApiService : IApiService
 
     #region Customers
 
-    public async Task<List<CustomerDto>> GetCustomersAsync()
+    public async Task<int> GetCustomersCountAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<CustomerDto>>("/api/clientes");
+            var result = await _http.GetFromJsonAsync<CountResponse>("/api/clientes/count");
+            return result?.Total ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching customers count");
+            return 0;
+        }
+    }
+
+    public async Task<List<CustomerDto>> GetCustomersAsync(int skip = 0, int take = 50)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<CustomerDto>>($"/api/clientes?skip={skip}&take={take}");
             return result ?? new List<CustomerDto>();
         }
         catch (Exception ex)
@@ -33,18 +47,37 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<CustomerDto>> BuscarCustomersAsync(string nombre)
+    public async Task<List<CustomerDto>> GetAllCustomersAsync()
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<CustomerDto>>($"/api/clientes/buscar?nombre={Uri.EscapeDataString(nombre)}");
+            var result = await _http.GetFromJsonAsync<List<CustomerDto>>("/api/clientes/all");
             return result ?? new List<CustomerDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching clientes with term: {Nombre}", nombre);
+            _logger.LogError(ex, "Error fetching all clientes");
             return new List<CustomerDto>();
         }
+    }
+
+    public async Task<List<CustomerDto>> BuscarCustomersAsync(string Name)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<CustomerDto>>($"/api/clientes/buscar?Name={Uri.EscapeDataString(Name)}");
+            return result ?? new List<CustomerDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching clientes with term: {Name}", Name);
+            return new List<CustomerDto>();
+        }
+    }
+
+    public Task<List<CustomerDto>> SearchCustomersAsync(string term)
+    {
+        return BuscarCustomersAsync(term);
     }
 
     public async Task<CustomerDto?> GetCustomerAsync(int id)
@@ -135,7 +168,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<ProductDto>>($"/api/productos/buscar?descripcion={Uri.EscapeDataString(termino)}");
+            var result = await _http.GetFromJsonAsync<List<ProductDto>>($"/api/productos/buscar?Description={Uri.EscapeDataString(termino)}");
             return result ?? new List<ProductDto>();
         }
         catch (Exception ex)
@@ -143,6 +176,11 @@ public class ApiService : IApiService
             _logger.LogError(ex, "Error searching productos with term: {Termino}", termino);
             return new List<ProductDto>();
         }
+    }
+
+    public Task<List<ProductDto>> SearchProductsAsync(string term)
+    {
+        return BuscarProductsAsync(term);
     }
 
     public async Task<ProductDto?> GetProductAsync(int id)
@@ -219,7 +257,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<TaxConditionDto>>("/api/condicionesiva");
+            var result = await _http.GetFromJsonAsync<List<TaxConditionDto>>("/api/TaxConditions");
             return result ?? new List<TaxConditionDto>();
         }
         catch (Exception ex)
@@ -275,7 +313,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<UnitOfMeasureDto>>("/api/unidadesmedida");
+            var result = await _http.GetFromJsonAsync<List<UnitOfMeasureDto>>("/api/UnitsOfMeasure");
             return result ?? new List<UnitOfMeasureDto>();
         }
         catch (Exception ex)
@@ -367,7 +405,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas?skip={skip}&take={take}");
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/invoices?skip={skip}&take={take}");
             return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
@@ -381,7 +419,7 @@ public class ApiService : IApiService
     {
         try
         {
-            return await _http.GetFromJsonAsync<InvoiceCompletaDto>($"/api/facturas/{id}");
+            return await _http.GetFromJsonAsync<InvoiceCompletaDto>($"/api/invoices/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -398,7 +436,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/buscar?termino={Uri.EscapeDataString(termino)}");
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/invoices/buscar?termino={Uri.EscapeDataString(termino)}");
             return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
@@ -412,7 +450,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/cliente/{clienteId}");
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/invoices/cliente/{clienteId}");
             return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
@@ -426,7 +464,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/facturas/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
+            var result = await _http.GetFromJsonAsync<List<InvoiceDto>>($"/api/invoices/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
             return result ?? new List<InvoiceDto>();
         }
         catch (Exception ex)
@@ -440,7 +478,7 @@ public class ApiService : IApiService
     {
         try
         {
-            return await _http.GetFromJsonAsync<InvoicecionResumenDto>("/api/facturas/resumen");
+            return await _http.GetFromJsonAsync<InvoicecionResumenDto>("/api/invoices/resumen");
         }
         catch (Exception ex)
         {
@@ -453,7 +491,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var result = await _http.GetFromJsonAsync<CountResponse>("/api/facturas/count");
+            var result = await _http.GetFromJsonAsync<CountResponse>("/api/invoices/count");
             return result?.Total ?? 0;
         }
         catch (Exception ex)
@@ -472,7 +510,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var response = await _http.PostAsJsonAsync("/api/facturas", factura);
+            var response = await _http.PostAsJsonAsync("/api/invoices", factura);
             
             if (response.IsSuccessStatusCode)
             {
@@ -500,6 +538,204 @@ public class ApiService : IApiService
         {
             _logger.LogError(ex, "Error fetching sucursales");
             return new List<SucursalDto>();
+        }
+    }
+
+    #endregion
+
+    #region Quotes (Presupuestos)
+
+    public async Task<List<QuoteDto>> GetQuotesAsync(int skip = 0, int take = 50)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<QuoteDto>>($"/api/quotes?skip={skip}&take={take}");
+            return result ?? new List<QuoteDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuestos");
+            return new List<QuoteDto>();
+        }
+    }
+
+    public async Task<QuoteCompletaDto?> GetQuoteAsync(int id)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<QuoteCompletaDto>($"/api/quotes/{id}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuesto {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<List<QuoteDto>> BuscarQuotesAsync(string termino)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<QuoteDto>>($"/api/quotes/buscar?termino={Uri.EscapeDataString(termino)}");
+            return result ?? new List<QuoteDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching presupuestos with term: {Termino}", termino);
+            return new List<QuoteDto>();
+        }
+    }
+
+    public async Task<List<QuoteDto>> GetQuotesByCustomerAsync(int clienteId)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<QuoteDto>>($"/api/quotes/cliente/{clienteId}");
+            return result ?? new List<QuoteDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuestos for cliente {Id}", clienteId);
+            return new List<QuoteDto>();
+        }
+    }
+
+    public async Task<List<QuoteDto>> GetQuotesByFechaAsync(DateTime desde, DateTime hasta)
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<List<QuoteDto>>($"/api/quotes/fecha?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}");
+            return result ?? new List<QuoteDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuestos by date range");
+            return new List<QuoteDto>();
+        }
+    }
+
+    public async Task<QuotesResumenDto?> GetQuotesResumenAsync()
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<QuotesResumenDto>("/api/quotes/resumen");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuestos resumen");
+            return null;
+        }
+    }
+
+    public async Task<int> GetQuotesCountAsync()
+    {
+        try
+        {
+            var result = await _http.GetFromJsonAsync<CountResponse>("/api/quotes/count");
+            return result?.Total ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuestos count");
+            return 0;
+        }
+    }
+
+    public async Task<QuoteCompletaDto?> CreateQuoteAsync(CreateQuoteDto presupuesto)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("/api/quotes", presupuesto);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<QuoteCompletaDto>();
+            }
+            
+            _logger.LogWarning("Failed to create presupuesto. Status: {Status}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating presupuesto");
+            return null;
+        }
+    }
+
+    public async Task<bool> AnularQuoteAsync(int id, string motivo)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync($"/api/quotes/{id}/anular", new { Reason = motivo });
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error anulando presupuesto {Id}", id);
+            return false;
+        }
+    }
+
+    #endregion
+
+    #region Current Account (Cuenta Corriente)
+
+    public async Task<CurrentAccountDto?> GetCurrentAccountAsync(int customerId)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<CurrentAccountDto>($"/api/current-accounts/{customerId}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching current account for customer {CustomerId}", customerId);
+            return null;
+        }
+    }
+
+    public async Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsAsync(
+        int customerId,
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
+        int? line = null,
+        int skip = 0,
+        int take = 50)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"skip={skip}",
+                $"take={take}"
+            };
+
+            if (dateFrom.HasValue)
+                queryParams.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+            if (dateTo.HasValue)
+                queryParams.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+            if (line.HasValue)
+                queryParams.Add($"line={line.Value}");
+
+            var queryString = string.Join("&", queryParams);
+            return await _http.GetFromJsonAsync<CurrentAccountMovementsDto>(
+                $"/api/current-accounts/{customerId}/movements?{queryString}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching current account movements for customer {CustomerId}", customerId);
+            return null;
         }
     }
 

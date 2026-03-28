@@ -1,4 +1,4 @@
-@page "/productos/editar/{Id:int}"
+﻿@page "/productos/editar/{Id:int}"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
@@ -57,20 +57,20 @@
                             
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <label for="codigo" class="form-label">Código *</label>
-                                    <InputText id="codigo" class="form-control" @bind-Value="producto.Codigo" />
-                                    <ValidationMessage For="() => producto.Codigo" class="text-danger" />
+                                    <label for="Code" class="form-label">Código *</label>
+                                    <InputText id="Code" class="form-control" @bind-Value="producto.Code" />
+                                    <ValidationMessage For="() => producto.Code" class="text-danger" />
                                 </div>
                                 <div class="col-md-8 mb-3">
-                                    <label for="codigoProveedor" class="form-label">Código Proveedor</label>
-                                    <InputText id="codigoProveedor" class="form-control" @bind-Value="producto.CodigoProveedor" />
+                                    <label for="SupplierCode" class="form-label">Código Proveedor</label>
+                                    <InputText id="SupplierCode" class="form-control" @bind-Value="producto.SupplierCode" />
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="descripcion" class="form-label">Descripción *</label>
-                                <InputText id="descripcion" class="form-control" @bind-Value="producto.Descripcion" />
-                                <ValidationMessage For="() => producto.Descripcion" class="text-danger" />
+                                <label for="Description" class="form-label">Descripción *</label>
+                                <InputText id="Description" class="form-control" @bind-Value="producto.Description" />
+                                <ValidationMessage For="() => producto.Description" class="text-danger" />
                             </div>
 
                             <div class="row">
@@ -80,7 +80,7 @@
                                         <option value="">-- Seleccionar --</option>
                                         @foreach (var rubro in rubros)
                                         {
-                                            <option value="@rubro.Id">@rubro.Nombre</option>
+                                            <option value="@rubro.Id">@rubro.Name</option>
                                         }
                                     </InputSelect>
                                 </div>
@@ -88,9 +88,9 @@
                                     <label for="unidadMedida" class="form-label">Unidad de Medida</label>
                                     <InputSelect id="unidadMedida" class="form-select" @bind-Value="producto.UnitOfMeasureId">
                                         <option value="">-- Seleccionar --</option>
-                                        @foreach (var um in unidadesMedida)
+                                        @foreach (var um in UnitsOfMeasure)
                                         {
-                                            <option value="@um.Id">@um.Nombre (@um.Codigo)</option>
+                                            <option value="@um.Id">@um.Name (@um.Code)</option>
                                         }
                                     </InputSelect>
                                 </div>
@@ -102,43 +102,43 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="precioCosto" class="form-label">Precio Costo</label>
+                                    <label for="CostPrice" class="form-label">Precio Costo</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <InputNumber id="precioCosto" class="form-control" @bind-Value="producto.PrecioCosto" />
+                                        <InputNumber id="CostPrice" class="form-control" @bind-Value="producto.CostPrice" />
                                     </div>
-                                    <ValidationMessage For="() => producto.PrecioCosto" class="text-danger" />
+                                    <ValidationMessage For="() => producto.CostPrice" class="text-danger" />
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="precioVenta" class="form-label">Precio Venta</label>
+                                    <label for="SalePrice" class="form-label">Precio Venta</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
-                                        <InputNumber id="precioVenta" class="form-control" @bind-Value="producto.PrecioVenta" />
+                                        <InputNumber id="SalePrice" class="form-control" @bind-Value="producto.SalePrice" />
                                     </div>
-                                    <ValidationMessage For="() => producto.PrecioVenta" class="text-danger" />
+                                    <ValidationMessage For="() => producto.SalePrice" class="text-danger" />
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="porcentajeIva" class="form-label">% IVA</label>
+                                    <label for="VATPercent" class="form-label">% IVA</label>
                                     <div class="input-group">
-                                        <InputNumber id="porcentajeIva" class="form-control" @bind-Value="producto.PorcentajeIVA" />
+                                        <InputNumber id="VATPercent" class="form-control" @bind-Value="producto.VATPercent" />
                                         <span class="input-group-text">%</span>
                                     </div>
-                                    <ValidationMessage For="() => producto.PorcentajeIVA" class="text-danger" />
+                                    <ValidationMessage For="() => producto.VATPercent" class="text-danger" />
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label for="stockMinimo" class="form-label">Stock Mínimo</label>
-                                    <InputNumber id="stockMinimo" class="form-control" @bind-Value="producto.StockMinimo" />
-                                    <ValidationMessage For="() => producto.StockMinimo" class="text-danger" />
+                                    <label for="MinimumStock" class="form-label">Stock Mínimo</label>
+                                    <InputNumber id="MinimumStock" class="form-control" @bind-Value="producto.MinimumStock" />
+                                    <ValidationMessage For="() => producto.MinimumStock" class="text-danger" />
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="observaciones" class="form-label">Observaciones</label>
-                                <InputTextArea id="observaciones" class="form-control" rows="3" @bind-Value="producto.Observaciones" />
-                                <ValidationMessage For="() => producto.Observaciones" class="text-danger" />
+                                <label for="Notes" class="form-label">Notes</label>
+                                <InputTextArea id="Notes" class="form-control" rows="3" @bind-Value="producto.Notes" />
+                                <ValidationMessage For="() => producto.Notes" class="text-danger" />
                             </div>
                         </div>
                     </div>
@@ -167,7 +167,7 @@
 
     private UpdateProductDto producto = new();
     private List<CategoryDto> rubros = new();
-    private List<UnitOfMeasureDto> unidadesMedida = new();
+    private List<UnitOfMeasureDto> UnitsOfMeasure = new();
     
     private bool loading = true;
     private bool notFound = false;
@@ -186,7 +186,7 @@
         await Task.WhenAll(rubrosTask, unidadesTask, productoTask);
 
         rubros = await rubrosTask;
-        unidadesMedida = await unidadesTask;
+        UnitsOfMeasure = await unidadesTask;
 
         var productoData = await productoTask;
 
@@ -196,7 +196,7 @@
         }
         else
         {
-            originalCodigo = productoData.Codigo;
+            originalCodigo = productoData.Code;
             MapToUpdateDto(productoData);
         }
 
@@ -207,16 +207,16 @@
     {
         producto = new UpdateProductDto
         {
-            Codigo = source.Codigo,
-            Descripcion = source.Descripcion,
-            CodigoProveedor = source.CodigoProveedor,
+            Code = source.Code,
+            Description = source.Description,
+            SupplierCode = source.SupplierCode,
             CategoryId = source.CategoryId,
             UnitOfMeasureId = source.UnitOfMeasureId,
-            PrecioVenta = source.PrecioVenta,
-            PrecioCosto = source.PrecioCosto,
-            PorcentajeIVA = source.PorcentajeIVA,
-            StockMinimo = source.StockMinimo,
-            Observaciones = source.Observaciones
+            SalePrice = source.SalePrice,
+            CostPrice = source.CostPrice,
+            VATPercent = source.VATPercent,
+            MinimumStock = source.MinimumStock,
+            Notes = source.Notes
         };
     }
 
@@ -233,7 +233,7 @@
             if (success)
             {
                 successMessage = "Product actualizado correctamente.";
-                originalCodigo = producto.Codigo;
+                originalCodigo = producto.Code;
             }
             else
             {

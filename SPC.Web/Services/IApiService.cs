@@ -1,4 +1,4 @@
-using SPC.Web.Services.Models;
+﻿using SPC.Web.Services.Models;
 
 namespace SPC.Web.Services;
 
@@ -8,8 +8,11 @@ namespace SPC.Web.Services;
 public interface IApiService
 {
     // Customers
-    Task<List<CustomerDto>> GetCustomersAsync();
-    Task<List<CustomerDto>> BuscarCustomersAsync(string nombre);
+    Task<int> GetCustomersCountAsync();
+    Task<List<CustomerDto>> GetCustomersAsync(int skip = 0, int take = 50);
+    Task<List<CustomerDto>> GetAllCustomersAsync();
+    Task<List<CustomerDto>> BuscarCustomersAsync(string Name);
+    Task<List<CustomerDto>> SearchCustomersAsync(string term);
     Task<CustomerDto?> GetCustomerAsync(int id);
     Task<CustomerDto?> CreateCustomerAsync(CreateCustomerDto cliente);
     Task<bool> UpdateCustomerAsync(int id, UpdateCustomerDto cliente);
@@ -18,6 +21,7 @@ public interface IApiService
     // Products
     Task<List<ProductDto>> GetProductsAsync();
     Task<List<ProductDto>> BuscarProductsAsync(string termino);
+    Task<List<ProductDto>> SearchProductsAsync(string term);
     Task<ProductDto?> GetProductAsync(int id);
     Task<ProductDto?> CreateProductAsync(CreateProductDto producto);
     Task<bool> UpdateProductAsync(int id, UpdateProductDto producto);
@@ -49,4 +53,25 @@ public interface IApiService
     
     // Branches
     Task<List<SucursalDto>> GetBranchesAsync();
+    
+    // Quotes (Presupuestos)
+    Task<List<QuoteDto>> GetQuotesAsync(int skip = 0, int take = 50);
+    Task<QuoteCompletaDto?> GetQuoteAsync(int id);
+    Task<List<QuoteDto>> BuscarQuotesAsync(string termino);
+    Task<List<QuoteDto>> GetQuotesByCustomerAsync(int clienteId);
+    Task<List<QuoteDto>> GetQuotesByFechaAsync(DateTime desde, DateTime hasta);
+    Task<QuotesResumenDto?> GetQuotesResumenAsync();
+    Task<int> GetQuotesCountAsync();
+    Task<QuoteCompletaDto?> CreateQuoteAsync(CreateQuoteDto presupuesto);
+    Task<bool> AnularQuoteAsync(int id, string motivo);
+
+    // Current Account (Cuenta Corriente)
+    Task<CurrentAccountDto?> GetCurrentAccountAsync(int customerId);
+    Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsAsync(
+        int customerId,
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
+        int? line = null,
+        int skip = 0,
+        int take = 50);
 }

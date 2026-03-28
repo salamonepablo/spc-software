@@ -1,4 +1,4 @@
-@page "/clientes"
+﻿@page "/clientes"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
@@ -30,7 +30,7 @@
                     <div class="input-group">
                         <input type="text" 
                                class="form-control" 
-                               placeholder="Buscar por nombre o razón social..."
+                               placeholder="Buscar por Name o razón social..."
                                @bind="searchTerm"
                                @bind:event="oninput"
                                @onkeyup="HandleSearchKeyUp" />
@@ -48,7 +48,7 @@
                 <div class="col-md-6 text-end text-muted">
                     @if (clientes != null)
                     {
-                        <span>@clientes.Count cliente(s) encontrado(s)</span>
+                        <span>Mostrando @clientes.Count de @totalCustomers clientes</span>
                     }
                 </div>
             </div>
@@ -76,11 +76,11 @@
                     <table class="table table-striped table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>Codigo</th>
+                                <th>Code</th>
                                 <th>Razon Social</th>
                                 <th>CUIT</th>
-                                <th>Localidad</th>
-                                <th>Telefono</th>
+                                <th>City</th>
+                                <th>Phone</th>
                                 <th>Cond. IVA</th>
                                 <th style="width: 150px;">Acciones</th>
                             </tr>
@@ -91,24 +91,24 @@
                                 <tr>
                                     <td><code>@cliente.Id</code></td>
                                     <td>
-                                        <strong>@cliente.RazonSocial</strong>
-                                        @if (!string.IsNullOrEmpty(cliente.NombreFantasia))
+                                        <strong>@cliente.CompanyName</strong>
+                                        @if (!string.IsNullOrEmpty(cliente.TradeName))
                                         {
-                                            <br /><small class="text-muted">@cliente.NombreFantasia</small>
+                                            <br /><small class="text-muted">@cliente.TradeName</small>
                                         }
                                     </td>
                                     <td>@(cliente.CUIT ?? "-")</td>
-                                    <td>@(cliente.Localidad ?? "-")</td>
-                                    <td>@(cliente.Telefono ?? cliente.Celular ?? "-")</td>
-                                    <td>@(cliente.TaxConditionDescripcion ?? "-")</td>
+                                    <td>@(cliente.City ?? "-")</td>
+                                    <td>@(cliente.Phone ?? cliente.Mobile ?? "-")</td>
+                                    <td>@(cliente.TaxConditionDescription ?? "-")</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="/clientes/editar/@cliente.Id" 
-                                               class="btn btn-outline-primary" 
+                                            <a href="/clientes/editar/@cliente.Id"
+                                               class="btn btn-outline-primary"
                                                title="Editar">
                                                 Editar
                                             </a>
-                                            <button class="btn btn-outline-danger" 
+                                            <button class="btn btn-outline-danger"
                                                     title="Eliminar"
                                                     @onclick="() => ShowDeleteConfirm(cliente)">
                                                 Eliminar
@@ -120,6 +120,17 @@
                         </tbody>
                     </table>
                 </div>
+                @if (clientes.Count < totalCustomers)
+                {
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Mostrando @clientes.Count de @totalCustomers clientes</span>
+                            <button class="btn btn-outline-primary" @onclick="LoadMore">
+                                Cargar mas...
+                            </button>
+                        </div>
+                    </div>
+                }
             }
         </div>
     </div>
@@ -135,11 +146,14 @@
     private List<CustomerDto>? clientes;
     private bool loading = true;
     private string searchTerm = "";
-    
+    private int totalCustomers = 0;
+    private int pageSize = 50;
+    private int currentPage = 0;
+
     // Alert state
     private string? alertMessage;
     private AlertMessage.AlertType alertType;
-    
+
     // Delete confirmation state
     private bool showDeleteConfirm;
     private CustomerDto? clienteToDelete;
@@ -147,19 +161,37 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCustomers();
+        var countTask = Api.GetCustomersCountAsync();
+        var customersTask = Api.GetCustomersAsync(0, pageSize);
+
+        await Task.WhenAll(countTask, customersTask);
+
+        totalCustomers = await countTask;
+        clientes = await customersTask;
+        loading = false;
     }
 
     private async Task LoadCustomers()
     {
+        currentPage = 0;
         loading = true;
         try
         {
-            clientes = await Api.GetCustomersAsync();
+            clientes = await Api.GetCustomersAsync(0, pageSize);
         }
         finally
         {
             loading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        currentPage++;
+        var more = await Api.GetCustomersAsync(currentPage * pageSize, pageSize);
+        if (more.Any())
+        {
+            clientes?.AddRange(more);
         }
     }
 
@@ -199,7 +231,7 @@
     private void ShowDeleteConfirm(CustomerDto cliente)
     {
         clienteToDelete = cliente;
-        deleteConfirmMessage = $"¿Está seguro que desea eliminar al cliente \"{cliente.RazonSocial}\"? Esta acción no se puede deshacer.";
+        deleteConfirmMessage = $"¿Está seguro que desea eliminar al cliente \"{cliente.CompanyName}\"? Esta acción no se puede deshacer.";
         showDeleteConfirm = true;
     }
 
@@ -213,7 +245,7 @@
             
             if (success)
             {
-                alertMessage = $"Customer \"{clienteToDelete.RazonSocial}\" eliminado correctamente.";
+                alertMessage = $"Customer \"{clienteToDelete.CompanyName}\" eliminado correctamente.";
                 alertType = AlertMessage.AlertType.Success;
                 await LoadCustomers();
             }

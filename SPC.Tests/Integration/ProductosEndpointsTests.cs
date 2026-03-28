@@ -1,6 +1,7 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using System.Text.Json;
 using SPC.API.Contracts.Products;
 using SPC.Tests.Infrastructure;
 
@@ -37,9 +38,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Arrange
         var nuevoProduct = new CreateProductRequest
         {
-            Codigo = "BAT-001",
-            Descripcion = "Bateria 12V 75Ah Auto",
-            PrecioVenta = 150000.00m,
+            Code = "BAT-001",
+            Description = "Bateria 12V 75Ah Auto",
+            SalePrice = 150000.00m,
             CategoryId = 1, // Baterias Auto (seed data)
             UnitOfMeasureId = 1 // Unidades (seed data)
         };
@@ -52,9 +53,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         var productoCreado = await response.Content.ReadFromJsonAsync<ProductResponse>();
         productoCreado.Should().NotBeNull();
         productoCreado!.Id.Should().BeGreaterThan(0);
-        productoCreado.Codigo.Should().Be("BAT-001");
-        productoCreado.Descripcion.Should().Be("Bateria 12V 75Ah Auto");
-        productoCreado.Activo.Should().BeTrue();
+        productoCreado.Code.Should().Be("BAT-001");
+        productoCreado.Description.Should().Be("Bateria 12V 75Ah Auto");
+        productoCreado.IsActive.Should().BeTrue();
     }
 
     [Fact]
@@ -63,9 +64,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Arrange - Create a producto first
         var nuevoProduct = new CreateProductRequest
         {
-            Codigo = "BAT-002",
-            Descripcion = "Bateria 12V 45Ah Moto",
-            PrecioVenta = 50000.00m,
+            Code = "BAT-002",
+            Description = "Bateria 12V 45Ah Moto",
+            SalePrice = 50000.00m,
             CategoryId = 2, // Baterias Moto
             UnitOfMeasureId = 1
         };
@@ -79,7 +80,7 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var producto = await response.Content.ReadFromJsonAsync<ProductResponse>();
         producto.Should().NotBeNull();
-        producto!.Codigo.Should().Be("BAT-002");
+        producto!.Code.Should().Be("BAT-002");
     }
 
     [Fact]
@@ -97,23 +98,23 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     {
         // Arrange - Create productos with unique prefix
         var prefix = Guid.NewGuid().ToString()[..8];
-        var producto1 = new CreateProductRequest { Codigo = $"{prefix}-100", Descripcion = $"{prefix} Bateria 60Ah", PrecioVenta = 100000, CategoryId = 1, UnitOfMeasureId = 1 };
-        var producto2 = new CreateProductRequest { Codigo = $"{prefix}-101", Descripcion = $"{prefix} Bateria 75Ah", PrecioVenta = 120000, CategoryId = 1, UnitOfMeasureId = 1 };
-        var producto3 = new CreateProductRequest { Codigo = $"{prefix}-ACC", Descripcion = $"{prefix} Cable arranque", PrecioVenta = 15000, CategoryId = 4, UnitOfMeasureId = 1 };
+        var producto1 = new CreateProductRequest { Code = $"{prefix}-100", Description = $"{prefix} Bateria 60Ah", SalePrice = 100000, CategoryId = 1, UnitOfMeasureId = 1 };
+        var producto2 = new CreateProductRequest { Code = $"{prefix}-101", Description = $"{prefix} Bateria 75Ah", SalePrice = 120000, CategoryId = 1, UnitOfMeasureId = 1 };
+        var producto3 = new CreateProductRequest { Code = $"{prefix}-ACC", Description = $"{prefix} Cable arranque", SalePrice = 15000, CategoryId = 4, UnitOfMeasureId = 1 };
 
         await _client.PostAsJsonAsync("/api/productos", producto1);
         await _client.PostAsJsonAsync("/api/productos", producto2);
         await _client.PostAsJsonAsync("/api/productos", producto3);
 
         // Act - Search by unique prefix + Bateria
-        var response = await _client.GetAsync($"/api/productos/buscar?descripcion={prefix}%20Bateria");
+        var response = await _client.GetAsync($"/api/productos/buscar?Description={prefix}%20Bateria");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var productos = await response.Content.ReadFromJsonAsync<List<ProductResponse>>();
         productos.Should().NotBeNull();
         productos.Should().HaveCount(2);
-        productos.Should().OnlyContain(p => p.Descripcion.Contains($"{prefix} Bateria"));
+        productos.Should().OnlyContain(p => p.Description.Contains($"{prefix} Bateria"));
     }
 
     [Fact]
@@ -121,17 +122,73 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     {
         // Arrange
         var uniqueCode = $"UNIQUE-{Guid.NewGuid().ToString()[..6]}";
-        var producto = new CreateProductRequest { Codigo = uniqueCode, Descripcion = "Product Unico", PrecioVenta = 10000, CategoryId = 1, UnitOfMeasureId = 1 };
+        var producto = new CreateProductRequest { Code = uniqueCode, Description = "Product Unico", SalePrice = 10000, CategoryId = 1, UnitOfMeasureId = 1 };
         await _client.PostAsJsonAsync("/api/productos", producto);
 
         // Act
-        var response = await _client.GetAsync($"/api/productos/buscar?descripcion={uniqueCode}");
+        var response = await _client.GetAsync($"/api/productos/buscar?Description={uniqueCode}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var productos = await response.Content.ReadFromJsonAsync<List<ProductResponse>>();
         productos.Should().NotBeNull();
-        productos.Should().ContainSingle(p => p.Codigo == uniqueCode);
+        productos.Should().ContainSingle(p => p.Code == uniqueCode);
+    }
+
+    [Fact]
+    public async Task BuscarProducts_DoesNotReturn_WhenSearchBySupplierCodeOnly()
+    {
+        // Arrange
+        var supplierCode = $"SUP-{Guid.NewGuid().ToString()[..6]}";
+        var producto = new CreateProductRequest
+        {
+            Code = "BAT-700",
+            Description = "Bateria Search Supplier",
+            SupplierCode = supplierCode,
+            SalePrice = 10000,
+            CategoryId = 1,
+            UnitOfMeasureId = 1
+        };
+        await _client.PostAsJsonAsync("/api/productos", producto);
+
+        // Act
+        var response = await _client.GetAsync($"/api/productos/buscar?Description={supplierCode}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var productos = await response.Content.ReadFromJsonAsync<List<ProductResponse>>();
+        productos.Should().NotBeNull();
+        productos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task BuscarProducts_IncludesPriceFields_InResponse()
+    {
+        // Arrange
+        var uniqueCode = $"PRICE-{Guid.NewGuid().ToString()[..6]}";
+        var producto = new CreateProductRequest
+        {
+            Code = uniqueCode,
+            Description = "Producto Precio",
+            SalePrice = 10000,
+            CategoryId = 1,
+            UnitOfMeasureId = 1
+        };
+        await _client.PostAsJsonAsync("/api/productos", producto);
+
+        // Act
+        var response = await _client.GetAsync($"/api/productos/buscar?Description={uniqueCode}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        document.RootElement.ValueKind.Should().Be(JsonValueKind.Array);
+        document.RootElement.GetArrayLength().Should().BeGreaterThan(0);
+
+        var first = document.RootElement[0];
+        first.TryGetProperty("quotePrice", out _).Should().BeTrue();
+        first.TryGetProperty("invoicePrice", out _).Should().BeTrue();
     }
 
     [Fact]
@@ -150,9 +207,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Arrange - Create a producto first
         var nuevoProduct = new CreateProductRequest
         {
-            Codigo = "BAT-UPD",
-            Descripcion = "Bateria Original",
-            PrecioVenta = 100000.00m,
+            Code = "BAT-UPD",
+            Description = "Bateria Original",
+            SalePrice = 100000.00m,
             CategoryId = 1,
             UnitOfMeasureId = 1
         };
@@ -162,9 +219,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Modify with UpdateProductRequest
         var updateRequest = new UpdateProductRequest
         {
-            Codigo = productoCreado!.Codigo,
-            Descripcion = "Bateria Actualizada",
-            PrecioVenta = 120000.00m,
+            Code = productoCreado!.Code,
+            Description = "Bateria Actualizada",
+            SalePrice = 120000.00m,
             CategoryId = productoCreado.CategoryId,
             UnitOfMeasureId = productoCreado.UnitOfMeasureId
         };
@@ -175,15 +232,15 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var productoActualizado = await response.Content.ReadFromJsonAsync<ProductResponse>();
-        productoActualizado!.Descripcion.Should().Be("Bateria Actualizada");
-        productoActualizado.PrecioVenta.Should().Be(120000.00m);
+        productoActualizado!.Description.Should().Be("Bateria Actualizada");
+        productoActualizado.SalePrice.Should().Be(120000.00m);
     }
 
     [Fact]
     public async Task PutProduct_ReturnsNotFound_WhenDoesNotExist()
     {
         // Arrange
-        var updateRequest = new UpdateProductRequest { Codigo = "GHOST", Descripcion = "Ghost Product" };
+        var updateRequest = new UpdateProductRequest { Code = "GHOST", Description = "Ghost Product" };
 
         // Act
         var response = await _client.PutAsJsonAsync("/api/productos/99999", updateRequest);
@@ -198,9 +255,9 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Arrange - Create a producto
         var nuevoProduct = new CreateProductRequest
         {
-            Codigo = "BAT-DEL",
-            Descripcion = "Bateria To Delete",
-            PrecioVenta = 50000.00m,
+            Code = "BAT-DEL",
+            Description = "Bateria To Delete",
+            SalePrice = 50000.00m,
             CategoryId = 1,
             UnitOfMeasureId = 1
         };
@@ -213,7 +270,7 @@ public class ProductsEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Verify soft delete - producto should not appear in list (filtered by Activo=true)
+        // Verify soft delete - producto should not appear in list (filtered by IsActive=true)
         var listResponse = await _client.GetAsync("/api/productos");
         var productos = await listResponse.Content.ReadFromJsonAsync<List<ProductResponse>>();
         productos.Should().NotContain(p => p.Id == productoCreado.Id);

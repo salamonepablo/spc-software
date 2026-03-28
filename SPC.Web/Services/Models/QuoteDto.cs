@@ -1,38 +1,33 @@
 ﻿namespace SPC.Web.Services.Models;
 
 /// <summary>
-/// DTO for invoice listing
+/// DTO for quote listing
 /// </summary>
-public class InvoiceDto
+public class QuoteDto
 {
     public int Id { get; set; }
-    public string InvoiceType { get; set; } = "";
-    public int PointOfSale { get; set; }
-    public long InvoiceNumber { get; set; }
+    public int BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public long QuoteNumber { get; set; }
     public string NumeroCompleto { get; set; } = "";
-    public DateTime InvoiceDate { get; set; }
+    public DateTime QuoteDate { get; set; }
     public int CustomerId { get; set; }
-    public string CustomerCompanyName { get; set; } = "";
+    public string CustomerName { get; set; } = "";
     public string? CustomerCUIT { get; set; }
     public int? SalesRepId { get; set; }
-    public string? SalesRepFirstName { get; set; }
+    public string? SalesRepName { get; set; }
     public decimal Subtotal { get; set; }
-    public decimal VATAmount { get; set; }
-    public decimal IncludedVAT { get; set; }
-    public decimal IIBBPerceptionAmount { get; set; }
+    public decimal DiscountPercent { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal Total { get; set; }
-    public string? CAE { get; set; }
-    public DateTime? CAEExpirationDate { get; set; }
-    public bool TieneCAE { get; set; }
     public bool IsVoided { get; set; }
     public int ItemCount { get; set; }
 }
 
 /// <summary>
-/// DTO for invoice detail line
+/// DTO for quote detail line
 /// </summary>
-public class InvoiceDetailDto
+public class QuoteDetailDto
 {
     public int Id { get; set; }
     public int ItemNumber { get; set; }
@@ -42,27 +37,29 @@ public class InvoiceDetailDto
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DiscountPercent { get; set; }
-    public decimal VATPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
     public decimal Subtotal { get; set; }
 }
 
 /// <summary>
-/// DTO for complete invoice with details
+/// Full quote DTO with details
 /// </summary>
-public class InvoiceCompletaDto : InvoiceDto
+public class QuoteCompletaDto : QuoteDto
 {
-    public List<InvoiceDetailDto> Details { get; set; } = new();
+    public string? BusinessUnit { get; set; }
+    public string? Notes { get; set; }
+    public List<QuoteDetailDto> Details { get; set; } = new();
 }
 
 /// <summary>
-/// DTO for invoicing summary statistics
+/// Summary statistics for quotes
 /// </summary>
-public class InvoicecionResumenDto
+public class QuotesResumenDto
 {
-    public int TotalInvoices { get; set; }
-    public int InvoicesHoy { get; set; }
-    public int InvoicesMes { get; set; }
     public decimal MontoHoy { get; set; }
+    public int QuotesHoy { get; set; }
     public decimal MontoMes { get; set; }
+    public int QuotesMes { get; set; }
     public decimal MontoAnio { get; set; }
+    public int TotalQuotes { get; set; }
 }

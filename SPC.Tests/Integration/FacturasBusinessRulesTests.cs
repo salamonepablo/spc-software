@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using SPC.API.Contracts.Invoices;
@@ -26,17 +26,17 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
     [Fact]
     public async Task InvoiceA_AddsVATToNetPrice()
     {
-        // Arrange - Invoice A: uses PrecioInvoice (net), adds VAT
-        // Product 1: PrecioInvoice = 1000, VAT 21%
+        // Arrange - Invoice A: uses InvoicePrice (net), adds VAT
+        // Product 1: InvoicePrice = 1000, VAT 21%
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",
+            InvoiceType = "A",
             CustomerId = 1,  // Customer con TaxCondition = RI (Invoice A)
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -47,9 +47,9 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         factura.Should().NotBeNull();
-        factura!.TipoInvoice.Should().Be("A");
+        factura!.InvoiceType.Should().Be("A");
         factura.Subtotal.Should().Be(1000m);  // Net price
-        factura.ImporteIVA.Should().Be(210m); // 21% VAT added
+        factura.VATAmount.Should().Be(210m); // 21% VAT added
         factura.Total.Should().Be(1210m);     // Net + VAT
     }
 
@@ -58,17 +58,17 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
     {
         // Arrange - Invoice A with IIBB perception
         // This test requires company to be IIBB perception agent
-        // and customer to have AlicuotaIIBB > 0
+        // and customer to have IIBBPercent > 0
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",
+            InvoiceType = "A",
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            AlicuotaIIBB = 3, // 3% IIBB - should only apply if company is agent
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            IIBBPercent = 3, // 3% IIBB - should only apply if company is agent
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -91,17 +91,17 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
     [Fact]
     public async Task InvoiceB_UsesFinalPriceWithVATIncluded()
     {
-        // Arrange - Invoice B: uses PrecioQuote (includes VAT)
-        // Product 1: PrecioQuote = 1210 (1000 + 21% VAT)
+        // Arrange - Invoice B: uses QuotePrice (includes VAT)
+        // Product 1: QuotePrice = 1210 (1000 + 21% VAT)
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -112,7 +112,7 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         factura.Should().NotBeNull();
-        factura!.TipoInvoice.Should().Be("B");
+        factura!.InvoiceType.Should().Be("B");
         factura.Total.Should().Be(1210m);  // Final price (VAT included)
     }
 
@@ -123,12 +123,12 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -139,7 +139,7 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         // Assert
         factura.Should().NotBeNull();
         // IVA Contenido = 1210 / 1.21 * 0.21 = 210
-        factura!.IVAContenido.Should().BeApproximately(210m, 0.01m);
+        factura!.IncludedVAT.Should().BeApproximately(210m, 0.01m);
     }
 
     [Fact]
@@ -149,12 +149,12 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            PorcentajeDescuento = 0,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 0,
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -174,15 +174,15 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
     [Fact]
     public async Task InvoiceA_UsesPrecioInvoice_FromProduct()
     {
-        // Arrange - Product 1: PrecioInvoice = 1000
+        // Arrange - Product 1: InvoicePrice = 1000
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "A",
+            InvoiceType = "A",
             CustomerId = 1,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1 }
+                new() { ProductId = 1, Quantity = 1 }
             }
         };
 
@@ -192,21 +192,21 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
 
         // Assert
         factura.Should().NotBeNull();
-        factura!.Detalles[0].PrecioUnitario.Should().Be(1000m); // PrecioInvoice
+        factura!.Details[0].UnitPrice.Should().Be(1000m); // InvoicePrice
     }
 
     [Fact]
     public async Task InvoiceB_UsesPrecioQuote_FromProduct()
     {
-        // Arrange - Product 1: PrecioQuote = 1210
+        // Arrange - Product 1: QuotePrice = 1210
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1 }
+                new() { ProductId = 1, Quantity = 1 }
             }
         };
 
@@ -216,7 +216,7 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
 
         // Assert
         factura.Should().NotBeNull();
-        factura!.Detalles[0].PrecioUnitario.Should().Be(1210m); // PrecioQuote
+        factura!.Details[0].UnitPrice.Should().Be(1210m); // QuotePrice
     }
 
     [Fact]
@@ -226,12 +226,12 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         var request = new CreateInvoiceRequest
         {
             BranchId = 1,
-            TipoInvoice = "B",
+            InvoiceType = "B",
             CustomerId = 1,
-            PorcentajeDescuento = 10,
-            Detalles = new List<CreateInvoiceDetailRequest>
+            DiscountPercent = 10,
+            Details = new List<CreateInvoiceDetailRequest>
             {
-                new() { ProductId = 1, Cantidad = 1, PorcentajeDescuento = 0 }
+                new() { ProductId = 1, Quantity = 1, DiscountPercent = 0 }
             }
         };
 
@@ -243,8 +243,8 @@ public class InvoicesBusinessRulesTests : IClassFixture<SPCWebApplicationFactory
         // Original: 1210, Discount: 121, Final: 1089
         // IVA Contenido = 1089 / 1.21 * 0.21 = 189
         factura.Should().NotBeNull();
-        factura!.ImporteDescuento.Should().Be(121m);
+        factura!.DiscountAmount.Should().Be(121m);
         factura.Total.Should().Be(1089m);
-        factura.IVAContenido.Should().BeApproximately(189m, 0.01m);
+        factura.IncludedVAT.Should().BeApproximately(189m, 0.01m);
     }
 }

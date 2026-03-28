@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace SPC.Web.Services.Models;
 
@@ -9,31 +9,31 @@ public class CreateProductDto
 {
     [Required(ErrorMessage = "El código es requerido")]
     [StringLength(50, ErrorMessage = "Máximo 50 caracteres")]
-    public string Codigo { get; set; } = "";
+    public string Code { get; set; } = "";
     
     [Required(ErrorMessage = "La descripción es requerida")]
     [StringLength(300, ErrorMessage = "Máximo 300 caracteres")]
-    public string Descripcion { get; set; } = "";
+    public string Description { get; set; } = "";
     
     [StringLength(100, ErrorMessage = "Máximo 100 caracteres")]
-    public string? CodigoProveedor { get; set; }
+    public string? SupplierCode { get; set; }
     
     public int? CategoryId { get; set; }
     
     public int? UnitOfMeasureId { get; set; }
     
     [Range(0, double.MaxValue, ErrorMessage = "Debe ser mayor o igual a 0")]
-    public decimal PrecioVenta { get; set; } = 0;
+    public decimal SalePrice { get; set; } = 0;
     
     [Range(0, double.MaxValue, ErrorMessage = "Debe ser mayor o igual a 0")]
-    public decimal PrecioCosto { get; set; } = 0;
+    public decimal CostPrice { get; set; } = 0;
     
     [Range(0, 100, ErrorMessage = "Debe estar entre 0 y 100")]
-    public decimal PorcentajeIVA { get; set; } = 21;
+    public decimal VATPercent { get; set; } = 21;
     
     [Range(0, int.MaxValue, ErrorMessage = "Debe ser mayor o igual a 0")]
-    public int StockMinimo { get; set; } = 0;
+    public int MinimumStock { get; set; } = 0;
     
     [StringLength(500, ErrorMessage = "Máximo 500 caracteres")]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
 }

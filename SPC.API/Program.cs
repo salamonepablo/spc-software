@@ -1,4 +1,4 @@
-// =============================================
+﻿// =============================================
 // SPC - Sistema de Gestión Comercial
 // API REST con ASP.NET Core
 // =============================================
@@ -8,7 +8,6 @@ using SPC.API.Data;
 using SPC.API.Endpoints;
 using SPC.API.Services;
 using SPC.Shared.Licensing;
-using SPC.Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,20 +23,30 @@ builder.Services.Configure<LicensingOptions>(
 builder.Services.AddSingleton<ILicenseService, LicenseService>();
 
 // Configure Entity Framework with SQL Server (LocalDB in development)
+// PENDING: Add [Column] attributes to all entities for ES→EN mapping OR rename DB columns to English
 builder.Services.AddDbContext<SPCDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 // Register business services
 builder.Services.AddScoped<ICustomersService, CustomersService>();
 builder.Services.AddScoped<IProductsService, ProductsService>();
 builder.Services.AddScoped<IStockService, StockService>();
-builder.Services.AddScoped<IInvoicesService, InvoicesService>();
-builder.Services.AddScoped<IQuotesService, QuotesService>();
-builder.Services.AddScoped<ICreditNotesService, CreditNotesService>();
-builder.Services.AddScoped<IDebitNotesService, DebitNotesService>();
+builder.Services.AddScoped<IInvoiceQueryService, InvoiceQueryService>();
+builder.Services.AddScoped<IInvoiceCommandService, InvoiceCommandService>();
+builder.Services.AddScoped<IQuoteQueryService, QuoteQueryService>();
+builder.Services.AddScoped<IQuoteCommandService, QuoteCommandService>();
+builder.Services.AddScoped<ICreditNoteQueryService, CreditNoteQueryService>();
+builder.Services.AddScoped<ICreditNoteCommandService, CreditNoteCommandService>();
+builder.Services.AddScoped<IDebitNoteQueryService, DebitNoteQueryService>();
+builder.Services.AddScoped<IDebitNoteCommandService, DebitNoteCommandService>();
 builder.Services.AddScoped<ITaxConfigurationService, TaxConfigurationService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
+builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
+builder.Services.AddScoped<IAuxiliaryTablesService, AuxiliaryTablesService>();
 
 // Enable CORS for Blazor to consume the API
 builder.Services.AddCors(options =>
@@ -88,17 +97,20 @@ app.MapGet("/", (ILicenseService license) => new
     sistema = "SPC - Sistema de Gestion Comercial",
     version = "1.0",
     license = license.GetLicenseInfo().Tier,
-    endpoints = new[] 
-    { 
-        "/api/clientes", 
-        "/api/productos", 
-        "/api/stock", 
-        "/api/facturas",
-        "/api/presupuestos",
+    endpoints = new[]
+    {
+        "/api/clientes",
+        "/api/productos",
+        "/api/stock",
+        "/api/invoices",
+        "/api/quotes",
+        "/api/facturas (legacy)",
+        "/api/presupuestos (legacy)",
         "/api/notas-credito",
         "/api/notas-debito",
-        "/api/condicionesiva", 
-        "/api/license" 
+        "/api/current-accounts",
+        "/api/TaxConditions",
+        "/api/license"
     }
 });
 
@@ -132,66 +144,8 @@ app.MapInvoicesEndpoints();
 app.MapQuotesEndpoints();
 app.MapCreditNotesEndpoints();
 app.MapDebitNotesEndpoints();
-app.MapBranchesEndpoints();
-
-// =============================================
-// AUXILIARY TABLE ENDPOINTS
-// =============================================
-
-// Condiciones IVA
-app.MapGet("/api/condicionesiva", async (SPCDbContext db) =>
-{
-    var condiciones = await db.CondicionesIva.ToListAsync();
-    return Results.Ok(condiciones);
-});
-
-// SalesRepes
-app.MapGet("/api/vendedores", async (SPCDbContext db) =>
-{
-    var vendedores = await db.SalesRepes
-        .Where(v => v.Activo)
-        .OrderBy(v => v.Nombre)
-        .ToListAsync();
-    return Results.Ok(vendedores);
-});
-
-app.MapPost("/api/vendedores", async (SalesRep vendedor, SPCDbContext db) =>
-{
-    vendedor.Activo = true;
-    db.SalesRepes.Add(vendedor);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/vendedores/{vendedor.Id}", vendedor);
-});
-
-// Zonas de Venta
-app.MapGet("/api/zonasventas", async (SPCDbContext db) =>
-{
-    var zonas = await db.ZonasVenta
-        .Where(z => z.Activa)
-        .OrderBy(z => z.Nombre)
-        .ToListAsync();
-    return Results.Ok(zonas);
-});
-
-// Categorys
-app.MapGet("/api/rubros", async (SPCDbContext db) =>
-{
-    var rubros = await db.Categorys
-        .Where(r => r.Activo)
-        .OrderBy(r => r.Nombre)
-        .ToListAsync();
-    return Results.Ok(rubros);
-});
-
-// Depósitos
-app.MapGet("/api/depositos", async (SPCDbContext db) =>
-{
-    var depositos = await db.Warehouses
-        .Where(d => d.Activo)
-        .OrderBy(d => d.Nombre)
-        .ToListAsync();
-    return Results.Ok(depositos);
-});
+app.MapCurrentAccountEndpoints();
+app.MapAuxiliaryTablesEndpoints();
 
 
 app.Run();

@@ -139,14 +139,13 @@
                                                        @bind:event="oninput">
                                             </td>
                                             <td>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <InputNumber class="form-control form-control-sm text-end flex-grow-1"
-                                                                 inputmode="decimal"
-                                                                 step="0.01"
-                                                                 @oninput="EventCallback.Factory.Create(this, () => MarkManualPrice(index))"
-                                                                 @bind-Value="factura.Details[index].UnitPrice"
-                                                                 @bind-Value:event="oninput" />
-                                                </div>
+                                                <input type="number"
+                                                       class="form-control form-control-sm text-end"
+                                                       inputmode="decimal"
+                                                       step="0.01"
+                                                       @bind="factura.Details[index].UnitPrice"
+                                                       @bind:event="oninput"
+                                                       @bind:after="() => MarkManualPrice(index)" />
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm text-end" 

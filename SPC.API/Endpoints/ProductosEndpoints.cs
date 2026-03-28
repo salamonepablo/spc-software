@@ -1,4 +1,4 @@
-using SPC.API.Contracts.Products;
+﻿using SPC.API.Contracts.Products;
 using SPC.API.Services;
 
 namespace SPC.API.Endpoints;
@@ -33,17 +33,17 @@ public static class ProductsEndpoints
         .WithName("GetProductById")
         .WithDescription("Returns a product by ID");
 
-        // GET /api/productos/buscar?descripcion=xxx - Search by description or code
-        group.MapGet("/buscar", async (string? descripcion, IProductsService service) =>
+        // GET /api/productos/buscar?Description=xxx - Search by description or code
+        group.MapGet("/buscar", async (string? Description, IProductsService service) =>
         {
-            if (string.IsNullOrWhiteSpace(descripcion))
+            if (string.IsNullOrWhiteSpace(Description))
                 return Results.BadRequest(new { error = "Debe proporcionar una descripción" });
 
-            var productos = await service.SearchAsync(descripcion);
+            var productos = await service.SearchAsync(Description);
             return Results.Ok(productos);
         })
         .WithName("SearchProducts")
-        .WithDescription("Search products by description or code");
+        .WithDescription("Search products by description or code (excludes supplier code)");
 
         // POST /api/productos - Create new product
         group.MapPost("/", async (CreateProductRequest request, IProductsService service) =>
@@ -74,7 +74,7 @@ public static class ProductsEndpoints
                 : Results.NotFound(new { error = "Product no encontrado" });
         })
         .WithName("DeleteProduct")
-        .WithDescription("Soft deletes a product (sets Activo = false)");
+        .WithDescription("Soft deletes a product (sets IsActive = false)");
 
         return app;
     }

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using SPC.API.Contracts.CreditNotes;
@@ -74,7 +74,7 @@ public class CreditNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     [Fact]
     public async Task CreateCreditNote_CalculatesVATCorrectly()
     {
-        // Arrange - Product 1: PrecioInvoice = 1000, IVA = 21%
+        // Arrange - Product 1: InvoicePrice = 1000, IVA = 21%
         var request = new CreateCreditNoteRequest
         {
             BranchId = 1,

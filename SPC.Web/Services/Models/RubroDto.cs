@@ -1,4 +1,4 @@
-namespace SPC.Web.Services.Models;
+﻿namespace SPC.Web.Services.Models;
 
 /// <summary>
 /// DTO for Category dropdown data
@@ -6,6 +6,6 @@ namespace SPC.Web.Services.Models;
 public class CategoryDto
 {
     public int Id { get; set; }
-    public string Nombre { get; set; } = "";
-    public string? Descripcion { get; set; }
+    public string Name { get; set; } = "";
+    public string? Description { get; set; }
 }

@@ -9,7 +9,7 @@
 
 <PageTitle>Nuevo Presupuesto - SPC</PageTitle>
 
-<div class="container-fluid">
+<div class="container-fluid" @onkeydown="OnGlobalKeyDown">
     <div class="row mb-3">
         <div class="col">
             <h3>Nuevo Presupuesto</h3>
@@ -39,42 +39,47 @@
                                 <select class="form-select" @bind="presupuesto.BranchId">
                                     @foreach (var s in sucursales)
                                     {
-                                        <option value="@s.Id">@s.Name (PtoVta: @s.PointOfSale)</option>
+                                        <option value="@s.Id">@s.Name (@s.PointOfSale)</option>
                                     }
                                 </select>
                             </div>
                             
                             <div class="col-md-8">
                                 <label class="form-label">Cliente</label>
-                                <TypeaheadInput TItem="CustomerDto"
+                                <TypeaheadInput @ref="clienteTypeahead"
+                                                TItem="CustomerDto"
                                                 Placeholder="Buscar cliente..."
                                                 SearchAsync="Api.SearchCustomersAsync"
                                                 DisplaySelector="FormatCustomerDisplay"
                                                 OnSelected="OnCustomerSelected"
+                                                OnEnterAfterSelect="() => vendedorSelect.FocusAsync()"
                                                 SelectedText="@(clienteSeleccionado != null ? FormatCustomerDisplay(clienteSeleccionado) : "")"
                                                 InputClass="form-control" />
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <label class="form-label">Vendedor</label>
-                                <select class="form-select" @bind="presupuesto.SalesRepId">
+                                <select @ref="vendedorSelect" class="form-select" @bind="presupuesto.SalesRepId"
+                                        @onkeydown="OnVendedorKeyDown">
                                     <option value="">Sin vendedor</option>
                                     @foreach (var v in vendedores)
                                     {
-                                        <option value="@v.Id">@v.Name</option>
+                                        <option value="@v.Id">@v.FirstName</option>
                                     }
                                 </select>
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <label class="form-label">Descuento General (%)</label>
-                                <input type="number" class="form-control" step="0.01" min="0" max="100" 
-                                       @bind="presupuesto.DiscountPercent">
+                                <input @ref="descuentoInput" type="number" class="form-control" step="0.01" min="0" max="100"
+                                       @bind="presupuesto.DiscountPercent"
+                                       @onkeydown="OnDescuentoKeyDown">
                             </div>
-                            
+
                             <div class="col-md-4">
                                 <label class="form-label">Unidad de Negocio</label>
-                                <input type="text" class="form-control" @bind="presupuesto.BusinessUnit" 
+                                <input @ref="unidadNegocioInput" type="text" class="form-control" @bind="presupuesto.BusinessUnit"
+                                       @onkeydown="OnUnidadNegocioKeyDown"
                                        placeholder="Opcional">
                             </div>
                         </div>
@@ -105,7 +110,7 @@
                                         <th class="text-end">Precio</th>
                                         <th class="text-end">Dto %</th>
                                         <th class="text-end">Subtotal</th>
-                                        <th style="width: 40px;"></th>
+                                        <th style="width: 80px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -114,41 +119,54 @@
                                         var index = i;
                                         <tr>
                                             <td>
-                                                <TypeaheadInput TItem="ProductDto"
+                                                <TypeaheadInput @ref="productTypeaheads[index]"
+                                                                TItem="ProductDto"
                                                                 Placeholder="Buscar producto..."
                                                                 SearchAsync="Api.SearchProductsAsync"
                                                                 DisplaySelector="FormatProductDisplay"
                                                                 OnSelected="@(product => OnProductSelected(index, product))"
+                                                                OnEnterAfterSelect="@(() => FocusCantidad(index))"
                                                                 SelectedText="@GetSelectedProductText(index)"
                                                                 InputClass="form-control form-control-sm" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" 
-                                                       step="1" min="1" 
+                                                <input @ref="cantidadInputs[index]"
+                                                       type="number" class="form-control form-control-sm text-end"
+                                                       step="1" min="1"
                                                        @bind="presupuesto.Details[index].Quantity"
-                                                       @bind:event="oninput">
+                                                       @bind:event="oninput"
+                                                       @onkeydown="@(e => OnCantidadKeyDown(e, index))">
                                             </td>
                                             <td>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <InputNumber class="form-control form-control-sm text-end flex-grow-1"
-                                                                 inputmode="decimal"
-                                                                 step="0.01"
-                                                                 @oninput="EventCallback.Factory.Create(this, () => MarkManualPrice(index))"
-                                                                 @bind-Value="presupuesto.Details[index].UnitPrice"
-                                                                 @bind-Value:event="oninput" />
-                                                </div>
+                                                <input @ref="precioInputs[index]"
+                                                       type="number"
+                                                       class="form-control form-control-sm text-end"
+                                                       inputmode="decimal"
+                                                       step="0.01"
+                                                       @bind="presupuesto.Details[index].UnitPrice"
+                                                       @bind:event="oninput"
+                                                       @bind:after="() => MarkManualPrice(index)"
+                                                       @onkeydown="@(e => OnPrecioKeyDown(e, index))" />
                                             </td>
                                             <td>
-                                                <input type="number" class="form-control form-control-sm text-end" 
-                                                       step="0.01" min="0" max="100" 
+                                                <input @ref="dtoInputs[index]"
+                                                       type="number" class="form-control form-control-sm text-end"
+                                                       step="0.01" min="0" max="100"
                                                        @bind="presupuesto.Details[index].DiscountPercent"
-                                                       @bind:event="oninput">
+                                                       @bind:event="oninput"
+                                                       @onkeydown="@(e => OnDtoKeyDown(e, index))">
                                             </td>
                                             <td class="text-end fw-bold text-nowrap">
                                                 @CalcularSubtotalLinea(index).ToString("C2")
                                             </td>
-                                            <td>
-                                                <button class="btn btn-outline-danger btn-sm" 
+                                            <td class="text-nowrap">
+                                                <button @ref="addButtons[index]"
+                                                        class="btn btn-outline-success btn-sm me-1"
+                                                        @onclick="@(() => AgregarItemYFocus())"
+                                                        title="Agregar item">
+                                                    +
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm"
                                                         @onclick="EventCallback.Factory.Create(this, () => EliminarItem(index))"
                                                         title="Eliminar">
                                                     &times;
@@ -224,10 +242,12 @@
                 }
                 
                 <div class="d-grid gap-2 mt-3">
-                    <button class="btn btn-success btn-lg" 
+                    <button class="btn btn-success btn-lg"
                             disabled="@(!puedeGuardar)"
-                            @onclick="Guardar">
+                            @onclick="Guardar"
+                            title="Ctrl+Enter para guardar">
                         @(guardando ? "Guardando..." : "Guardar Presupuesto")
+                        <small class="d-block opacity-75" style="font-size: 0.7em;">(Ctrl+Enter)</small>
                     </button>
                 </div>
                 
@@ -246,7 +266,7 @@
 </div>
 
 @code {
-    private CreateQuoteDto presupuesto = new();
+    private CreateQuoteDto presupuesto = new() { BusinessUnit = "4" };
     private List<SalesRepDto> vendedores = new();
     private List<SucursalDto> sucursales = new();
     private CustomerDto? clienteSeleccionado;
@@ -256,6 +276,18 @@
     private bool guardando = false;
     private string mensajeError = "";
     private string successMessage = "";
+    private bool shouldFocusCliente = false;
+
+    // Element references for keyboard navigation
+    private TypeaheadInput<CustomerDto>? clienteTypeahead;
+    private ElementReference vendedorSelect;
+    private ElementReference descuentoInput;
+    private ElementReference unidadNegocioInput;
+    private Dictionary<int, TypeaheadInput<ProductDto>> productTypeaheads = new();
+    private Dictionary<int, ElementReference> cantidadInputs = new();
+    private Dictionary<int, ElementReference> precioInputs = new();
+    private Dictionary<int, ElementReference> dtoInputs = new();
+    private Dictionary<int, ElementReference> addButtons = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -271,8 +303,9 @@
         {
             presupuesto.BranchId = sucursales.First().Id;
         }
-        
+
         loading = false;
+        shouldFocusCliente = true;
     }
 
     private Task OnCustomerSelected(CustomerDto customer)
@@ -288,11 +321,11 @@
         return Task.CompletedTask;
     }
 
-    private Task OnProductSelected(int index, ProductDto product)
+    private async Task OnProductSelected(int index, ProductDto product)
     {
         if (index < 0 || index >= presupuesto.Details.Count)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         presupuesto.Details[index].ProductId = product.Id;
@@ -300,28 +333,14 @@
         EnsureManualPriceSize(index);
         selectedProducts[index] = product;
         manualPriceOverrides[index] = false;
-        OnProductChanged(index);
-        return Task.CompletedTask;
+
+        // Set price from product (QuotePrice includes VAT)
+        presupuesto.Details[index].UnitPrice = product.QuotePrice;
+
+        await InvokeAsync(StateHasChanged);
     }
 
-    private void OnProductChanged(int index)
-    {
-        var productoId = presupuesto.Details[index].ProductId;
-        if (productoId > 0)
-        {
-            var producto = index < selectedProducts.Count ? selectedProducts[index] : null;
-            if (producto != null)
-            {
-                if (!IsManualPrice(index))
-                {
-                    // Quotes use QuotePrice (includes VAT)
-                    presupuesto.Details[index].UnitPrice = producto.QuotePrice;
-                }
-            }
-        }
-    }
-
-    private async Task AgregarItem()
+    private void AgregarItem()
     {
         mensajeError = "";
 
@@ -391,11 +410,6 @@
         manualPriceOverrides[index] = true;
     }
 
-    private bool IsManualPrice(int index)
-    {
-        return index >= 0 && index < manualPriceOverrides.Count && manualPriceOverrides[index];
-    }
-
     private bool puedeGuardar => presupuesto.CustomerId > 0 
         && presupuesto.Details.Count > 0 
         && presupuesto.Details.Any(d => d.ProductId > 0)
@@ -429,11 +443,12 @@
             }
 
             var result = await Api.CreateQuoteAsync(presupuesto);
-            
+
             if (result != null)
             {
                 successMessage = $"Presupuesto #{result.QuoteNumber} guardado con exito.";
                 ResetForm();
+                shouldFocusCliente = true;
             }
             else
             {
@@ -461,12 +476,18 @@
 
         presupuesto = new CreateQuoteDto
         {
-            BranchId = branchId
+            BranchId = branchId,
+            BusinessUnit = "4"
         };
 
         clienteSeleccionado = null;
         selectedProducts.Clear();
         manualPriceOverrides.Clear();
+        productTypeaheads.Clear();
+        cantidadInputs.Clear();
+        precioInputs.Clear();
+        dtoInputs.Clear();
+        addButtons.Clear();
     }
 
     private string FormatCustomerDisplay(CustomerDto customer)
@@ -508,6 +529,113 @@
         while (manualPriceOverrides.Count <= index)
         {
             manualPriceOverrides.Add(false);
+        }
+    }
+
+    // =============================================
+    // KEYBOARD NAVIGATION HANDLERS
+    // =============================================
+
+    private async Task OnVendedorKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            await descuentoInput.FocusAsync();
+        }
+    }
+
+    private async Task OnDescuentoKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            await unidadNegocioInput.FocusAsync();
+        }
+    }
+
+    private async Task OnUnidadNegocioKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            // Add item and focus on product
+            await AgregarItemYFocus();
+        }
+    }
+
+    private async Task FocusCantidad(int index)
+    {
+        await Task.Delay(50); // Small delay for DOM update
+        if (cantidadInputs.TryGetValue(index, out var input))
+        {
+            await input.FocusAsync();
+        }
+    }
+
+    private async Task OnCantidadKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (precioInputs.TryGetValue(index, out var input))
+            {
+                await input.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnPrecioKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (dtoInputs.TryGetValue(index, out var input))
+            {
+                await input.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnDtoKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (addButtons.TryGetValue(index, out var button))
+            {
+                await button.FocusAsync();
+            }
+        }
+    }
+
+    // Note: Enter on button triggers onclick by default, no need to handle here
+    // This prevents double-add issue
+
+    private async Task AgregarItemYFocus()
+    {
+        AgregarItem();
+        await Task.Delay(100); // Wait for DOM update
+        var newIndex = presupuesto.Details.Count - 1;
+        if (productTypeaheads.TryGetValue(newIndex, out var typeahead) && typeahead != null)
+        {
+            await typeahead.FocusAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldFocusCliente && clienteTypeahead != null)
+        {
+            shouldFocusCliente = false;
+            await Task.Delay(100); // Wait for DOM
+            await clienteTypeahead.FocusAsync();
+        }
+    }
+
+    private async Task OnGlobalKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+Enter or Ctrl+S to save
+        if (e.CtrlKey && (e.Key == "Enter" || e.Key == "s"))
+        {
+            if (puedeGuardar)
+            {
+                await Guardar();
+            }
         }
     }
 }

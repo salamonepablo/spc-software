@@ -1,115 +1,172 @@
-using SPC.API.Contracts.Quotes;
+﻿using SPC.API.Contracts.Quotes;
 using SPC.API.Services;
 
 namespace SPC.API.Endpoints;
 
 /// <summary>
-/// Endpoint module for Quotes (Quotes)
+/// Endpoint module for Quotes.
+/// Delegates to IQuoteQueryService (reads) and IQuoteCommandService (writes).
 /// </summary>
 public static class QuotesEndpoints
 {
     public static IEndpointRouteBuilder MapQuotesEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/presupuestos")
+        var group = app.MapGroup("/api/quotes")
             .WithTags("Quotes");
 
+        var legacyGroup = app.MapGroup("/api/presupuestos")
+            .WithTags("Quotes");
+
+        MapQuoteRoutes(group, includeMetadata: true);
+        MapQuoteRoutes(legacyGroup, includeMetadata: false);
+
+        return app;
+    }
+
+    private static void MapQuoteRoutes(RouteGroupBuilder group, bool includeMetadata)
+    {
+        RouteHandlerBuilder builder;
+
         // ===========================================
-        // CREATE
+        // COMMANDS (delegated to IQuoteCommandService)
         // ===========================================
 
-        // POST /api/presupuestos - Create new quote
-        group.MapPost("/", async (CreateQuoteRequest request, IQuotesService service) =>
+        // POST /api/quotes - Create new quote
+        builder = group.MapPost("/", async (CreateQuoteRequest request, IQuoteCommandService commandService) =>
         {
             try
             {
-                var quote = await service.CreateAsync(request);
-                return Results.Created($"/api/presupuestos/{quote.Id}", quote);
+                var quote = await commandService.CreateAsync(request);
+                return Results.Created($"/api/quotes/{quote.Id}", quote);
             }
             catch (InvalidOperationException ex)
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        })
-        .WithName("CreateQuote")
-        .WithDescription("Creates a new quote with pricing calculations");
+        });
 
-        // POST /api/presupuestos/{id}/anular - Void a quote
-        group.MapPost("/{id:int}/anular", async (int id, AnularQuoteRequest request, IQuotesService service) =>
+        if (includeMetadata)
         {
-            var result = await service.AnularAsync(id, request.Reason);
+            builder.WithName("CreateQuote")
+                .WithDescription("Creates a new quote with pricing calculations");
+        }
+
+        // POST /api/quotes/{id}/anular - Void a quote
+        builder = group.MapPost("/{id:int}/anular", async (int id, AnularQuoteRequest request, IQuoteCommandService commandService) =>
+        {
+            var result = await commandService.VoidAsync(id, request.Reason);
             return result
-                ? Results.Ok(new { message = "Quote anulado correctamente" })
-                : Results.NotFound(new { error = "Quote no encontrado o ya anulado" });
-        })
-        .WithName("AnularQuote")
-        .WithDescription("Voids a quote (soft delete)");
+                ? Results.Ok(new { message = "Quote voided successfully" })
+                : Results.NotFound(new { error = "Quote not found or already voided" });
+        });
 
-        // ===========================================
-        // QUERIES
-        // ===========================================
-
-        // GET /api/presupuestos - Get all quotes (paginated)
-        group.MapGet("/", async (int? skip, int? take, IQuotesService service) =>
+        if (includeMetadata)
         {
-            var quotes = await service.GetAllAsync(skip ?? 0, take ?? 50);
+            builder.WithName("VoidQuote")
+                .WithDescription("Voids a quote (soft delete) and reverses current account impact");
+        }
+
+        // ===========================================
+        // QUERIES (delegated to IQuoteQueryService)
+        // ===========================================
+
+        // GET /api/quotes - Get all quotes (paginated)
+        builder = group.MapGet("/", async (int? skip, int? take, IQuoteQueryService queryService) =>
+        {
+            var quotes = await queryService.GetAllAsync(skip ?? 0, take ?? 50);
             return Results.Ok(quotes);
-        })
-        .WithName("GetQuotes")
-        .WithDescription("Returns all quotes (paginated, default 50)");
+        });
 
-        // GET /api/presupuestos/count - Get total count
-        group.MapGet("/count", async (IQuotesService service) =>
+        if (includeMetadata)
         {
-            var count = await service.GetCountAsync();
+            builder.WithName("GetQuotes")
+                .WithDescription("Returns all quotes (paginated, default 50)");
+        }
+
+        // GET /api/quotes/count - Get total count
+        builder = group.MapGet("/count", async (IQuoteQueryService queryService) =>
+        {
+            var count = await queryService.GetCountAsync();
             return Results.Ok(new { total = count });
-        })
-        .WithName("GetQuotesCount")
-        .WithDescription("Returns total count of quotes");
+        });
 
-        // GET /api/presupuestos/{id} - Get quote by ID with details
-        group.MapGet("/{id:int}", async (int id, IQuotesService service) =>
+        if (includeMetadata)
         {
-            var quote = await service.GetByIdAsync(id);
+            builder.WithName("GetQuotesCount")
+                .WithDescription("Returns total count of quotes");
+        }
+
+        // GET /api/quotes/resumen - Get summary statistics
+        builder = group.MapGet("/resumen", async (IQuoteQueryService queryService) =>
+        {
+            var summary = await queryService.GetSummaryAsync();
+            return Results.Ok(summary);
+        });
+
+        if (includeMetadata)
+        {
+            builder.WithName("GetQuotesSummary")
+                .WithDescription("Returns summary statistics (today, month, year)");
+        }
+
+        // GET /api/quotes/{id} - Get quote by ID with details
+        builder = group.MapGet("/{id:int}", async (int id, IQuoteQueryService queryService) =>
+        {
+            var quote = await queryService.GetByIdAsync(id);
             return quote != null
                 ? Results.Ok(quote)
-                : Results.NotFound(new { error = "Quote no encontrado" });
-        })
-        .WithName("GetQuoteById")
-        .WithDescription("Returns a quote by ID with all details");
+                : Results.NotFound(new { error = "Quote not found" });
+        });
 
-        // GET /api/presupuestos/cliente/{id} - Get quotes by customer
-        group.MapGet("/cliente/{customerId:int}", async (int customerId, IQuotesService service) =>
+        if (includeMetadata)
         {
-            var quotes = await service.GetByCustomerAsync(customerId);
-            return Results.Ok(quotes);
-        })
-        .WithName("GetQuotesByCustomer")
-        .WithDescription("Returns all quotes for a specific customer");
+            builder.WithName("GetQuoteById")
+                .WithDescription("Returns a quote by ID with all details");
+        }
 
-        // GET /api/presupuestos/fecha?desde=xxx&hasta=xxx - Get quotes by date range
-        group.MapGet("/fecha", async (DateTime? desde, DateTime? hasta, IQuotesService service) =>
+        // GET /api/quotes/cliente/{id} - Get quotes by customer
+        builder = group.MapGet("/cliente/{customerId:int}", async (int customerId, IQuoteQueryService queryService) =>
+        {
+            var quotes = await queryService.GetByCustomerAsync(customerId);
+            return Results.Ok(quotes);
+        });
+
+        if (includeMetadata)
+        {
+            builder.WithName("GetQuotesByCustomer")
+                .WithDescription("Returns all quotes for a specific customer");
+        }
+
+        // GET /api/quotes/fecha?desde=xxx&hasta=xxx - Get quotes by date range
+        builder = group.MapGet("/fecha", async (DateTime? desde, DateTime? hasta, IQuoteQueryService queryService) =>
         {
             var from = desde ?? DateTime.Today.AddMonths(-1);
             var to = hasta ?? DateTime.Today;
-            
-            var quotes = await service.GetByDateRangeAsync(from, to);
-            return Results.Ok(quotes);
-        })
-        .WithName("GetQuotesByFecha")
-        .WithDescription("Returns quotes in a date range (default: last month)");
 
-        // GET /api/presupuestos/buscar?termino=xxx - Search quotes
-        group.MapGet("/buscar", async (string? termino, IQuotesService service) =>
+            var quotes = await queryService.GetByDateRangeAsync(from, to);
+            return Results.Ok(quotes);
+        });
+
+        if (includeMetadata)
+        {
+            builder.WithName("GetQuotesByDateRange")
+                .WithDescription("Returns quotes in a date range (default: last month)");
+        }
+
+        // GET /api/quotes/buscar?termino=xxx - Search quotes
+        builder = group.MapGet("/buscar", async (string? termino, IQuoteQueryService queryService) =>
         {
             if (string.IsNullOrWhiteSpace(termino))
-                return Results.BadRequest(new { error = "Debe proporcionar un termino de busqueda" });
+                return Results.BadRequest(new { error = "Search term is required" });
 
-            var quotes = await service.SearchAsync(termino);
+            var quotes = await queryService.SearchAsync(termino);
             return Results.Ok(quotes);
-        })
-        .WithName("SearchQuotes")
-        .WithDescription("Search quotes by number or customer name");
+        });
 
-        return app;
+        if (includeMetadata)
+        {
+            builder.WithName("SearchQuotes")
+                .WithDescription("Search quotes by number or customer name");
+        }
     }
 }

@@ -1,4 +1,4 @@
-@page "/productos"
+﻿@page "/productos"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
@@ -88,17 +88,17 @@
                             @foreach (var producto in productos)
                             {
                                 <tr>
-                                    <td><strong>@producto.Codigo</strong></td>
+                                    <td><strong>@producto.Code</strong></td>
                                     <td>
-                                        @producto.Descripcion
-                                        @if (!string.IsNullOrEmpty(producto.CodigoProveedor))
+                                        @producto.Description
+                                        @if (!string.IsNullOrEmpty(producto.SupplierCode))
                                         {
-                                            <br /><small class="text-muted">Prov: @producto.CodigoProveedor</small>
+                                            <br /><small class="text-muted">Prov: @producto.SupplierCode</small>
                                         }
                                     </td>
-                                    <td>@(producto.CategoryNombre ?? "-")</td>
-                                    <td class="text-end">@producto.PrecioVenta.ToString("C2")</td>
-                                    <td class="text-end">@producto.PorcentajeIVA.ToString("0.##")%</td>
+                                    <td>@(producto.CategoryName ?? "-")</td>
+                                    <td class="text-end">@producto.SalePrice.ToString("C2")</td>
+                                    <td class="text-end">@producto.VATPercent.ToString("0.##")%</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
                                             <a href="/productos/editar/@producto.Id" 
@@ -197,7 +197,7 @@
     private void ShowDeleteConfirm(ProductDto producto)
     {
         productoToDelete = producto;
-        deleteConfirmMessage = $"¿Está seguro que desea eliminar el producto \"{producto.Codigo} - {producto.Descripcion}\"? Esta acción no se puede deshacer.";
+        deleteConfirmMessage = $"¿Está seguro que desea eliminar el producto \"{producto.Code} - {producto.Description}\"? Esta acción no se puede deshacer.";
         showDeleteConfirm = true;
     }
 
@@ -211,7 +211,7 @@
             
             if (success)
             {
-                alertMessage = $"Product \"{productoToDelete.Codigo}\" eliminado correctamente.";
+                alertMessage = $"Product \"{productoToDelete.Code}\" eliminado correctamente.";
                 alertType = AlertMessage.AlertType.Success;
                 await LoadProducts();
             }

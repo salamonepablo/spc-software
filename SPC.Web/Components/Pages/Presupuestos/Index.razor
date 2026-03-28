@@ -1,5 +1,5 @@
-﻿@page "/invoices"
-@page "/facturas"
+﻿@page "/quotes"
+@page "/presupuestos"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
@@ -7,20 +7,19 @@
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
-<PageTitle>Invoices - SPC</PageTitle>
+<PageTitle>Presupuestos - SPC</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0">Invoices</h3>
-        <div class="text-muted">
-            @if (totalInvoices > 0)
-            {
-                <span>@totalInvoices facturas en el sistema</span>
-            }
+        <h3 class="mb-0">Presupuestos</h3>
+        <div>
+            <button class="btn btn-primary" @onclick="NuevoPresupuesto">
+                + Nuevo Presupuesto
+            </button>
         </div>
     </div>
 
-    @* Resumen de facturacion *@
+    @* Resumen de presupuestos *@
     @if (resumen != null)
     {
         <div class="row g-3 mb-4">
@@ -29,7 +28,7 @@
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Hoy</h6>
                         <h3 class="mb-0 text-nowrap">@resumen.MontoHoy.ToString("C0")</h3>
-                        <small>@resumen.InvoicesHoy facturas</small>
+                        <small>@resumen.QuotesHoy presupuestos</small>
                     </div>
                 </div>
             </div>
@@ -38,7 +37,7 @@
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Este Mes</h6>
                         <h3 class="mb-0 text-nowrap">@resumen.MontoMes.ToString("C0")</h3>
-                        <small>@resumen.InvoicesMes facturas</small>
+                        <small>@resumen.QuotesMes presupuestos</small>
                     </div>
                 </div>
             </div>
@@ -55,8 +54,8 @@
                 <div class="card bg-secondary text-white">
                     <div class="card-body">
                         <h6 class="card-title opacity-75">Total Historico</h6>
-                        <h3 class="mb-0 text-nowrap">@resumen.TotalInvoices.ToString("N0")</h3>
-                        <small>facturas emitidas</small>
+                        <h3 class="mb-0 text-nowrap">@resumen.TotalQuotes.ToString("N0")</h3>
+                        <small>presupuestos emitidos</small>
                     </div>
                 </div>
             </div>
@@ -70,7 +69,7 @@
                     <div class="input-group">
                         <input type="text" 
                                class="form-control" 
-                               placeholder="Buscar por numero, cliente o CUIT..."
+                               placeholder="Buscar por numero o cliente..."
                                @bind="searchTerm"
                                @bind:event="oninput"
                                @onkeyup="HandleSearchKeyUp" />
@@ -102,12 +101,12 @@
 
     @if (loading)
     {
-        <LoadingSpinner Message="Cargando facturas..." />
+        <LoadingSpinner Message="Cargando presupuestos..." />
     }
-    else if (facturas == null || facturas.Count == 0)
+    else if (presupuestos == null || presupuestos.Count == 0)
     {
         <div class="alert alert-info">
-            No se encontraron facturas con los criterios seleccionados.
+            No se encontraron presupuestos con los criterios seleccionados.
         </div>
     }
     else
@@ -120,55 +119,50 @@
                             <tr>
                                 <th>Numero</th>
                                 <th>Fecha</th>
-                                <th>Customer</th>
-                                <th>CUIT</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
                                 <th class="text-end">Total</th>
-                                <th>CAE</th>
                                 <th>Estado</th>
-                                <th style="width: 100px;">Acciones</th>
+                                <th style="width: 120px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var factura in facturas)
+                            @foreach (var presupuesto in presupuestos)
                             {
-                                <tr class="@(factura.IsVoided ? "table-danger text-muted" : "")">
+                                <tr class="@(presupuesto.IsVoided ? "table-danger text-muted" : "")">
                                     <td>
-                                        <strong>@factura.NumeroCompleto</strong>
+                                        <strong>@presupuesto.QuoteNumber</strong>
                                     </td>
-                                    <td>@factura.InvoiceDate.ToString("dd/MM/yyyy")</td>
-                                    <td>
-                                        @factura.CustomerCompanyName
-                                    </td>
-                                    <td><small>@(factura.CustomerCUIT ?? "-")</small></td>
+                                    <td>@presupuesto.QuoteDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@presupuesto.CustomerName</td>
+                                    <td><small>@(presupuesto.SalesRepName ?? "-")</small></td>
                                     <td class="text-end text-nowrap">
-                                        <strong>@factura.Total.ToString("C2")</strong>
+                                        <strong>@presupuesto.Total.ToString("C2")</strong>
                                     </td>
                                     <td>
-                                        @if (factura.TieneCAE)
-                                        {
-                                            <span class="badge bg-success" title="@factura.CAE">AFIP</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">-</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (factura.IsVoided)
+                                        @if (presupuesto.IsVoided)
                                         {
                                             <span class="badge bg-danger">IsVoided</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-success">OK</span>
+                                            <span class="badge bg-success">Vigente</span>
                                         }
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                                @onclick="() => VerDetalle(factura.Id)"
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                @onclick="() => VerDetalle(presupuesto.Id)"
                                                 title="Ver detalle">
                                             Ver
                                         </button>
+                                        @if (!presupuesto.IsVoided)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => ConfirmarAnular(presupuesto)"
+                                                    title="Anular">
+                                                Anular
+                                            </button>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -176,11 +170,11 @@
                     </table>
                 </div>
             </div>
-            @if (facturas.Count >= pageSize)
+            @if (presupuestos.Count >= pageSize)
             {
                 <div class="card-footer">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Mostrando @facturas.Count facturas</span>
+                        <span class="text-muted">Mostrando @presupuestos.Count presupuestos</span>
                         <button class="btn btn-outline-primary" @onclick="LoadMore">
                             Cargar mas...
                         </button>
@@ -192,26 +186,26 @@
 </div>
 
 @* Modal para ver detalle *@
-@if (facturaSeleccionada != null)
+@if (presupuestoSeleccionado != null)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Invoice @facturaSeleccionada.NumeroCompleto</h5>
+                    <h5 class="modal-title">Presupuesto @presupuestoSeleccionado.QuoteNumber</h5>
                     <button type="button" class="btn-close" @onclick="CerrarDetalle"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <p><strong>Customer:</strong> @facturaSeleccionada.CustomerCompanyName</p>
-                            <p><strong>CUIT:</strong> @(facturaSeleccionada.CustomerCUIT ?? "-")</p>
+                            <p><strong>Cliente:</strong> @presupuestoSeleccionado.CustomerName</p>
+                            <p><strong>Vendedor:</strong> @(presupuestoSeleccionado.SalesRepName ?? "-")</p>
                         </div>
                         <div class="col-md-6 text-end">
-                            <p><strong>Fecha:</strong> @facturaSeleccionada.InvoiceDate.ToString("dd/MM/yyyy")</p>
-                            @if (facturaSeleccionada.TieneCAE)
+                            <p><strong>Fecha:</strong> @presupuestoSeleccionado.QuoteDate.ToString("dd/MM/yyyy")</p>
+                            @if (presupuestoSeleccionado.IsVoided)
                             {
-                                <p><strong>CAE:</strong> @facturaSeleccionada.CAE</p>
+                                <span class="badge bg-danger">IsVoided</span>
                             }
                         </div>
                     </div>
@@ -223,46 +217,49 @@
                                 <th>Description</th>
                                 <th class="text-end">Cant.</th>
                                 <th class="text-end">Precio</th>
+                                <th class="text-end">Dto%</th>
                                 <th class="text-end">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var det in facturaSeleccionada.Details)
+                            @foreach (var det in presupuestoSeleccionado.Details)
                             {
                                 <tr>
                                     <td><code>@det.ProductCode</code></td>
                                     <td>@det.ProductDescription</td>
                                     <td class="text-end text-nowrap">@det.Quantity.ToString("N0")</td>
                                     <td class="text-end text-nowrap">@det.UnitPrice.ToString("C2")</td>
+                                    <td class="text-end">@(det.DiscountPercent > 0 ? det.DiscountPercent.ToString("N1") + "%" : "-")</td>
                                     <td class="text-end text-nowrap">@det.Subtotal.ToString("C2")</td>
                                 </tr>
                             }
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
-                                <td class="text-end text-nowrap">@facturaSeleccionada.Subtotal.ToString("C2")</td>
+                                <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end text-nowrap">@presupuestoSeleccionado.Subtotal.ToString("C2")</td>
                             </tr>
-                            @if (facturaSeleccionada.VATAmount > 0)
+                            @if (presupuestoSeleccionado.DiscountAmount > 0)
                             {
                                 <tr>
-                                <td colspan="4" class="text-end">IVA:</td>
-                                <td class="text-end text-nowrap">@facturaSeleccionada.VATAmount.ToString("C2")</td>
-                                </tr>
-                            }
-                            @if (facturaSeleccionada.DiscountAmount > 0)
-                            {
-                                <tr>
-                                <td colspan="4" class="text-end">Descuento:</td>
-                                <td class="text-end text-danger text-nowrap">-@facturaSeleccionada.DiscountAmount.ToString("C2")</td>
+                                <td colspan="5" class="text-end">Descuento (@presupuestoSeleccionado.DiscountPercent.ToString("N1")%):</td>
+                                <td class="text-end text-danger text-nowrap">-@presupuestoSeleccionado.DiscountAmount.ToString("C2")</td>
                                 </tr>
                             }
                             <tr class="table-primary">
-                                <td colspan="4" class="text-end"><strong>TOTAL:</strong></td>
-                                <td class="text-end text-nowrap"><strong>@facturaSeleccionada.Total.ToString("C2")</strong></td>
+                                <td colspan="5" class="text-end"><strong>TOTAL:</strong></td>
+                                <td class="text-end text-nowrap"><strong>@presupuestoSeleccionado.Total.ToString("C2")</strong></td>
                             </tr>
                         </tfoot>
                     </table>
+                    
+                    @if (!string.IsNullOrEmpty(presupuestoSeleccionado.Notes))
+                    {
+                        <div class="mt-3">
+                            <strong>Notes:</strong>
+                            <p class="text-muted mb-0">@presupuestoSeleccionado.Notes</p>
+                        </div>
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CerrarDetalle">Cerrar</button>
@@ -272,44 +269,79 @@
     </div>
 }
 
+@* Modal para anular *@
+@if (presupuestoAnular != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Anular Presupuesto</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelarAnular"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Esta por anular el presupuesto <strong>@presupuestoAnular.QuoteNumber</strong> por un total de <strong>@presupuestoAnular.Total.ToString("C2")</strong>.</p>
+                    <p class="text-danger"><strong>Esta accion no se puede deshacer.</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo de anulacion:</label>
+                        <textarea class="form-control" rows="2" @bind="motivoAnulacion" 
+                                  placeholder="Ingrese el motivo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelarAnular">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="Anular" 
+                            disabled="@(string.IsNullOrWhiteSpace(motivoAnulacion))">
+                        Confirmar Anulacion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    private List<InvoiceDto>? facturas;
-    private InvoicecionResumenDto? resumen;
-    private InvoiceCompletaDto? facturaSeleccionada;
+    private List<QuoteDto>? presupuestos;
+    private QuotesResumenDto? resumen;
+    private QuoteCompletaDto? presupuestoSeleccionado;
+    private QuoteDto? presupuestoAnular;
+    private string motivoAnulacion = "";
     private bool loading = true;
     private string searchTerm = "";
     private DateTime fechaDesde = DateTime.Today.AddMonths(-1);
     private DateTime fechaHasta = DateTime.Today;
-    private int totalInvoices = 0;
     private int pageSize = 50;
     private int currentPage = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        var resumenTask = Api.GetInvoicecionResumenAsync();
-        var facturasTask = Api.GetInvoicesAsync(0, pageSize);
-        var countTask = Api.GetInvoicesCountAsync();
+        var resumenTask = Api.GetQuotesResumenAsync();
+        var presupuestosTask = Api.GetQuotesAsync(0, pageSize);
 
-        await Task.WhenAll(resumenTask, facturasTask, countTask);
+        await Task.WhenAll(resumenTask, presupuestosTask);
 
         resumen = await resumenTask;
-        facturas = await facturasTask;
-        totalInvoices = await countTask;
+        presupuestos = await presupuestosTask;
         loading = false;
+    }
+
+    private void NuevoPresupuesto()
+    {
+        Navigation.NavigateTo("/quotes/new");
     }
 
     private async Task Search()
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
-            await LoadInvoices();
+            await LoadPresupuestos();
             return;
         }
 
         loading = true;
         try
         {
-            facturas = await Api.BuscarInvoicesAsync(searchTerm);
+            presupuestos = await Api.BuscarQuotesAsync(searchTerm);
         }
         finally
         {
@@ -322,7 +354,7 @@
         loading = true;
         try
         {
-            facturas = await Api.GetInvoicesByFechaAsync(fechaDesde, fechaHasta);
+            presupuestos = await Api.GetQuotesByFechaAsync(fechaDesde, fechaHasta);
         }
         finally
         {
@@ -330,13 +362,13 @@
         }
     }
 
-    private async Task LoadInvoices()
+    private async Task LoadPresupuestos()
     {
         currentPage = 0;
         loading = true;
         try
         {
-            facturas = await Api.GetInvoicesAsync(0, pageSize);
+            presupuestos = await Api.GetQuotesAsync(0, pageSize);
         }
         finally
         {
@@ -347,10 +379,10 @@
     private async Task LoadMore()
     {
         currentPage++;
-        var more = await Api.GetInvoicesAsync(currentPage * pageSize, pageSize);
+        var more = await Api.GetQuotesAsync(currentPage * pageSize, pageSize);
         if (more.Any())
         {
-            facturas?.AddRange(more);
+            presupuestos?.AddRange(more);
         }
     }
 
@@ -364,11 +396,41 @@
 
     private async Task VerDetalle(int id)
     {
-        facturaSeleccionada = await Api.GetInvoiceAsync(id);
+        presupuestoSeleccionado = await Api.GetQuoteAsync(id);
     }
 
     private void CerrarDetalle()
     {
-        facturaSeleccionada = null;
+        presupuestoSeleccionado = null;
+    }
+
+    private void ConfirmarAnular(QuoteDto presupuesto)
+    {
+        presupuestoAnular = presupuesto;
+        motivoAnulacion = "";
+    }
+
+    private void CancelarAnular()
+    {
+        presupuestoAnular = null;
+        motivoAnulacion = "";
+    }
+
+    private async Task Anular()
+    {
+        if (presupuestoAnular == null || string.IsNullOrWhiteSpace(motivoAnulacion))
+            return;
+
+        var success = await Api.AnularQuoteAsync(presupuestoAnular.Id, motivoAnulacion);
+        
+        if (success)
+        {
+            // Refresh the list
+            await LoadPresupuestos();
+            resumen = await Api.GetQuotesResumenAsync();
+        }
+
+        presupuestoAnular = null;
+        motivoAnulacion = "";
     }
 }
