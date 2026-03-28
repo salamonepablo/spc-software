@@ -148,7 +148,8 @@
       "Bash(context/Prompts/ )",
       "Bash(docs/pr-checklist.md )",
       "Bash(skills/ )",
-      "Bash(.claude/)"
+      "Bash(.claude/)",
+      "Bash(git push)"
     ]
   }
 }
