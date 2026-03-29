@@ -301,6 +301,9 @@
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? SearchQuery { get; set; }
+
     private List<QuoteDto>? presupuestos;
     private QuotesResumenDto? resumen;
     private QuoteCompletaDto? presupuestoSeleccionado;
@@ -316,7 +319,17 @@
     protected override async Task OnInitializedAsync()
     {
         var resumenTask = Api.GetQuotesResumenAsync();
-        var presupuestosTask = Api.GetQuotesAsync(0, pageSize);
+        Task<List<QuoteDto>> presupuestosTask;
+
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            presupuestosTask = Api.GetQuotesAsync(0, pageSize);
+        }
+        else
+        {
+            searchTerm = SearchQuery.Trim();
+            presupuestosTask = Api.BuscarQuotesAsync(searchTerm);
+        }
 
         await Task.WhenAll(resumenTask, presupuestosTask);
 

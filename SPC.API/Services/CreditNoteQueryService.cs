@@ -52,6 +52,30 @@ public class CreditNoteQueryService : ICreditNoteQueryService
         return MapToCompleteResponse(note);
     }
 
+    public async Task<CreditNoteCompletaResponse?> GetByNumberAsync(long creditNoteNumber, int? customerId = null)
+    {
+        var query = _db.CreditNotes
+            .Include(n => n.Customer)
+            .Include(n => n.SalesRep)
+            .Include(n => n.Branch)
+            .Include(n => n.Invoice)
+            .Include(n => n.Details)
+                .ThenInclude(d => d.Product)
+            .Where(n => n.CreditNoteNumber == creditNoteNumber);
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(n => n.CustomerId == customerId.Value);
+        }
+
+        var note = await query
+            .OrderByDescending(n => n.CreditNoteDate)
+            .ThenByDescending(n => n.Id)
+            .FirstOrDefaultAsync();
+
+        return note == null ? null : MapToCompleteResponse(note);
+    }
+
     public async Task<IEnumerable<CreditNoteResponse>> GetByCustomerAsync(int customerId)
     {
         var notes = await _db.CreditNotes

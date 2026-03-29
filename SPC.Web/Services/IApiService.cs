@@ -74,4 +74,11 @@ public interface IApiService
         int? line = null,
         int skip = 0,
         int take = 50);
+
+    // Payments
+    Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null);
+
+    // Credit/Debit Notes
+    Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null);
+    Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null);
 }

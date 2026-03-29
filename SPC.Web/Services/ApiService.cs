@@ -739,5 +739,68 @@ public class ApiService : IApiService
         }
     }
 
+    public async Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null)
+    {
+        try
+        {
+            var route = customerId.HasValue
+                ? $"/api/payments/{paymentNumber}?customerId={customerId.Value}"
+                : $"/api/payments/{paymentNumber}";
+
+            return await _http.GetFromJsonAsync<PaymentDetailDto>(route);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching payment {PaymentNumber}", paymentNumber);
+            return null;
+        }
+    }
+
+    public async Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null)
+    {
+        try
+        {
+            var route = customerId.HasValue
+                ? $"/api/notas-credito/number/{creditNoteNumber}?customerId={customerId.Value}"
+                : $"/api/notas-credito/number/{creditNoteNumber}";
+
+            return await _http.GetFromJsonAsync<CreditNoteDetailDto>(route);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching credit note {CreditNoteNumber}", creditNoteNumber);
+            return null;
+        }
+    }
+
+    public async Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null)
+    {
+        try
+        {
+            var route = customerId.HasValue
+                ? $"/api/notas-debito/number/{debitNoteNumber}?customerId={customerId.Value}"
+                : $"/api/notas-debito/number/{debitNoteNumber}";
+
+            return await _http.GetFromJsonAsync<DebitNoteDetailDto>(route);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching debit note {DebitNoteNumber}", debitNoteNumber);
+            return null;
+        }
+    }
+
     #endregion
 }

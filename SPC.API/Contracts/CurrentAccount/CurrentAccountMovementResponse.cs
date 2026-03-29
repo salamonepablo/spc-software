@@ -41,4 +41,9 @@ public class CurrentAccountMovementResponse
     public decimal BudgetRunningBalance { get; set; }
 
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Robust navigation metadata for opening document/detail flows safely.
+    /// </summary>
+    public CurrentAccountNavigationMetadataResponse Navigation { get; set; } = new();
 }

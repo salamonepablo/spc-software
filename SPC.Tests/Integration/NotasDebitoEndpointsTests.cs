@@ -39,6 +39,33 @@ public class DebitNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetDebitNoteByNumber_ReturnsOk_WhenExists()
+    {
+        var createRequest = new CreateDebitNoteRequest
+        {
+            BranchId = 1,
+            VoucherType = "B",
+            CustomerId = 1,
+            Details = new List<CreateDebitNoteDetalleRequest>
+            {
+                new CreateDebitNoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/notas-debito", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<DebitNoteCompletaResponse>();
+
+        var response = await _client.GetAsync($"/api/notas-debito/number/{created!.DebitNoteNumber}?customerId={created.CustomerId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var note = await response.Content.ReadFromJsonAsync<DebitNoteCompletaResponse>();
+        note.Should().NotBeNull();
+        note!.DebitNoteNumber.Should().Be(created.DebitNoteNumber);
+        note.CustomerId.Should().Be(created.CustomerId);
+    }
+
+    [Fact]
     public async Task CreateDebitNote_ReturnsCreated_WithValidData()
     {
         // Arrange

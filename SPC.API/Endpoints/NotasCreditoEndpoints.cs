@@ -67,6 +67,20 @@ public static class CreditNotesEndpoints
         .WithName("GetCreditNotesCount")
         .WithDescription("Returns total count of credit notes");
 
+        // GET /api/notas-credito/number/{creditNoteNumber} - Get credit note by document number
+        group.MapGet("/number/{creditNoteNumber:long}", async (
+            long creditNoteNumber,
+            int? customerId,
+            ICreditNoteQueryService queryService) =>
+        {
+            var note = await queryService.GetByNumberAsync(creditNoteNumber, customerId);
+            return note != null
+                ? Results.Ok(note)
+                : Results.NotFound(new { error = "Nota de credito no encontrada" });
+        })
+        .WithName("GetCreditNoteByNumber")
+        .WithDescription("Returns a credit note by document number and optional customer filter");
+
         // GET /api/notas-credito/{id} - Get credit note by ID with details
         group.MapGet("/{id:int}", async (int id, ICreditNoteQueryService queryService) =>
         {

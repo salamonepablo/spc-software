@@ -14,6 +14,9 @@ public interface ICreditNoteQueryService
     /// <summary>Get credit note by ID with all details</summary>
     Task<CreditNoteCompletaResponse?> GetByIdAsync(int id);
 
+    /// <summary>Get credit note by document number and optional customer filter</summary>
+    Task<CreditNoteCompletaResponse?> GetByNumberAsync(long creditNoteNumber, int? customerId = null);
+
     /// <summary>Get credit notes by customer</summary>
     Task<IEnumerable<CreditNoteResponse>> GetByCustomerAsync(int customerId);
 

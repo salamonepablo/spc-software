@@ -72,6 +72,24 @@ public class CurrentAccountMovementDto
     public decimal BudgetRunningBalance { get; set; }
 
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Optional navigation metadata from API. Null-safe for backward compatibility.
+    /// </summary>
+    public CurrentAccountNavigationMetadataDto? Navigation { get; set; }
+}
+
+/// <summary>
+/// Navigation metadata for Current Account movement target.
+/// </summary>
+public class CurrentAccountNavigationMetadataDto
+{
+    public string TargetType { get; set; } = "other";
+    public string TargetKind { get; set; } = "other";
+    public string? TargetRoute { get; set; }
+    public string? TargetId { get; set; }
+    public bool CanOpen { get; set; }
+    public string? DisabledReason { get; set; }
 }
 
 /// <summary>

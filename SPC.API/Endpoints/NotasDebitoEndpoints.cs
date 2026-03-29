@@ -67,6 +67,20 @@ public static class DebitNotesEndpoints
         .WithName("GetDebitNotesCount")
         .WithDescription("Returns total count of debit notes");
 
+        // GET /api/notas-debito/number/{debitNoteNumber} - Get debit note by document number
+        group.MapGet("/number/{debitNoteNumber:long}", async (
+            long debitNoteNumber,
+            int? customerId,
+            IDebitNoteQueryService queryService) =>
+        {
+            var note = await queryService.GetByNumberAsync(debitNoteNumber, customerId);
+            return note != null
+                ? Results.Ok(note)
+                : Results.NotFound(new { error = "Nota de debito no encontrada" });
+        })
+        .WithName("GetDebitNoteByNumber")
+        .WithDescription("Returns a debit note by document number and optional customer filter");
+
         // GET /api/notas-debito/{id} - Get debit note by ID with details
         group.MapGet("/{id:int}", async (int id, IDebitNoteQueryService queryService) =>
         {

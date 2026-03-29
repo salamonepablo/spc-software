@@ -4,6 +4,7 @@
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
 @inject IApiService Api
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <PageTitle>Cuenta Corriente - SPC</PageTitle>
@@ -145,16 +146,16 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm table-striped table-hover mb-0 small">
+                        <table class="table table-sm table-striped table-hover mb-0 small align-middle">
                             <thead class="table-secondary">
                                 <tr>
-                                    <th class="py-2">Fecha</th>
-                                    <th class="py-2">Tipo</th>
-                                    <th class="py-2">Número</th>
-                                    <th class="py-2 text-end">Fact. (L1)</th>
-                                    <th class="py-2 text-end">Ppto (L2)</th>
-                                    <th class="py-2 text-end">Saldo L1</th>
-                                    <th class="py-2 text-end">Saldo L2</th>
+                                    <th class="py-2 text-nowrap">Fecha</th>
+                                    <th class="py-2 text-nowrap">Tipo</th>
+                                    <th class="py-2 text-nowrap">Número</th>
+                                    <th class="py-2 text-end text-nowrap">Fact. (L1)</th>
+                                    <th class="py-2 text-end text-nowrap">Ppto (L2)</th>
+                                    <th class="py-2 text-end text-nowrap">Saldo L1</th>
+                                    <th class="py-2 text-end text-nowrap">Saldo L2</th>
                                     <th class="py-2">Descripción</th>
                                 </tr>
                             </thead>
@@ -162,13 +163,38 @@
                                 @foreach (var mov in movements.Movements)
                                 {
                                     <tr>
-                                        <td class="py-1">@mov.MovementDate.ToString("dd/MM/yy")</td>
+                                        <td class="py-1 text-nowrap">@mov.MovementDate.ToString("dd/MM/yyyy")</td>
                                         <td class="py-1">
-                                            <span class="badge badge-sm @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
-                                                @mov.DocumentType
-                                            </span>
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <span class="badge badge-sm @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
+                                                    @GetCompactDocumentTypeLabel(mov)
+                                                </span>
+                                                @if (TryGetFiscalSubtype(mov.DocumentTypeCode, out var subtype))
+                                                {
+                                                    <span class="badge text-bg-light border">@subtype</span>
+                                                }
+                                            </div>
                                         </td>
-                                        <td class="py-1"><code class="small">@mov.DocumentNumber</code></td>
+                                        <td class="py-1 text-nowrap">
+                                            @if (CanOpenDocument(mov))
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-link btn-sm p-0 text-decoration-none"
+                                                        title="Ver documento"
+                                                        @onclick="() => OpenDocument(mov)">
+                                                    <code class="small">@mov.DocumentNumber</code>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
+                                                        title="@GetUnavailableDocumentHint(mov)"
+                                                        disabled>
+                                                    <code class="small">@mov.DocumentNumber</code>
+                                                </button>
+                                            }
+                                        </td>
                                         <td class="py-1 text-end text-nowrap @(mov.BillingAmount < 0 ? "text-success" : mov.BillingAmount > 0 ? "text-danger" : "")">
                                             @if (mov.BillingAmount != 0)
                                             {
@@ -191,11 +217,14 @@
                                         </td>
                                         <td class="py-1 text-end text-nowrap fw-medium">@mov.BillingRunningBalance.ToString("N2")</td>
                                         <td class="py-1 text-end text-nowrap fw-medium">@mov.BudgetRunningBalance.ToString("N2")</td>
-                                        <td class="py-1 text-truncate" style="max-width: 200px;">@(mov.Description ?? "-")</td>
+                                        <td class="py-1 text-truncate" style="max-width: 220px;">@(mov.Description ?? "-")</td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
+                    </div>
+                    <div class="border-top bg-light px-3 py-2 text-muted small">
+                        La navegacion de detalle depende del metadata de cada movimiento.
                     </div>
                 </div>
                 @if (movements.Movements.Count < movements.TotalCount)
@@ -315,5 +344,57 @@
             30 or 31 => "bg-success",        // Payment/Receipt
             _ => "bg-secondary"
         };
+    }
+
+    private static string GetCompactDocumentTypeLabel(CurrentAccountMovementDto movement)
+    {
+        return movement.DocumentTypeCode switch
+        {
+            1 or 101 or 102 => "Fact.",
+            3 or 103 or 104 => "N.C.",
+            5 or 105 or 106 => "N.D.",
+            7 or 124 or 125 => "N.D.I.",
+            20 or 121 => "Ppto.",
+            30 or 31 or 108 or 109 or 122 or 123 => "Pago",
+            99 => "S.I.",
+            _ => movement.DocumentType
+        };
+    }
+
+    private static bool TryGetFiscalSubtype(int documentTypeCode, out string subtype)
+    {
+        subtype = documentTypeCode switch
+        {
+            101 or 103 or 105 or 124 => "A",
+            102 or 104 or 106 or 125 => "B",
+            _ => string.Empty
+        };
+
+        return !string.IsNullOrEmpty(subtype);
+    }
+
+    private static bool CanOpenDocument(CurrentAccountMovementDto movement)
+    {
+        return movement.Navigation?.CanOpen == true
+            && !string.IsNullOrWhiteSpace(movement.Navigation.TargetRoute);
+    }
+
+    private void OpenDocument(CurrentAccountMovementDto movement)
+    {
+        var route = movement.Navigation?.TargetRoute;
+        if (route != null)
+        {
+            Navigation.NavigateTo(route);
+        }
+    }
+
+    private static string GetUnavailableDocumentHint(CurrentAccountMovementDto movement)
+    {
+        if (!string.IsNullOrWhiteSpace(movement.Navigation?.DisabledReason))
+        {
+            return movement.Navigation!.DisabledReason!;
+        }
+
+        return "No hay metadata de navegacion para este movimiento";
     }
 }

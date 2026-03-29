@@ -1,6 +1,7 @@
 using SPC.API.Contracts.CurrentAccount;
 using SPC.API.Services;
 using SPC.Shared.Models;
+using System.Globalization;
 
 namespace SPC.API.Endpoints;
 
@@ -100,7 +101,8 @@ public static class CurrentAccountEndpoints
                     BudgetAmount = m.BudgetAmount,
                     BillingRunningBalance = m.BillingRunningBalance,
                     BudgetRunningBalance = m.BudgetRunningBalance,
-                    Description = m.Description
+                    Description = m.Description,
+                    Navigation = BuildNavigationMetadata(m)
                 }).ToList()
             };
 
@@ -145,8 +147,82 @@ public static class CurrentAccountEndpoints
             DocumentType.InternalDebitA => "Débito Interno A",
             DocumentType.InternalDebitB => "Débito Interno B",
 
-            DocumentType.Other => "Otro",
+            DocumentType.Other => "S.I.",
             _ => type.ToString()
+        };
+    }
+
+    private static CurrentAccountNavigationMetadataResponse BuildNavigationMetadata(CurrentAccountMovement movement)
+    {
+        var documentNumber = movement.DocumentNumber.ToString(CultureInfo.InvariantCulture);
+        var encodedNumber = Uri.EscapeDataString(documentNumber);
+
+        return movement.DocumentType switch
+        {
+            DocumentType.Invoice or DocumentType.InvoiceA or DocumentType.InvoiceB => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "document",
+                TargetKind = "invoice",
+                TargetRoute = $"/invoices?search={encodedNumber}",
+                TargetId = documentNumber,
+                CanOpen = true
+            },
+
+            DocumentType.Quote or DocumentType.QuoteVoid => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "document",
+                TargetKind = "quote",
+                TargetRoute = $"/quotes?search={encodedNumber}",
+                TargetId = documentNumber,
+                CanOpen = true
+            },
+
+            DocumentType.CreditNote or DocumentType.CreditNoteA or DocumentType.CreditNoteB => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "document",
+                TargetKind = "credit-note",
+                TargetRoute = $"/credit-notes/{encodedNumber}?customerId={movement.CustomerId}",
+                TargetId = documentNumber,
+                CanOpen = true
+            },
+
+            DocumentType.DebitNote or DocumentType.DebitNoteA or DocumentType.DebitNoteB
+                or DocumentType.InternalDebitNote or DocumentType.InternalDebitA or DocumentType.InternalDebitB => new CurrentAccountNavigationMetadataResponse
+                {
+                    TargetType = "document",
+                    TargetKind = "debit-note",
+                    TargetRoute = $"/debit-notes/{encodedNumber}?customerId={movement.CustomerId}",
+                    TargetId = documentNumber,
+                    CanOpen = true
+                },
+
+            DocumentType.Payment or DocumentType.Receipt or DocumentType.PaymentBilling or DocumentType.PaymentVoidBilling
+                or DocumentType.PaymentBudget or DocumentType.PaymentVoidBudget => new CurrentAccountNavigationMetadataResponse
+                {
+                    TargetType = "payment",
+                    TargetKind = "payment",
+                    TargetRoute = $"/payments/{encodedNumber}?customerId={movement.CustomerId}",
+                    TargetId = documentNumber,
+                    CanOpen = true
+                },
+
+            DocumentType.Other => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "initial-balance",
+                TargetKind = "initial-balance",
+                TargetId = documentNumber,
+                CanOpen = false,
+                DisabledReason = "Saldo inicial sin detalle navegable"
+            },
+
+            _ => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "other",
+                TargetKind = "other",
+                TargetId = documentNumber,
+                CanOpen = false,
+                DisabledReason = "No hay vista de detalle para este movimiento"
+            }
         };
     }
 }

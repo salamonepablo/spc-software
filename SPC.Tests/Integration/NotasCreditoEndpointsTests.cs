@@ -39,6 +39,33 @@ public class CreditNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetCreditNoteByNumber_ReturnsOk_WhenExists()
+    {
+        var createRequest = new CreateCreditNoteRequest
+        {
+            BranchId = 1,
+            VoucherType = "B",
+            CustomerId = 1,
+            Details = new List<CreateCreditNoteDetalleRequest>
+            {
+                new CreateCreditNoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/notas-credito", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
+
+        var response = await _client.GetAsync($"/api/notas-credito/number/{created!.CreditNoteNumber}?customerId={created.CustomerId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
+        note.Should().NotBeNull();
+        note!.CreditNoteNumber.Should().Be(created.CreditNoteNumber);
+        note.CustomerId.Should().Be(created.CustomerId);
+    }
+
+    [Fact]
     public async Task CreateCreditNote_ReturnsCreated_WithValidData()
     {
         // Arrange

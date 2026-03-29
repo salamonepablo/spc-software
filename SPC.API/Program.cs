@@ -46,6 +46,7 @@ builder.Services.AddScoped<ITaxConfigurationService, TaxConfigurationService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
 builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
+builder.Services.AddScoped<IPaymentQueryService, PaymentQueryService>();
 builder.Services.AddScoped<IAuxiliaryTablesService, AuxiliaryTablesService>();
 
 // Enable CORS for Blazor to consume the API
@@ -109,6 +110,7 @@ app.MapGet("/", (ILicenseService license) => new
         "/api/notas-credito",
         "/api/notas-debito",
         "/api/current-accounts",
+        "/api/payments",
         "/api/TaxConditions",
         "/api/license"
     }
@@ -145,6 +147,7 @@ app.MapQuotesEndpoints();
 app.MapCreditNotesEndpoints();
 app.MapDebitNotesEndpoints();
 app.MapCurrentAccountEndpoints();
+app.MapPaymentsEndpoints();
 app.MapAuxiliaryTablesEndpoints();
 
 

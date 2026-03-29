@@ -50,6 +50,29 @@ public class DebitNoteQueryService : IDebitNoteQueryService
         return MapToCompleteResponse(note);
     }
 
+    public async Task<DebitNoteCompletaResponse?> GetByNumberAsync(long debitNoteNumber, int? customerId = null)
+    {
+        var query = _db.DebitNotes
+            .Include(n => n.Customer)
+            .Include(n => n.SalesRep)
+            .Include(n => n.Branch)
+            .Include(n => n.Details)
+                .ThenInclude(d => d.Product)
+            .Where(n => n.DebitNoteNumber == debitNoteNumber);
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(n => n.CustomerId == customerId.Value);
+        }
+
+        var note = await query
+            .OrderByDescending(n => n.DebitNoteDate)
+            .ThenByDescending(n => n.Id)
+            .FirstOrDefaultAsync();
+
+        return note == null ? null : MapToCompleteResponse(note);
+    }
+
     public async Task<IEnumerable<DebitNoteResponse>> GetByCustomerAsync(int customerId)
     {
         var notes = await _db.DebitNotes

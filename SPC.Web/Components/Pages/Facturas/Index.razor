@@ -273,6 +273,9 @@
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? SearchQuery { get; set; }
+
     private List<InvoiceDto>? facturas;
     private InvoicecionResumenDto? resumen;
     private InvoiceCompletaDto? facturaSeleccionada;
@@ -287,8 +290,18 @@
     protected override async Task OnInitializedAsync()
     {
         var resumenTask = Api.GetInvoicecionResumenAsync();
-        var facturasTask = Api.GetInvoicesAsync(0, pageSize);
         var countTask = Api.GetInvoicesCountAsync();
+
+        Task<List<InvoiceDto>> facturasTask;
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            facturasTask = Api.GetInvoicesAsync(0, pageSize);
+        }
+        else
+        {
+            searchTerm = SearchQuery.Trim();
+            facturasTask = Api.BuscarInvoicesAsync(searchTerm);
+        }
 
         await Task.WhenAll(resumenTask, facturasTask, countTask);
 
