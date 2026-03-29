@@ -62,3 +62,28 @@ h1:focus {
 .text-nowrap {
     white-space: nowrap;
 }
+
+/* Current Account - Compact balance cards */
+.card-balance {
+    background-color: #f8f9fa;
+}
+
+.card-balance .card-body {
+    min-height: auto;
+}
+
+/* Compact table styles */
+.table-sm th,
+.table-sm td {
+    font-size: 0.8125rem;
+}
+
+.badge-sm {
+    font-size: 0.7rem;
+    padding: 0.2em 0.5em;
+}
+
+/* Utility for medium weight */
+.fw-medium {
+    font-weight: 500;
+}

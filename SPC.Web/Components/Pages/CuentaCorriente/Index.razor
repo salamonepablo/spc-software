@@ -60,59 +60,68 @@
     }
     else
     {
-        @* Balance cards *@
-        <div class="row g-3 mb-4">
+        @* Balance cards - compact styling *@
+        <div class="row g-2 mb-3">
             <div class="col-md-4">
-                <div class="card @(account.BillingBalance >= 0 ? "bg-success" : "bg-danger") text-white">
-                    <div class="card-body">
-                        <h6 class="card-title opacity-75">Facturacion (L1)</h6>
-                        <h3 class="mb-0 text-nowrap">@account.BillingBalance.ToString("C2")</h3>
-                        <small>Facturas, NC, ND, Pagos</small>
+                <div class="card card-balance border-0 shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Facturación (L1)</span>
+                            <span class="fw-bold @(account.BillingBalance >= 0 ? "text-success" : "text-danger")">
+                                @account.BillingBalance.ToString("C2")
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card @(account.BudgetBalance >= 0 ? "bg-info" : "bg-warning") text-white">
-                    <div class="card-body">
-                        <h6 class="card-title opacity-75">Presupuestos (L2)</h6>
-                        <h3 class="mb-0 text-nowrap">@account.BudgetBalance.ToString("C2")</h3>
-                        <small>Presupuestos, Pagos Ppto</small>
+                <div class="card card-balance border-0 shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Presupuestos (L2)</span>
+                            <span class="fw-bold @(account.BudgetBalance >= 0 ? "text-info" : "text-warning")">
+                                @account.BudgetBalance.ToString("C2")
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card @(account.TotalBalance >= 0 ? "bg-primary" : "bg-danger") text-white">
-                    <div class="card-body">
-                        <h6 class="card-title opacity-75">Saldo Total</h6>
-                        <h3 class="mb-0 text-nowrap">@account.TotalBalance.ToString("C2")</h3>
-                        <small>L1 + L2</small>
+                <div class="card card-balance border-0 shadow-sm bg-light">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Saldo Total</span>
+                            <span class="fw-bold fs-6 @(account.TotalBalance >= 0 ? "text-primary" : "text-danger")">
+                                @account.TotalBalance.ToString("C2")
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        @* Filters *@
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row g-3">
+        @* Filters - compact *@
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body py-2">
+                <div class="row g-2 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Desde</label>
-                        <input type="date" class="form-control" @bind="dateFrom" />
+                        <label class="form-label small mb-1">Desde</label>
+                        <input type="date" class="form-control form-control-sm" @bind="dateFrom" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Hasta</label>
-                        <input type="date" class="form-control" @bind="dateTo" />
+                        <label class="form-label small mb-1">Hasta</label>
+                        <input type="date" class="form-control form-control-sm" @bind="dateTo" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Linea</label>
-                        <select class="form-select" @bind="lineFilter">
+                        <label class="form-label small mb-1">Línea</label>
+                        <select class="form-select form-select-sm" @bind="lineFilter">
                             <option value="">Todas</option>
-                            <option value="1">Facturacion (L1)</option>
+                            <option value="1">Facturación (L1)</option>
                             <option value="2">Presupuestos (L2)</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button class="btn btn-primary w-100" @onclick="ApplyFilters">
+                    <div class="col-md-3">
+                        <button class="btn btn-primary btn-sm w-100" @onclick="ApplyFilters">
                             Filtrar
                         </button>
                     </div>
@@ -129,60 +138,60 @@
         }
         else
         {
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Movimientos</span>
-                    <span class="text-muted">@movements.TotalCount movimientos</span>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center bg-light">
+                    <span class="small fw-semibold">Movimientos</span>
+                    <span class="text-muted small">@movements.TotalCount registros</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover mb-0">
-                            <thead class="table-dark">
+                        <table class="table table-sm table-striped table-hover mb-0 small">
+                            <thead class="table-secondary">
                                 <tr>
-                                    <th>Fecha</th>
-                                    <th>Tipo</th>
-                                    <th>Numero</th>
-                                    <th class="text-end">Fact. (L1)</th>
-                                    <th class="text-end">Ppto (L2)</th>
-                                    <th class="text-end">Saldo L1</th>
-                                    <th class="text-end">Saldo L2</th>
-                                    <th>Descripcion</th>
+                                    <th class="py-2">Fecha</th>
+                                    <th class="py-2">Tipo</th>
+                                    <th class="py-2">Número</th>
+                                    <th class="py-2 text-end">Fact. (L1)</th>
+                                    <th class="py-2 text-end">Ppto (L2)</th>
+                                    <th class="py-2 text-end">Saldo L1</th>
+                                    <th class="py-2 text-end">Saldo L2</th>
+                                    <th class="py-2">Descripción</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var mov in movements.Movements)
                                 {
                                     <tr>
-                                        <td>@mov.MovementDate.ToString("dd/MM/yyyy")</td>
-                                        <td>
-                                            <span class="badge @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
+                                        <td class="py-1">@mov.MovementDate.ToString("dd/MM/yy")</td>
+                                        <td class="py-1">
+                                            <span class="badge badge-sm @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
                                                 @mov.DocumentType
                                             </span>
                                         </td>
-                                        <td><code>@mov.DocumentNumber</code></td>
-                                        <td class="text-end text-nowrap @(mov.BillingAmount < 0 ? "text-success" : mov.BillingAmount > 0 ? "text-danger" : "")">
+                                        <td class="py-1"><code class="small">@mov.DocumentNumber</code></td>
+                                        <td class="py-1 text-end text-nowrap @(mov.BillingAmount < 0 ? "text-success" : mov.BillingAmount > 0 ? "text-danger" : "")">
                                             @if (mov.BillingAmount != 0)
                                             {
-                                                @mov.BillingAmount.ToString("C2")
+                                                @mov.BillingAmount.ToString("N2")
                                             }
                                             else
                                             {
                                                 <span class="text-muted">-</span>
                                             }
                                         </td>
-                                        <td class="text-end text-nowrap @(mov.BudgetAmount < 0 ? "text-success" : mov.BudgetAmount > 0 ? "text-info" : "")">
+                                        <td class="py-1 text-end text-nowrap @(mov.BudgetAmount < 0 ? "text-success" : mov.BudgetAmount > 0 ? "text-info" : "")">
                                             @if (mov.BudgetAmount != 0)
                                             {
-                                                @mov.BudgetAmount.ToString("C2")
+                                                @mov.BudgetAmount.ToString("N2")
                                             }
                                             else
                                             {
                                                 <span class="text-muted">-</span>
                                             }
                                         </td>
-                                        <td class="text-end text-nowrap">@mov.BillingRunningBalance.ToString("C2")</td>
-                                        <td class="text-end text-nowrap">@mov.BudgetRunningBalance.ToString("C2")</td>
-                                        <td><small>@(mov.Description ?? "-")</small></td>
+                                        <td class="py-1 text-end text-nowrap fw-medium">@mov.BillingRunningBalance.ToString("N2")</td>
+                                        <td class="py-1 text-end text-nowrap fw-medium">@mov.BudgetRunningBalance.ToString("N2")</td>
+                                        <td class="py-1 text-truncate" style="max-width: 200px;">@(mov.Description ?? "-")</td>
                                     </tr>
                                 }
                             </tbody>

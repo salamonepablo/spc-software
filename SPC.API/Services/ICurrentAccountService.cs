@@ -33,9 +33,25 @@ public interface ICurrentAccountService
     Task<CurrentAccount> GetOrCreateAccountAsync(int customerId);
 
     /// <summary>
-    /// Gets all movements for a customer, ordered by date descending.
+    /// Gets all movements for a customer, ordered by date ascending (oldest first).
     /// </summary>
     Task<IEnumerable<CurrentAccountMovement>> GetMovementsAsync(int customerId, int skip = 0, int take = 50);
+
+    /// <summary>
+    /// Sets the initial balance for a customer's current account.
+    /// Creates a "Saldo inicial" movement as the first entry.
+    /// Should only be called once per customer when migrating or setting up.
+    /// </summary>
+    /// <param name="customerId">Customer ID</param>
+    /// <param name="billingBalance">Initial L1 (Billing) balance</param>
+    /// <param name="budgetBalance">Initial L2 (Budget) balance</param>
+    /// <param name="asOfDate">The date for the initial balance (defaults to now)</param>
+    /// <returns>The created CurrentAccount</returns>
+    Task<CurrentAccount> SetInitialBalanceAsync(
+        int customerId,
+        decimal billingBalance,
+        decimal budgetBalance,
+        DateTime? asOfDate = null);
 
     /// <summary>
     /// Gets the current account for a customer (returns null if not exists).

@@ -99,12 +99,76 @@ public class CurrentAccountService : ICurrentAccountService
     }
 
     /// <inheritdoc />
+    public async Task<CurrentAccount> SetInitialBalanceAsync(
+        int customerId,
+        decimal billingBalance,
+        decimal budgetBalance,
+        DateTime? asOfDate = null)
+    {
+        // Check if account already exists with movements
+        var existingMovements = await _db.CurrentAccountMovements
+            .Where(m => m.CustomerId == customerId)
+            .AnyAsync();
+
+        if (existingMovements)
+        {
+            throw new InvalidOperationException(
+                $"Customer {customerId} already has movements. Cannot set initial balance.");
+        }
+
+        // Get or create account
+        var account = await _db.CurrentAccounts
+            .FirstOrDefaultAsync(ca => ca.CustomerId == customerId);
+
+        var effectiveDate = asOfDate ?? DateTime.Now;
+
+        if (account == null)
+        {
+            account = new CurrentAccount
+            {
+                CustomerId = customerId,
+                BillingBalance = billingBalance,
+                BudgetBalance = budgetBalance,
+                TotalBalance = billingBalance + budgetBalance,
+                LastUpdated = effectiveDate
+            };
+            _db.CurrentAccounts.Add(account);
+        }
+        else
+        {
+            account.BillingBalance = billingBalance;
+            account.BudgetBalance = budgetBalance;
+            account.TotalBalance = billingBalance + budgetBalance;
+            account.LastUpdated = effectiveDate;
+        }
+
+        // Create the "Saldo inicial" movement
+        var movement = new CurrentAccountMovement
+        {
+            MovementDate = effectiveDate,
+            CustomerId = customerId,
+            DocumentType = DocumentType.Other,
+            DocumentNumber = 0,
+            BillingAmount = billingBalance,
+            BudgetAmount = budgetBalance,
+            BillingRunningBalance = billingBalance,
+            BudgetRunningBalance = budgetBalance,
+            Description = "Saldo inicial"
+        };
+
+        _db.CurrentAccountMovements.Add(movement);
+        await _db.SaveChangesAsync();
+
+        return account;
+    }
+
+    /// <inheritdoc />
     public async Task<IEnumerable<CurrentAccountMovement>> GetMovementsAsync(int customerId, int skip = 0, int take = 50)
     {
         return await _db.CurrentAccountMovements
             .Where(m => m.CustomerId == customerId)
-            .OrderByDescending(m => m.MovementDate)
-            .ThenByDescending(m => m.Id)
+            .OrderBy(m => m.MovementDate)
+            .ThenBy(m => m.Id)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
@@ -163,10 +227,10 @@ public class CurrentAccountService : ICurrentAccountService
         // Get total count before pagination
         var totalCount = await query.CountAsync();
 
-        // Get paginated movements
+        // Get paginated movements (ascending order: oldest first for proper running balance display)
         var movements = await query
-            .OrderByDescending(m => m.MovementDate)
-            .ThenByDescending(m => m.Id)
+            .OrderBy(m => m.MovementDate)
+            .ThenBy(m => m.Id)
             .Skip(skip)
             .Take(take)
             .ToListAsync();

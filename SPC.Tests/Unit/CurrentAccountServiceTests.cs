@@ -391,7 +391,7 @@ public class CurrentAccountServiceTests : IDisposable
     // ===========================================
 
     [Fact]
-    public async Task GetMovementsAsync_ReturnsMovementsOrderedByDateDescending()
+    public async Task GetMovementsAsync_ReturnsMovementsOrderedByDateAscending()
     {
         // Arrange
         _licenseServiceMock
@@ -406,12 +406,12 @@ public class CurrentAccountServiceTests : IDisposable
         // Act
         var movements = await service.GetMovementsAsync(customerId: 1);
 
-        // Assert
+        // Assert - Oldest first for proper running balance display
         var list = movements.ToList();
         list.Should().HaveCount(3);
-        list[0].Description.Should().Be("Third");  // Most recent first
+        list[0].Description.Should().Be("First");   // Oldest first
         list[1].Description.Should().Be("Second");
-        list[2].Description.Should().Be("First");
+        list[2].Description.Should().Be("Third");
     }
 
     [Fact]
@@ -432,11 +432,11 @@ public class CurrentAccountServiceTests : IDisposable
         var page1 = await service.GetMovementsAsync(customerId: 1, skip: 0, take: 3);
         var page2 = await service.GetMovementsAsync(customerId: 1, skip: 3, take: 3);
 
-        // Assert
+        // Assert - Ascending order (oldest first)
         page1.Should().HaveCount(3);
         page2.Should().HaveCount(3);
-        page1.First().DocumentNumber.Should().Be(10); // Most recent
-        page2.First().DocumentNumber.Should().Be(7);
+        page1.First().DocumentNumber.Should().Be(1); // Oldest first
+        page2.First().DocumentNumber.Should().Be(4);
     }
 
     // ===========================================
@@ -659,5 +659,87 @@ public class CurrentAccountServiceTests : IDisposable
         result.BillingBalance.Should().Be(5000);
         result.BudgetBalance.Should().Be(3000);
         result.TotalBalance.Should().Be(8000);
+    }
+
+    // ===========================================
+    // SetInitialBalanceAsync Tests
+    // ===========================================
+
+    [Fact]
+    public async Task SetInitialBalanceAsync_CreatesAccountWithInitialBalance()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act
+        var account = await service.SetInitialBalanceAsync(
+            customerId: 1,
+            billingBalance: 5000,
+            budgetBalance: 2000);
+
+        // Assert
+        account.Should().NotBeNull();
+        account.BillingBalance.Should().Be(5000);
+        account.BudgetBalance.Should().Be(2000);
+        account.TotalBalance.Should().Be(7000);
+    }
+
+    [Fact]
+    public async Task SetInitialBalanceAsync_CreatesSaldoInicialMovement()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act
+        await service.SetInitialBalanceAsync(
+            customerId: 1,
+            billingBalance: 5000,
+            budgetBalance: 2000);
+
+        // Assert
+        var movements = await _db.CurrentAccountMovements.ToListAsync();
+        movements.Should().HaveCount(1);
+        movements[0].Description.Should().Be("Saldo inicial");
+        movements[0].BillingAmount.Should().Be(5000);
+        movements[0].BudgetAmount.Should().Be(2000);
+        movements[0].BillingRunningBalance.Should().Be(5000);
+        movements[0].BudgetRunningBalance.Should().Be(2000);
+    }
+
+    [Fact]
+    public async Task SetInitialBalanceAsync_ThrowsIfMovementsExist()
+    {
+        // Arrange
+        _licenseServiceMock
+            .Setup(x => x.IsFeatureEnabled(Features.DualLineCurrentAccount))
+            .Returns(true);
+        var service = CreateService();
+
+        // Create a movement first
+        await service.RecordMovementAsync(1, DocumentType.Quote, 1, 0, 100, "Existing");
+
+        // Act & Assert
+        await service.Invoking(s => s.SetInitialBalanceAsync(1, 5000, 2000))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*already has movements*");
+    }
+
+    [Fact]
+    public async Task SetInitialBalanceAsync_UsesProvidedDate()
+    {
+        // Arrange
+        var service = CreateService();
+        var specificDate = new DateTime(2025, 1, 1);
+
+        // Act
+        await service.SetInitialBalanceAsync(
+            customerId: 1,
+            billingBalance: 5000,
+            budgetBalance: 2000,
+            asOfDate: specificDate);
+
+        // Assert
+        var movement = await _db.CurrentAccountMovements.FirstAsync();
+        movement.MovementDate.Should().Be(specificDate);
     }
 }
