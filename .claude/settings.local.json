@@ -149,7 +149,8 @@
       "Bash(docs/pr-checklist.md )",
       "Bash(skills/ )",
       "Bash(.claude/)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(git push:*)"
     ]
   }
 }
