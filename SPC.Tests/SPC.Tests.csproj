@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SPC.API\SPC.API.csproj" />
     <ProjectReference Include="..\SPC.Shared\SPC.Shared.csproj" />
+    <ProjectReference Include="..\SPC.Web\SPC.Web.csproj" Aliases="SPCWEB" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,7 @@
+# SPC Software Project — Current Account View Fixes II
+
+* Falta icono en el menú lateral para cuenta corriente, el menú solo tiene el nombre, no tiene el icono descriptivo.
+* Habilitar el Card correspondiente a la vista de cuenta corriente, actualmente dice "Próximamente".
+* En la vista de movimientos de cuenta corriente el formato de fecha que sea DD/MM/YYYY, actualmente el formato es MM/DD/YY, lo cual no me termina de gustar.
+* En el detalle de movimientos la columna "Tipo" dice "Otro" creo que allí debería decir el tipo de movimiento, por ejemplo "Factura", "Presupuesto", "Pago", "Nota de crédito", "Nota de débito", etc. y se repetiría lo mismo de la ultima columna (creo que es de "Observaciones").
+* Distribuyamos mejor las columnas para aprovechar mejor el espacio. Por ejemplo en Tipo podría decir el Tipo de Factura "A" o "B", por ejemplo y además permitir que en el número de documento el usuario haga click para ir al detalle del documento, por ejemplo si es una factura, que al hacer click en el número de documento se abra el detalle de la factura, lo mismo para los presupuestos, pagos, notas de crédito, notas de débito, etc. Esto haría que la vista sea más interactiva y útil para los usuarios.

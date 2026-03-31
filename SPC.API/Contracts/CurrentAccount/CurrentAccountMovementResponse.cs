@@ -18,6 +18,21 @@ public class CurrentAccountMovementResponse
     /// </summary>
     public int DocumentTypeCode { get; set; }
 
+    /// <summary>
+    /// Narrow-column document type short code (required).
+    /// </summary>
+    public string DocumentTypeShortCode { get; set; } = "OT";
+
+    /// <summary>
+    /// Optional display label for UI helpers.
+    /// </summary>
+    public string? DocumentTypeLabel { get; set; }
+
+    /// <summary>
+    /// Optional tooltip for UI helpers.
+    /// </summary>
+    public string? DocumentTypeTooltip { get; set; }
+
     public long DocumentNumber { get; set; }
 
     /// <summary>
@@ -39,6 +54,12 @@ public class CurrentAccountMovementResponse
     /// Running balance for Line 2 after this movement
     /// </summary>
     public decimal BudgetRunningBalance { get; set; }
+
+    /// <summary>
+    /// Total running balance (L1 + L2) after this movement.
+    /// This is recalculated for the filtered period, not stored.
+    /// </summary>
+    public decimal TotalRunningBalance { get; set; }
 
     public string? Description { get; set; }
 

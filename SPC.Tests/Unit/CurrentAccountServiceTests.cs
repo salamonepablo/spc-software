@@ -742,4 +742,211 @@ public class CurrentAccountServiceTests : IDisposable
         var movement = await _db.CurrentAccountMovements.FirstAsync();
         movement.MovementDate.Should().Be(specificDate);
     }
+
+    // ===========================================
+    // Period Balance Calculation Tests (Task 2.1-2.5)
+    // ===========================================
+
+    [Fact]
+    public async Task GetMovementsFilteredAsync_CalculatesInitialBalance_WhenDateFromProvided()
+    {
+        // Arrange: Create movements before and during the period
+        _db.CurrentAccountMovements.AddRange(
+            // Before period (should be summed into initial balance)
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 9, 1), DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 1000, BudgetAmount = 0, BillingRunningBalance = 1000, BudgetRunningBalance = 0 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 9, 15), DocumentType = DocumentType.Quote, DocumentNumber = 2, BillingAmount = 0, BudgetAmount = 500, BillingRunningBalance = 1000, BudgetRunningBalance = 500 },
+            // During period (should be returned with recalculated running balance)
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 5), DocumentType = DocumentType.InvoiceA, DocumentNumber = 3, BillingAmount = 2000, BudgetAmount = 0, BillingRunningBalance = 3000, BudgetRunningBalance = 500 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 20), DocumentType = DocumentType.Quote, DocumentNumber = 4, BillingAmount = 0, BudgetAmount = 300, BillingRunningBalance = 3000, BudgetRunningBalance = 800 }
+        );
+        await _db.SaveChangesAsync();
+
+        var service = CreateService();
+
+        // Act: Filter October only
+        var result = await service.GetMovementsFilteredAsync(
+            customerId: 1,
+            dateFrom: new DateTime(2025, 10, 1),
+            dateTo: new DateTime(2025, 10, 31),
+            line: null,
+            skip: 0,
+            take: 50);
+
+        // Assert: Initial balance should be sum of movements BEFORE October
+        result.InitialBillingBalance.Should().Be(1000);  // Sum of September billing
+        result.InitialBudgetBalance.Should().Be(500);    // Sum of September budget
+        result.InitialTotalBalance.Should().Be(1500);    // Sum total
+    }
+
+    [Fact]
+    public async Task GetMovementsFilteredAsync_RecalculatesRunningBalance_FromInitialBalance()
+    {
+        // Arrange: Create movements before and during the period
+        _db.CurrentAccountMovements.AddRange(
+            // Before period
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 9, 1), DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 1000, BudgetAmount = 0, BillingRunningBalance = 1000, BudgetRunningBalance = 0 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 9, 15), DocumentType = DocumentType.Quote, DocumentNumber = 2, BillingAmount = 0, BudgetAmount = 500, BillingRunningBalance = 1000, BudgetRunningBalance = 500 },
+            // During period
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 5), DocumentType = DocumentType.InvoiceA, DocumentNumber = 3, BillingAmount = 2000, BudgetAmount = 0, BillingRunningBalance = 3000, BudgetRunningBalance = 500 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 20), DocumentType = DocumentType.Quote, DocumentNumber = 4, BillingAmount = 0, BudgetAmount = 300, BillingRunningBalance = 3000, BudgetRunningBalance = 800 }
+        );
+        await _db.SaveChangesAsync();
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.GetMovementsFilteredAsync(
+            customerId: 1,
+            dateFrom: new DateTime(2025, 10, 1),
+            dateTo: new DateTime(2025, 10, 31),
+            line: null,
+            skip: 0,
+            take: 50);
+
+        // Assert: Running balances should be recalculated from initial balance
+        result.Movements.Should().HaveCount(2);
+
+        // First movement in period: initial(1000,500) + amount(2000,0) = (3000,500)
+        result.Movements[0].BillingRunningBalance.Should().Be(3000);
+        result.Movements[0].BudgetRunningBalance.Should().Be(500);
+
+        // Second movement: (3000,500) + (0,300) = (3000,800)
+        result.Movements[1].BillingRunningBalance.Should().Be(3000);
+        result.Movements[1].BudgetRunningBalance.Should().Be(800);
+    }
+
+    [Fact]
+    public async Task GetMovementsFilteredAsync_CalculatesFinalBalance_FromLastMovement()
+    {
+        // Arrange
+        _db.CurrentAccountMovements.AddRange(
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 9, 1), DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 1000, BudgetAmount = 0 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 5), DocumentType = DocumentType.InvoiceA, DocumentNumber = 2, BillingAmount = 2000, BudgetAmount = 0 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 20), DocumentType = DocumentType.Quote, DocumentNumber = 3, BillingAmount = 0, BudgetAmount = 300 }
+        );
+        await _db.SaveChangesAsync();
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.GetMovementsFilteredAsync(
+            customerId: 1,
+            dateFrom: new DateTime(2025, 10, 1),
+            dateTo: new DateTime(2025, 10, 31),
+            line: null,
+            skip: 0,
+            take: 50);
+
+        // Assert: Final balance should be the running balance after last movement
+        result.FinalBillingBalance.Should().Be(3000);  // 1000 initial + 2000
+        result.FinalBudgetBalance.Should().Be(300);    // 0 initial + 300
+        result.FinalTotalBalance.Should().Be(3300);
+    }
+
+    [Fact]
+    public async Task GetMovementsFilteredAsync_InitialBalanceIsZero_WhenNoMovementsBeforePeriod()
+    {
+        // Arrange: Only movements during the period
+        _db.CurrentAccountMovements.AddRange(
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 5), DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 2000, BudgetAmount = 0 }
+        );
+        await _db.SaveChangesAsync();
+
+        var service = CreateService();
+
+        // Act
+        var result = await service.GetMovementsFilteredAsync(
+            customerId: 1,
+            dateFrom: new DateTime(2025, 10, 1),
+            dateTo: new DateTime(2025, 10, 31),
+            line: null,
+            skip: 0,
+            take: 50);
+
+        // Assert: Initial balance should be 0 (no prior movements)
+        result.InitialBillingBalance.Should().Be(0);
+        result.InitialBudgetBalance.Should().Be(0);
+        result.InitialTotalBalance.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetMovementsFilteredAsync_InitialEqualsCurrentBalance_WhenNoDateFromFilter()
+    {
+        // Arrange
+        _db.CurrentAccountMovements.AddRange(
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = new DateTime(2025, 10, 5), DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 2000, BudgetAmount = 0 }
+        );
+        await _db.SaveChangesAsync();
+
+        var service = CreateService();
+
+        // Act: No dateFrom filter (show all)
+        var result = await service.GetMovementsFilteredAsync(
+            customerId: 1,
+            dateFrom: null,
+            dateTo: null,
+            line: null,
+            skip: 0,
+            take: 50);
+
+        // Assert: Initial balance should be 0 when showing all movements from start
+        result.InitialBillingBalance.Should().Be(0);
+        result.InitialBudgetBalance.Should().Be(0);
+        result.InitialTotalBalance.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetMovementsByRangeAsync_ReturnsAllMovementsInPeriod_WithoutFixed50Cap()
+    {
+        // Arrange
+        var baseDate = new DateTime(2025, 1, 1);
+        for (int i = 0; i < 75; i++)
+        {
+            _db.CurrentAccountMovements.Add(new CurrentAccountMovement
+            {
+                CustomerId = 1,
+                MovementDate = baseDate.AddDays(i),
+                DocumentType = DocumentType.InvoiceA,
+                DocumentNumber = i + 1,
+                BillingAmount = 10
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        var service = CreateService();
+
+        // Act
+        var result = await service.GetMovementsByRangeAsync(
+            customerId: 1,
+            dateFrom: baseDate,
+            dateTo: baseDate.AddDays(74),
+            line: null,
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        result.Movements.Should().HaveCount(75);
+        result.TotalCount.Should().Be(75);
+        result.GuardrailApplied.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetMovementsByRangeAsync_AppliesRangeGuardrail_WhenRequestedSpanExceedsConfiguredMaxDays()
+    {
+        // Arrange
+        var service = CreateService();
+
+        // Act
+        var result = await service.GetMovementsByRangeAsync(
+            customerId: 1,
+            dateFrom: new DateTime(2020, 1, 1),
+            dateTo: new DateTime(2025, 1, 1),
+            line: null,
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        result.GuardrailApplied.Should().BeTrue();
+        result.GuardrailMode.Should().Be("rejected");
+        result.WarningCode.Should().Be("RANGE_TOO_WIDE");
+        result.Movements.Should().BeEmpty();
+    }
 }

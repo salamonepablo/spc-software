@@ -1,0 +1,12 @@
+# SPC Software Project — Current Account View Fixes II
+
+* Las columnas que se deben mostrar y el orden en el que tienen que estar es el que se muestra en la captura: C:\Users\Pablo\Downloads\MovimientosCtaCte-01.png
+* Fecha del Movimiento, Tipo de Documento (Factura A/B, NC, ND, Presupuesto, Pago, Saldo Inicial (solo para el saldo inicial, que en el sistema viejo se creaba al momento de crear el cliente), Número de Documento, Importe L1, Importe L2, Saldo Parcial (Running Balance).
+* El running balance se debe calcular correctamente, teniendo en cuenta el tipo de movimiento (si es una factura, el importe se suma al saldo, si es un pago, el importe se resta del saldo, etc.). El saldo inicial se debe mostrar como el primer movimiento, con la fecha en la que se creó el cliente, y el importe del saldo inicial. Luego, los movimientos posteriores se deben mostrar en orden ascendente por fecha, mostrando el running balance después de cada movimiento.
+* Vamos a cambiar algo en el diseño de la vista, vamos a mostrar luego que el usuario ingresa el Cliente a consultar por defecto vamos a mostrar los movimientos del último año, ordenados por fecha ascendente, para ello será necesario calcular previamente a mostrar la grilla, los saldos de L1, L2 y Total, desde el inicio hasta la fecha de inicio del período a mostrar, para mostrar el saldo inicial correcto, y luego mostrar los movimientos posteriores ordenados por fecha ascendente, mostrando el running balance después de cada movimiento.
+* Te muestro un ejemplo en texto:
+* Saldo inicial: 01/01/2023, Saldo L1: $1000, Saldo L2: $500, Saldo Total: $1500
+* Movimiento 1: 15/01/2023, Factura A, Número de Documento: 0001, Importe L1: $200, Importe L2: 0 (si el movimiento es Linea 1 no puede ser Linea 2), Saldo Parcial: $1700 (pero tenemos que tambien para informar al pie de la grilla los saldos totales de cada uno: Saldo L1: $1200, Saldo L2: $500, Saldo Total: $1700).
+* Tené en cuenta la captura que te pasé tenemos en la vista lo más parecido posible a eso, pero con los datos correctos, el orden correcto, y el running balance correcto. El diseño de la vista lo podemos mejorar luego, lo importante es que los datos se muestren correctamente, y que el orden sea el correcto, y que el running balance sea correcto.
+
+Vemos si podemos llegar a que ésto funcione bien y seguimos.

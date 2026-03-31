@@ -240,6 +240,22 @@ public class SPCWebApplicationFactory : WebApplicationFactory<Program>
                 }
             );
         }
+
+        if (!db.DocumentTypes.Any())
+        {
+            db.DocumentTypes.AddRange(
+                new DocumentTypeMaster { Id = 1, Code = "FA", ShortCode = "FA", Description = "Factura A", LabelEs = "Factura A", LabelEn = "Invoice A", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 2, Code = "FB", ShortCode = "FB", Description = "Factura B", LabelEs = "Factura B", LabelEn = "Invoice B", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 3, Code = "NCA", ShortCode = "NCA", Description = "Nota de Crédito A", LabelEs = "Nota de Crédito A", LabelEn = "Credit Note A", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 4, Code = "NCB", ShortCode = "NCB", Description = "Nota de Crédito B", LabelEs = "Nota de Crédito B", LabelEn = "Credit Note B", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 5, Code = "NDA", ShortCode = "NDA", Description = "Nota de Débito A", LabelEs = "Nota de Débito A", LabelEn = "Debit Note A", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 6, Code = "NDB", ShortCode = "NDB", Description = "Nota de Débito B", LabelEs = "Nota de Débito B", LabelEn = "Debit Note B", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 7, Code = "PR", ShortCode = "PR", Description = "Presupuesto", LabelEs = "Presupuesto", LabelEn = "Quote", BalanceImpact = 1, IsBillingLine = false, IsActive = true },
+                new DocumentTypeMaster { Id = 8, Code = "PG", ShortCode = "PG", Description = "Pago", LabelEs = "Pago", LabelEn = "Payment", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 9, Code = "SI", ShortCode = "SI", Description = "Saldo Inicial", LabelEs = "Saldo inicial", LabelEn = "Initial balance", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+                new DocumentTypeMaster { Id = 10, Code = "OT", ShortCode = "OT", Description = "Otros", LabelEs = "Otros", LabelEn = "Other", BalanceImpact = 0, IsBillingLine = true, IsActive = true }
+            );
+        }
         
         db.SaveChanges();
     }

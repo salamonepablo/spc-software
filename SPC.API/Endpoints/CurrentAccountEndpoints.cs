@@ -1,5 +1,6 @@
 using SPC.API.Contracts.CurrentAccount;
 using SPC.API.Services;
+using SPC.API.Services.CurrentAccount;
 using SPC.Shared.Models;
 using System.Globalization;
 
@@ -57,6 +58,7 @@ public static class CurrentAccountEndpoints
             int? skip,
             int? take,
             ICurrentAccountService service,
+            IDocumentTypeResolver documentTypeResolver,
             ICustomersService customersService) =>
         {
             // Validate customer exists
@@ -82,6 +84,30 @@ public static class CurrentAccountEndpoints
                 take ?? 50);
 
             // Map to response
+            var movementResponses = new List<CurrentAccountMovementResponse>(result.Movements.Count);
+            foreach (var movement in result.Movements)
+            {
+                var resolvedType = await documentTypeResolver.ResolveAsync(movement);
+                movementResponses.Add(new CurrentAccountMovementResponse
+                {
+                    Id = movement.Id,
+                    MovementDate = movement.MovementDate,
+                    DocumentType = resolvedType.Label ?? GetDocumentTypeName(movement.DocumentType),
+                    DocumentTypeCode = resolvedType.LegacyCode,
+                    DocumentTypeShortCode = resolvedType.ShortCode,
+                    DocumentTypeLabel = resolvedType.Label,
+                    DocumentTypeTooltip = resolvedType.Tooltip,
+                    DocumentNumber = movement.DocumentNumber,
+                    BillingAmount = movement.BillingAmount,
+                    BudgetAmount = movement.BudgetAmount,
+                    BillingRunningBalance = movement.BillingRunningBalance,
+                    BudgetRunningBalance = movement.BudgetRunningBalance,
+                    TotalRunningBalance = movement.BillingRunningBalance + movement.BudgetRunningBalance,
+                    Description = movement.Description,
+                    Navigation = BuildNavigationMetadata(movement)
+                });
+            }
+
             var response = new CurrentAccountMovementsResponse
             {
                 CustomerId = customerId,
@@ -89,27 +115,110 @@ public static class CurrentAccountEndpoints
                 BillingBalance = result.BillingBalance,
                 BudgetBalance = result.BudgetBalance,
                 TotalBalance = result.TotalBalance,
+                InitialBillingBalance = result.InitialBillingBalance,
+                InitialBudgetBalance = result.InitialBudgetBalance,
+                InitialTotalBalance = result.InitialTotalBalance,
+                FinalBillingBalance = result.FinalBillingBalance,
+                FinalBudgetBalance = result.FinalBudgetBalance,
+                FinalTotalBalance = result.FinalTotalBalance,
                 TotalCount = result.TotalCount,
-                Movements = result.Movements.Select(m => new CurrentAccountMovementResponse
-                {
-                    Id = m.Id,
-                    MovementDate = m.MovementDate,
-                    DocumentType = GetDocumentTypeName(m.DocumentType),
-                    DocumentTypeCode = (int)m.DocumentType,
-                    DocumentNumber = m.DocumentNumber,
-                    BillingAmount = m.BillingAmount,
-                    BudgetAmount = m.BudgetAmount,
-                    BillingRunningBalance = m.BillingRunningBalance,
-                    BudgetRunningBalance = m.BudgetRunningBalance,
-                    Description = m.Description,
-                    Navigation = BuildNavigationMetadata(m)
-                }).ToList()
+                GuardrailApplied = result.GuardrailApplied,
+                GuardrailMode = result.GuardrailMode,
+                WarningCode = result.WarningCode,
+                WarningMessage = result.WarningMessage,
+                ReturnedCount = result.ReturnedCount,
+                RangeDays = result.RangeDays,
+                Movements = movementResponses
             };
 
             return Results.Ok(response);
         })
         .WithName("GetCurrentAccountMovements")
         .WithDescription("Returns paginated movements for a customer's current account with optional filters");
+
+        group.MapGet("/{customerId:int}/movements/range", async (
+            int customerId,
+            DateTime dateFrom,
+            DateTime dateTo,
+            int? line,
+            ICurrentAccountService service,
+            IDocumentTypeResolver documentTypeResolver,
+            ICustomersService customersService) =>
+        {
+            var customer = await customersService.GetByIdAsync(customerId);
+            if (customer == null)
+            {
+                return Results.NotFound(new { error = "Cliente no encontrado" });
+            }
+
+            if (line.HasValue && line != 1 && line != 2)
+            {
+                return Results.BadRequest(new { error = "El filtro 'line' debe ser 1 (Billing) o 2 (Budget)" });
+            }
+
+            var result = await service.GetMovementsByRangeAsync(customerId, dateFrom, dateTo, line);
+            if (string.Equals(result.GuardrailMode, "rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.BadRequest(new
+                {
+                    code = result.WarningCode,
+                    message = result.WarningMessage,
+                    guardrailMode = result.GuardrailMode,
+                    rangeDays = result.RangeDays
+                });
+            }
+
+            var movementResponses = new List<CurrentAccountMovementResponse>(result.Movements.Count);
+            foreach (var movement in result.Movements)
+            {
+                var resolvedType = await documentTypeResolver.ResolveAsync(movement);
+                movementResponses.Add(new CurrentAccountMovementResponse
+                {
+                    Id = movement.Id,
+                    MovementDate = movement.MovementDate,
+                    DocumentType = resolvedType.Label ?? GetDocumentTypeName(movement.DocumentType),
+                    DocumentTypeCode = resolvedType.LegacyCode,
+                    DocumentTypeShortCode = resolvedType.ShortCode,
+                    DocumentTypeLabel = resolvedType.Label,
+                    DocumentTypeTooltip = resolvedType.Tooltip,
+                    DocumentNumber = movement.DocumentNumber,
+                    BillingAmount = movement.BillingAmount,
+                    BudgetAmount = movement.BudgetAmount,
+                    BillingRunningBalance = movement.BillingRunningBalance,
+                    BudgetRunningBalance = movement.BudgetRunningBalance,
+                    TotalRunningBalance = movement.BillingRunningBalance + movement.BudgetRunningBalance,
+                    Description = movement.Description,
+                    Navigation = BuildNavigationMetadata(movement)
+                });
+            }
+
+            var response = new CurrentAccountMovementsResponse
+            {
+                CustomerId = customerId,
+                CustomerName = customer.CompanyName,
+                BillingBalance = result.BillingBalance,
+                BudgetBalance = result.BudgetBalance,
+                TotalBalance = result.TotalBalance,
+                InitialBillingBalance = result.InitialBillingBalance,
+                InitialBudgetBalance = result.InitialBudgetBalance,
+                InitialTotalBalance = result.InitialTotalBalance,
+                FinalBillingBalance = result.FinalBillingBalance,
+                FinalBudgetBalance = result.FinalBudgetBalance,
+                FinalTotalBalance = result.FinalTotalBalance,
+                TotalCount = result.TotalCount,
+                GuardrailApplied = result.GuardrailApplied,
+                GuardrailMode = result.GuardrailMode,
+                WarningCode = result.WarningCode,
+                WarningMessage = result.WarningMessage,
+                ReturnedCount = result.ReturnedCount,
+                RangeDays = result.RangeDays,
+                Movements = movementResponses
+            };
+
+            return Results.Ok(response);
+        })
+        .WithName("GetCurrentAccountMovementsRange")
+        .WithDescription("Returns full-range movements for explicit date search with guardrail metadata");
 
         return app;
     }
@@ -147,7 +256,7 @@ public static class CurrentAccountEndpoints
             DocumentType.InternalDebitA => "Débito Interno A",
             DocumentType.InternalDebitB => "Débito Interno B",
 
-            DocumentType.Other => "S.I.",
+            DocumentType.Other => "Otros",
             _ => type.ToString()
         };
     }

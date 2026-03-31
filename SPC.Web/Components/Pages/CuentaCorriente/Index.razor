@@ -122,8 +122,8 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-primary btn-sm w-100" @onclick="ApplyFilters">
-                            Filtrar
+                        <button class="btn btn-primary btn-sm w-100" @onclick="SearchMovements">
+                            Buscar
                         </button>
                     </div>
                 </div>
@@ -131,7 +131,13 @@
         </div>
 
         @* Movements table *@
-        @if (movements == null || movements.Movements.Count == 0)
+        @if (movements == null)
+        {
+            <div class="alert alert-info">
+                Ajuste los filtros y haga clic en <strong>Buscar</strong> para cargar movimientos.
+            </div>
+        }
+        else if (movements.Movements.Count == 0)
         {
             <div class="alert alert-info">
                 No se encontraron movimientos con los filtros seleccionados.
@@ -144,19 +150,31 @@
                     <span class="small fw-semibold">Movimientos</span>
                     <span class="text-muted small">@movements.TotalCount registros</span>
                 </div>
+
+                @* Initial balance row (saldos al inicio del período) *@
+                <div class="bg-light border-bottom px-3 py-2">
+                    <div class="row small">
+                        <div class="col text-muted">Saldo Inicial del Período:</div>
+                        <div class="col-auto text-end">
+                            <span class="me-3">L1: <strong>@movements.InitialBillingBalance.ToString("N2")</strong></span>
+                            <span class="me-3">L2: <strong>@movements.InitialBudgetBalance.ToString("N2")</strong></span>
+                            <span>Total: <strong class="text-primary">@movements.InitialTotalBalance.ToString("N2")</strong></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm table-striped table-hover mb-0 small align-middle">
                             <thead class="table-secondary">
                                 <tr>
                                     <th class="py-2 text-nowrap">Fecha</th>
-                                    <th class="py-2 text-nowrap">Tipo</th>
-                                    <th class="py-2 text-nowrap">Número</th>
-                                    <th class="py-2 text-end text-nowrap">Fact. (L1)</th>
-                                    <th class="py-2 text-end text-nowrap">Ppto (L2)</th>
-                                    <th class="py-2 text-end text-nowrap">Saldo L1</th>
-                                    <th class="py-2 text-end text-nowrap">Saldo L2</th>
-                                    <th class="py-2">Descripción</th>
+                                    <th class="py-2 text-nowrap">Tipo Doc.</th>
+                                    <th class="py-2 text-nowrap">Nro. Doc.</th>
+                                    <th class="py-2 text-end text-nowrap">Importe L1</th>
+                                    <th class="py-2 text-end text-nowrap">Importe L2</th>
+                                    <th class="py-2 text-end text-nowrap">Saldo Parcial</th>
+                                    <th class="py-2">OBS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -166,12 +184,13 @@
                                         <td class="py-1 text-nowrap">@mov.MovementDate.ToString("dd/MM/yyyy")</td>
                                         <td class="py-1">
                                             <div class="d-inline-flex align-items-center gap-1">
-                                                <span class="badge badge-sm @GetDocumentTypeBadgeClass(mov.DocumentTypeCode)">
-                                                    @GetCompactDocumentTypeLabel(mov)
+                                                <span class="badge badge-sm @GetDocumentTypeBadgeClass(mov.DocumentTypeShortCode)"
+                                                      title="@(mov.DocumentTypeTooltip ?? mov.DocumentTypeLabel)">
+                                                    @mov.DocumentTypeShortCode
                                                 </span>
-                                                @if (TryGetFiscalSubtype(mov.DocumentTypeCode, out var subtype))
+                                                @if (!string.IsNullOrWhiteSpace(mov.DocumentTypeLabel))
                                                 {
-                                                    <span class="badge text-bg-light border">@subtype</span>
+                                                    <span class="text-muted small">@mov.DocumentTypeLabel</span>
                                                 }
                                             </div>
                                         </td>
@@ -215,29 +234,27 @@
                                                 <span class="text-muted">-</span>
                                             }
                                         </td>
-                                        <td class="py-1 text-end text-nowrap fw-medium">@mov.BillingRunningBalance.ToString("N2")</td>
-                                        <td class="py-1 text-end text-nowrap fw-medium">@mov.BudgetRunningBalance.ToString("N2")</td>
-                                        <td class="py-1 text-truncate" style="max-width: 220px;">@(mov.Description ?? "-")</td>
+                                        <td class="py-1 text-end text-nowrap fw-bold">@mov.TotalRunningBalance.ToString("N2")</td>
+                                        <td class="py-1 text-truncate" style="max-width: 180px;">@(mov.Description ?? "-")</td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
-                    <div class="border-top bg-light px-3 py-2 text-muted small">
-                        La navegacion de detalle depende del metadata de cada movimiento.
-                    </div>
                 </div>
-                @if (movements.Movements.Count < movements.TotalCount)
-                {
-                    <div class="card-footer">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Mostrando @movements.Movements.Count de @movements.TotalCount</span>
-                            <button class="btn btn-outline-primary" @onclick="LoadMore">
-                                Cargar mas...
-                            </button>
+
+                @* Final balance row (saldos al final del período) *@
+                <div class="bg-light border-top px-3 py-2">
+                    <div class="row small">
+                        <div class="col text-muted">Saldo Final del Período:</div>
+                        <div class="col-auto text-end">
+                            <span class="me-3">L1: <strong>@movements.FinalBillingBalance.ToString("N2")</strong></span>
+                            <span class="me-3">L2: <strong>@movements.FinalBudgetBalance.ToString("N2")</strong></span>
+                            <span>Total: <strong class="text-primary">@movements.FinalTotalBalance.ToString("N2")</strong></span>
                         </div>
                     </div>
-                }
+                </div>
+
             </div>
         }
     }
@@ -253,8 +270,12 @@
     private DateTime? dateFrom;
     private DateTime? dateTo;
     private string lineFilter = "";
-    private int pageSize = 50;
-    private int currentSkip = 0;
+
+    protected override void OnInitialized()
+    {
+        dateFrom = DateTime.Today.AddYears(-1);
+        dateTo = DateTime.Today;
+    }
 
     private async Task<List<CustomerDto>> SearchCustomers(string term)
     {
@@ -264,31 +285,12 @@
     private async Task HandleCustomerSelected(CustomerDto customer)
     {
         selectedCustomer = customer;
-        currentSkip = 0;
-        await LoadAccountData();
-    }
-
-    private async Task LoadAccountData()
-    {
-        if (selectedCustomer == null) return;
 
         loading = true;
         try
         {
-            var accountTask = Api.GetCurrentAccountAsync(selectedCustomer.Id);
-            var movementsTask = Api.GetCurrentAccountMovementsAsync(
-                selectedCustomer.Id,
-                dateFrom,
-                dateTo,
-                string.IsNullOrEmpty(lineFilter) ? null : int.Parse(lineFilter),
-                0,
-                pageSize);
-
-            await Task.WhenAll(accountTask, movementsTask);
-
-            account = await accountTask;
-            movements = await movementsTask;
-            currentSkip = movements?.Movements.Count ?? 0;
+            account = await Api.GetCurrentAccountAsync(selectedCustomer.Id);
+            movements = null;
         }
         finally
         {
@@ -296,81 +298,39 @@
         }
     }
 
-    private async Task ApplyFilters()
+    private async Task SearchMovements()
     {
-        currentSkip = 0;
-        await LoadAccountData();
-    }
+        if (selectedCustomer == null) return;
+        if (!dateFrom.HasValue || !dateTo.HasValue) return;
 
-    private async Task LoadMore()
-    {
-        if (selectedCustomer == null || movements == null) return;
-
-        var more = await Api.GetCurrentAccountMovementsAsync(
-            selectedCustomer.Id,
-            dateFrom,
-            dateTo,
-            string.IsNullOrEmpty(lineFilter) ? null : int.Parse(lineFilter),
-            currentSkip,
-            pageSize);
-
-        if (more != null && more.Movements.Count > 0)
+        loading = true;
+        try
         {
-            movements.Movements.AddRange(more.Movements);
-            currentSkip += more.Movements.Count;
+            account = await Api.GetCurrentAccountAsync(selectedCustomer.Id);
+            movements = await Api.GetCurrentAccountMovementsByRangeAsync(
+                selectedCustomer.Id,
+                dateFrom.Value,
+                dateTo.Value,
+                string.IsNullOrEmpty(lineFilter) ? null : int.Parse(lineFilter));
+        }
+        finally
+        {
+            loading = false;
         }
     }
 
-    private string GetDocumentTypeBadgeClass(int documentTypeCode)
+    private string GetDocumentTypeBadgeClass(string shortCode)
     {
-        // Billing documents (100s) - blue
-        // Budget documents (120s) - teal
-        // Payments (30s, 108, 122) - green
-        // Credit notes - success
-        // Debit notes - warning
-        // Voids - danger
-        return documentTypeCode switch
+        return shortCode.ToUpperInvariant() switch
         {
-            101 or 102 => "bg-primary",      // Invoice A/B
-            103 or 104 => "bg-success",      // Credit Note A/B
-            105 or 106 => "bg-warning",      // Debit Note A/B
-            108 => "bg-success",             // Payment Billing
-            109 => "bg-danger",              // Payment Void Billing
-            20 => "bg-info",                 // Quote
-            121 => "bg-danger",              // Quote Void
-            122 => "bg-success",             // Payment Budget
-            123 => "bg-danger",              // Payment Void Budget
-            124 or 125 => "bg-warning",      // Internal Debit A/B
-            30 or 31 => "bg-success",        // Payment/Receipt
+            "FA" or "FB" => "bg-primary",
+            "NCA" or "NCB" => "bg-success",
+            "NDA" or "NDB" => "bg-warning text-dark",
+            "PR" => "bg-info text-dark",
+            "PG" => "bg-success",
+            "SI" => "bg-secondary",
             _ => "bg-secondary"
         };
-    }
-
-    private static string GetCompactDocumentTypeLabel(CurrentAccountMovementDto movement)
-    {
-        return movement.DocumentTypeCode switch
-        {
-            1 or 101 or 102 => "Fact.",
-            3 or 103 or 104 => "N.C.",
-            5 or 105 or 106 => "N.D.",
-            7 or 124 or 125 => "N.D.I.",
-            20 or 121 => "Ppto.",
-            30 or 31 or 108 or 109 or 122 or 123 => "Pago",
-            99 => "S.I.",
-            _ => movement.DocumentType
-        };
-    }
-
-    private static bool TryGetFiscalSubtype(int documentTypeCode, out string subtype)
-    {
-        subtype = documentTypeCode switch
-        {
-            101 or 103 or 105 or 124 => "A",
-            102 or 104 or 106 or 125 => "B",
-            _ => string.Empty
-        };
-
-        return !string.IsNullOrEmpty(subtype);
     }
 
     private static bool CanOpenDocument(CurrentAccountMovementDto movement)

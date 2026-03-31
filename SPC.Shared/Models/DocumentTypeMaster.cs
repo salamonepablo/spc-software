@@ -12,11 +12,23 @@ public class DocumentTypeMaster
 
     [Required]
     [StringLength(10)]
-    public string Code { get; set; } = "";  // FA, NC, ND, RE, PA, etc.
+    public string Code { get; set; } = "";
+
+    [Required]
+    [StringLength(10)]
+    public string ShortCode { get; set; } = "";
 
     [Required]
     [StringLength(100)]
-    public string Description { get; set; } = "";  // Factura, Nota de Crédito, etc.
+    public string Description { get; set; } = "";
+
+    [Required]
+    [StringLength(120)]
+    public string LabelEs { get; set; } = "";
+
+    [Required]
+    [StringLength(120)]
+    public string LabelEn { get; set; } = "";
 
     /// <summary>Impact on current account balance: 1 = increases debt, -1 = decreases debt</summary>
     public int BalanceImpact { get; set; } = 1;

@@ -133,6 +133,48 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
     }
 
     [Fact]
+    public async Task GetCurrentAccountMovementsRange_ReturnsAllMovementsWithoutFixedTake50()
+    {
+        // Arrange
+        var baseDate = new DateTime(2025, 1, 1);
+        for (int i = 0; i < 75; i++)
+        {
+            await SeedMovementAsync(new CurrentAccountMovement
+            {
+                CustomerId = 1,
+                MovementDate = baseDate.AddDays(i),
+                DocumentType = DocumentType.InvoiceA,
+                DocumentNumber = 1000 + i,
+                BillingAmount = 10
+            });
+        }
+
+        // Act
+        var response = await _client.GetAsync("/api/current-accounts/1/movements/range?dateFrom=2025-01-01&dateTo=2025-03-16");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+        result.Should().NotBeNull();
+        result!.Movements.Should().HaveCount(75);
+        result.TotalCount.Should().Be(75);
+        result.GuardrailApplied.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetCurrentAccountMovementsRange_ReturnsBadRequest_WithMachineReadableGuardrailCode_WhenRangeTooWide()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/current-accounts/1/movements/range?dateFrom=2020-01-01&dateTo=2025-01-01");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+        payload.Should().NotBeNull();
+        payload!["code"]!.ToString().Should().Be("RANGE_TOO_WIDE");
+    }
+
+    [Fact]
     public async Task GetCurrentAccountMovements_ReturnsMovementsInAscendingOrder()
     {
         // Act
@@ -275,6 +317,71 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
         initialBalanceMovement.Navigation.TargetKind.Should().Be("initial-balance");
         initialBalanceMovement.Navigation.CanOpen.Should().BeFalse();
         initialBalanceMovement.Navigation.DisabledReason.Should().Be("Saldo inicial sin detalle navegable");
+    }
+
+    [Fact]
+    public async Task GetCurrentAccountMovements_ReturnsRequiredDocumentTypeShortCode_AndOptionalMetadata()
+    {
+        // Arrange
+        await SeedMovementAsync(new CurrentAccountMovement
+        {
+            CustomerId = 4,
+            MovementDate = new DateTime(2026, 3, 6),
+            DocumentType = DocumentType.InvoiceA,
+            DocumentNumber = 4001,
+            BillingAmount = 2500
+        });
+
+        // Act
+        var response = await _client.GetAsync("/api/current-accounts/4/movements");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+        result.Should().NotBeNull();
+
+        var movement = result!.Movements.Single(m => m.DocumentNumber == 4001);
+        movement.DocumentTypeShortCode.Should().NotBeNullOrWhiteSpace();
+        movement.DocumentTypeShortCode.Should().Be("FA");
+        movement.DocumentTypeLabel.Should().NotBeNullOrWhiteSpace();
+        movement.DocumentTypeTooltip.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task GetCurrentAccountMovements_ReturnsSI_OnlyForTrustedInitialBalanceRows()
+    {
+        // Arrange
+        await SeedMovementAsync(new CurrentAccountMovement
+        {
+            CustomerId = 4,
+            MovementDate = new DateTime(2026, 3, 7),
+            DocumentType = DocumentType.Other,
+            DocumentNumber = 0,
+            Description = "Saldo inicial",
+            BillingAmount = 100
+        });
+
+        await SeedMovementAsync(new CurrentAccountMovement
+        {
+            CustomerId = 4,
+            MovementDate = new DateTime(2026, 3, 8),
+            DocumentType = DocumentType.Other,
+            DocumentNumber = 999,
+            Description = "Saldo inicial ajustado",
+            BillingAmount = 50
+        });
+
+        // Act
+        var response = await _client.GetAsync("/api/current-accounts/4/movements");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+        result.Should().NotBeNull();
+
+        var shortCodes = result!.Movements.Select(m => m.DocumentTypeShortCode).ToList();
+        shortCodes.Should().Contain("SI");
+        shortCodes.Count(code => code == "SI").Should().Be(1);
     }
 
     private async Task SeedMovementAsync(CurrentAccountMovement movement)

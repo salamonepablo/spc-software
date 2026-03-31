@@ -19,7 +19,7 @@ public interface ICurrentAccountService
     /// <param name="budgetAmount">Amount to add/subtract from Budget balance (L2)</param>
     /// <param name="description">Optional description for the movement</param>
     /// <returns>The updated CurrentAccount</returns>
-    Task<CurrentAccount> RecordMovementAsync(
+    Task<SPC.Shared.Models.CurrentAccount> RecordMovementAsync(
         int customerId,
         DocumentType documentType,
         long documentNumber,
@@ -30,7 +30,7 @@ public interface ICurrentAccountService
     /// <summary>
     /// Gets the current account for a customer, creating it if it doesn't exist.
     /// </summary>
-    Task<CurrentAccount> GetOrCreateAccountAsync(int customerId);
+    Task<SPC.Shared.Models.CurrentAccount> GetOrCreateAccountAsync(int customerId);
 
     /// <summary>
     /// Gets all movements for a customer, ordered by date ascending (oldest first).
@@ -47,7 +47,7 @@ public interface ICurrentAccountService
     /// <param name="budgetBalance">Initial L2 (Budget) balance</param>
     /// <param name="asOfDate">The date for the initial balance (defaults to now)</param>
     /// <returns>The created CurrentAccount</returns>
-    Task<CurrentAccount> SetInitialBalanceAsync(
+    Task<SPC.Shared.Models.CurrentAccount> SetInitialBalanceAsync(
         int customerId,
         decimal billingBalance,
         decimal budgetBalance,
@@ -57,7 +57,7 @@ public interface ICurrentAccountService
     /// Gets the current account for a customer (returns null if not exists).
     /// Includes Customer navigation property.
     /// </summary>
-    Task<CurrentAccount?> GetAccountAsync(int customerId);
+    Task<SPC.Shared.Models.CurrentAccount?> GetAccountAsync(int customerId);
 
     /// <summary>
     /// Gets movements with filters and pagination. Returns movements and total count.
@@ -77,19 +77,56 @@ public interface ICurrentAccountService
         int take = 50);
 
     /// <summary>
+    /// Gets all movements for a fixed date range with guardrails.
+    /// This path does not apply fixed UI pagination caps.
+    /// </summary>
+    Task<CurrentAccountMovementsResult> GetMovementsByRangeAsync(
+        int customerId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        int? line,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks if the DualLineCurrentAccount feature is enabled.
     /// </summary>
     bool IsDualLineEnabled();
 }
 
 /// <summary>
-/// Result of filtered movements query with pagination info
+/// Result of filtered movements query with pagination info.
+/// Includes period-specific initial and final balances for correct running balance display.
 /// </summary>
 public class CurrentAccountMovementsResult
 {
+    /// <summary>Current account L1 balance (not period-specific)</summary>
     public decimal BillingBalance { get; set; }
+    /// <summary>Current account L2 balance (not period-specific)</summary>
     public decimal BudgetBalance { get; set; }
+    /// <summary>Current account total balance (not period-specific)</summary>
     public decimal TotalBalance { get; set; }
+
+    /// <summary>L1 balance at the START of the filtered period (sum of all movements before dateFrom)</summary>
+    public decimal InitialBillingBalance { get; set; }
+    /// <summary>L2 balance at the START of the filtered period</summary>
+    public decimal InitialBudgetBalance { get; set; }
+    /// <summary>Total balance at the START of the filtered period</summary>
+    public decimal InitialTotalBalance { get; set; }
+
+    /// <summary>L1 balance at the END of the filtered period</summary>
+    public decimal FinalBillingBalance { get; set; }
+    /// <summary>L2 balance at the END of the filtered period</summary>
+    public decimal FinalBudgetBalance { get; set; }
+    /// <summary>Total balance at the END of the filtered period</summary>
+    public decimal FinalTotalBalance { get; set; }
+
     public List<CurrentAccountMovement> Movements { get; set; } = new();
     public int TotalCount { get; set; }
+
+    public bool GuardrailApplied { get; set; }
+    public string GuardrailMode { get; set; } = "none";
+    public string? WarningCode { get; set; }
+    public string? WarningMessage { get; set; }
+    public int ReturnedCount { get; set; }
+    public int RangeDays { get; set; }
 }

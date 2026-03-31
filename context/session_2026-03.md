@@ -317,3 +317,140 @@
   - Commit hashes remain `pending-uncommitted-worktree` in traceability matrix until user-defined commit slicing.
   - Run seeded staging migration rehearsal before merge for stronger operational confidence.
   - Debug build can fail while local API/Web processes are running and locking Debug binaries.
+
+## 2026-03-28 - Current Account UI Fixes (Home/Nav + Movements UX)
+
+- Scope: Implement agreed Current Account UI fixes with minimal API adjustment for initial balance label consistency.
+- Files changed:
+  - `SPC.Web/Components/Layout/NavMenu.razor`
+  - `SPC.Web/Components/Pages/Home.razor`
+  - `SPC.Web/Components/Pages/CuentaCorriente/Index.razor`
+  - `SPC.Web/Components/Pages/Facturas/Index.razor`
+  - `SPC.Web/Components/Pages/Presupuestos/Index.razor`
+  - `SPC.API/Endpoints/CurrentAccountEndpoints.cs`
+  - `context/current_session.md`
+  - `context/session_2026-03.md`
+- Architectural impact:
+  - Presentation: improved discoverability and movement-table interaction while keeping business logic outside UI.
+  - Application/API: `DocumentType.Other` presentation label changed to `S.I.` in endpoint mapping (backward-compatible field, value-level refinement only).
+  - Clean Architecture boundaries preserved; no domain/infrastructure contract changes.
+- Tests updated:
+  - Added: none.
+  - Regression executed:
+    - `CurrentAccountEndpointsTests` (10/10)
+    - `InvoicesEndpointsTests` (11/11)
+    - `QuotesEndpointsTests` (12/12)
+- Validation:
+  - `dotnet build SPC.slnx --verbosity minimal` failed due locked Debug outputs from running local API/Web processes.
+  - `dotnet build SPC.slnx -c Release --verbosity minimal` passed (0 warnings, 0 errors).
+  - Targeted Release test filters passed for current account, invoices, and quotes endpoint suites.
+- Follow-ups:
+  - Add direct detail/reprint route metadata in movements when document detail pages become available.
+  - Add component-level tests for Current Account movement interactions and disabled payment links.
+
+## 2026-03-28 - Payments Navigation Enabled from Current Account
+
+- Scope: Implement first payment detail increment using navigation metadata from Current Account movements.
+- Files changed:
+  - `SPC.API/Contracts/Payments/PaymentDetailResponse.cs`
+  - `SPC.API/Services/IPaymentQueryService.cs`
+  - `SPC.API/Services/PaymentQueryService.cs`
+  - `SPC.API/Endpoints/PaymentsEndpoints.cs`
+  - `SPC.API/Endpoints/CurrentAccountEndpoints.cs`
+  - `SPC.API/Program.cs`
+  - `SPC.Web/Services/Models/PaymentDto.cs`
+  - `SPC.Web/Services/IApiService.cs`
+  - `SPC.Web/Services/ApiService.cs`
+  - `SPC.Web/Components/Pages/Payments/Detail.razor`
+  - `SPC.Tests/Integration/CurrentAccountEndpointsTests.cs`
+  - `SPC.Tests/Integration/PaymentsEndpointsTests.cs`
+  - `context/current_session.md`
+  - `context/session_2026-03.md`
+- Architectural impact:
+  - Application/API: New `IPaymentQueryService` + `PaymentQueryService` and `/api/payments/{paymentNumber}` (`/api/pagos/{paymentNumber}` legacy alias) for read-only payment details.
+  - CurrentAccount navigation metadata now marks payment movements as openable and provides concrete route `/payments/{number}?customerId={id}`.
+  - Presentation: New payment detail page wired to API and reachable from Current Account movement number click.
+- Tests added/updated:
+  - Updated integration: `CurrentAccountEndpointsTests` payment navigation assertions.
+  - Added integration: `PaymentsEndpointsTests` for found/not-found flows.
+- Validation:
+  - `dotnet build SPC.slnx -c Release --verbosity minimal` -> Passed.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CurrentAccountEndpointsTests|FullyQualifiedName~PaymentsEndpointsTests" --verbosity minimal` -> Passed (14/14).
+- Follow-ups:
+  - Evaluate richer payment UX (list + modal) once payment workflows are expanded.
+  - Add branch-aware disambiguation route parameter if duplicate payment numbers become common.
+
+## 2026-03-28 - Credit/Debit Notes Navigation Enabled from Current Account
+
+- Scope: Enable NC/ND movements as openable from Current Account and add minimal read-only detail pages.
+- Files changed:
+  - `SPC.API/Endpoints/CurrentAccountEndpoints.cs`
+  - `SPC.API/Services/ICreditNoteQueryService.cs`
+  - `SPC.API/Services/CreditNoteQueryService.cs`
+  - `SPC.API/Services/IDebitNoteQueryService.cs`
+  - `SPC.API/Services/DebitNoteQueryService.cs`
+  - `SPC.API/Endpoints/NotasCreditoEndpoints.cs`
+  - `SPC.API/Endpoints/NotasDebitoEndpoints.cs`
+  - `SPC.Web/Services/IApiService.cs`
+  - `SPC.Web/Services/ApiService.cs`
+  - `SPC.Web/Services/Models/NoteDto.cs`
+  - `SPC.Web/Components/Pages/CreditNotes/Detail.razor`
+  - `SPC.Web/Components/Pages/DebitNotes/Detail.razor`
+  - `SPC.Tests/Integration/CurrentAccountEndpointsTests.cs`
+  - `SPC.Tests/Integration/NotasCreditoEndpointsTests.cs`
+  - `SPC.Tests/Integration/NotasDebitoEndpointsTests.cs`
+  - `context/current_session.md`
+  - `context/session_2026-03.md`
+- Architectural impact:
+  - Application/API: Added query endpoints by note number (`/api/notas-credito/number/{number}` and `/api/notas-debito/number/{number}`) with optional `customerId` filter; existing endpoints preserved.
+  - CurrentAccount movement navigation metadata now marks NC/ND as `CanOpen=true` with concrete routes (`/credit-notes/{number}?customerId={id}` and `/debit-notes/{number}?customerId={id}`).
+  - Presentation: Added read-only detail pages for credit/debit notes with English and Spanish route aliases.
+- Tests added/updated:
+  - Updated integration: `CurrentAccountEndpointsTests` asserts NC/ND routes and openable flags.
+  - Added integration: `CreditNotesEndpointsTests.GetCreditNoteByNumber_ReturnsOk_WhenExists`.
+  - Added integration: `DebitNotesEndpointsTests.GetDebitNoteByNumber_ReturnsOk_WhenExists`.
+- Validation:
+  - `dotnet build SPC.slnx -c Release --verbosity minimal` -> Passed.
+  - `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CurrentAccountEndpointsTests|FullyQualifiedName~CreditNotesEndpointsTests|FullyQualifiedName~DebitNotesEndpointsTests" --verbosity minimal` -> Passed (26/26).
+  - `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CurrentAccountEndpointsTests|FullyQualifiedName~PaymentsEndpointsTests|FullyQualifiedName~InvoicesEndpointsTests|FullyQualifiedName~QuotesEndpointsTests" --verbosity minimal` -> Passed (37/37).
+- Follow-ups:
+  - Optional: unify Payment/CreditNote/DebitNote detail layouts in a shared component for maintenance.
+## 2026-03-31 - Document Type Inference Fix for Current Account
+
+- Scope: Fix document type inference for historical current account movements with DocumentType=Other.
+- Routing decision: Direct implementation with TDD workflow.
+- Files changed:
+  - `SPC.API/Services/CurrentAccount/DocumentTypeResolver.cs`
+  - `SPC.Tests/Unit/DocumentTypeInferenceTests.cs` (NEW)
+  - `SPC.Tests/Unit/CurrentAccountDocumentTypeResolverTests.cs`
+  - `context/current_session.md`
+  - `context/session_2026-03.md`
+- Architectural impact:
+  - Application/Business Logic: Enhanced DocumentTypeResolver.InferFromDescription() with precedence-based pattern matching instead of "exactly 1 match" validation.
+  - Precedence order: Factura > NC > ND > Presupuesto > Pago (resolves ambiguous cases like "Pago Factura" -> FA, not PG).
+  - Improved pattern detection for abbreviations and subcodes ("nc ", "nd ", "fact", "nca", "ncb", "nda", "ndb").
+  - Clean Architecture boundaries preserved; no domain model or infrastructure changes.
+- TDD evidence:
+  - RED: Created 15 new test cases for inference scenarios (ambiguity, precedence, subcodes, edge cases).
+  - GREEN: Implemented precedence-based resolution logic with robust pattern matching.
+  - REFACTOR: Updated existing DocumentTypeResolverTests to align with new behavior.
+- Tests added/updated:
+  - Added: `DocumentTypeInferenceTests.cs` with 15 test cases covering:
+    - Precedence resolution (Factura > NC > ND > Presupuesto > Pago)
+    - Ambiguous descriptions ("Pago Factura" -> FA, "NC Factura" -> NC)
+    - Subcode detection (NCA, NCB, NDA, NDB)
+    - Abbreviations and spacing ("nc ", "nd ", "fact")
+    - Edge cases (empty, null, unknown patterns)
+  - Updated: `CurrentAccountDocumentTypeResolverTests.cs` to match new precedence behavior.
+- Validation:
+  - `dotnet build SPC.slnx -c Release --verbosity minimal` -> Passed (0 errors, 0 warnings).
+  - `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --verbosity minimal` -> Passed (298/298, +25 new tests).
+  - API manual verification: Historical movements with DocumentType=99 (Other) now resolve correctly:
+    - "Pago Linea 1" -> PG (Payment)
+    - "Factura A 0001-00000123" -> FA (Invoice A)
+    - "NC B 0001-00000045" -> NC (Credit Note B)
+- Risks / Follow-ups:
+  - **Known Bug**: BuildNavigationMetadata still uses original DocumentType enum value (99) instead of resolved type, causing canOpen=false for historical movements that should be navigable (e.g., "Factura A" with DocumentType=Other should open but doesn't). Fix pending for next session.
+  - Commit pending (changes not yet committed).
+  - Consider extracting pattern definitions to configuration for easier maintenance if document type patterns grow.
+

@@ -75,6 +75,12 @@ public interface IApiService
         int skip = 0,
         int take = 50);
 
+    Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsByRangeAsync(
+        int customerId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        int? line = null);
+
     // Payments
     Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null);
 

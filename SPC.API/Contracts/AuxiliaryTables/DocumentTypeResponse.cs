@@ -9,7 +9,10 @@ public class DocumentTypeResponse
 {
     public int Id { get; set; }
     public string Code { get; set; } = "";
+    public string ShortCode { get; set; } = "";
     public string Description { get; set; } = "";
+    public string LabelEs { get; set; } = "";
+    public string LabelEn { get; set; } = "";
     public int BalanceImpact { get; set; }
     public bool IsBillingLine { get; set; }
     public bool IsActive { get; set; }
@@ -20,7 +23,10 @@ public class DocumentTypeResponse
         {
             Id = documentType.Id,
             Code = documentType.Code,
+            ShortCode = documentType.ShortCode,
             Description = documentType.Description,
+            LabelEs = documentType.LabelEs,
+            LabelEn = documentType.LabelEn,
             BalanceImpact = documentType.BalanceImpact,
             IsBillingLine = documentType.IsBillingLine,
             IsActive = documentType.IsActive

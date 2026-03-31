@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using SPC.API.Data;
 using SPC.API.Endpoints;
 using SPC.API.Services;
+using SPC.API.Services.CurrentAccount;
 using SPC.Shared.Licensing;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,8 +47,12 @@ builder.Services.AddScoped<ITaxConfigurationService, TaxConfigurationService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
 builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
+builder.Services.AddScoped<IDocumentTypeResolver, DocumentTypeResolver>();
+builder.Services.AddScoped<IDocumentTypeCatalogVerifier, DocumentTypeCatalogVerifier>();
 builder.Services.AddScoped<IPaymentQueryService, PaymentQueryService>();
 builder.Services.AddScoped<IAuxiliaryTablesService, AuxiliaryTablesService>();
+builder.Services.Configure<CurrentAccountGuardrailOptions>(
+    builder.Configuration.GetSection(CurrentAccountGuardrailOptions.SectionName));
 
 // Enable CORS for Blazor to consume the API
 builder.Services.AddCors(options =>
@@ -86,6 +91,9 @@ if (!app.Environment.IsEnvironment("Testing"))
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
     db.Database.Migrate();
+
+    var catalogVerifier = scope.ServiceProvider.GetRequiredService<IDocumentTypeCatalogVerifier>();
+    await catalogVerifier.ValidateRequiredShortCodesAsync();
 }
 
 app.UseCors("AllowBlazor");

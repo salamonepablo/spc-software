@@ -1,6 +1,7 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using SPC.API.Contracts.AuxiliaryTables;
 using SPC.Shared.Models;
 using SPC.Tests.Infrastructure;
 
@@ -183,15 +184,19 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeMaster>>();
+        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeResponse>>();
         documentTypes.Should().NotBeNull();
-        documentTypes.Should().HaveCount(6);
-        documentTypes.Should().Contain(d => d.Code == "FA" && d.Description == "Factura");
-        documentTypes.Should().Contain(d => d.Code == "NC" && d.Description == "Nota de Crédito");
-        documentTypes.Should().Contain(d => d.Code == "ND" && d.Description == "Nota de Débito");
-        documentTypes.Should().Contain(d => d.Code == "RE" && d.Description == "Recibo");
-        documentTypes.Should().Contain(d => d.Code == "PR" && d.Description == "Presupuesto");
-        documentTypes.Should().Contain(d => d.Code == "NDI" && d.Description == "Nota de Débito Interna");
+        documentTypes.Should().HaveCount(10);
+        documentTypes.Should().Contain(d => d.ShortCode == "FA" && d.LabelEs == "Factura A");
+        documentTypes.Should().Contain(d => d.ShortCode == "FB" && d.LabelEs == "Factura B");
+        documentTypes.Should().Contain(d => d.ShortCode == "NCA" && d.LabelEn == "Credit Note A");
+        documentTypes.Should().Contain(d => d.ShortCode == "NCB" && d.LabelEn == "Credit Note B");
+        documentTypes.Should().Contain(d => d.ShortCode == "NDA" && d.LabelEs == "Nota de Débito A");
+        documentTypes.Should().Contain(d => d.ShortCode == "NDB" && d.LabelEs == "Nota de Débito B");
+        documentTypes.Should().Contain(d => d.ShortCode == "PR" && d.LabelEn == "Quote");
+        documentTypes.Should().Contain(d => d.ShortCode == "PG" && d.LabelEn == "Payment");
+        documentTypes.Should().Contain(d => d.ShortCode == "SI" && d.LabelEs == "Saldo inicial");
+        documentTypes.Should().Contain(d => d.ShortCode == "OT" && d.LabelEn == "Other");
     }
 
     [Fact]
@@ -199,15 +204,15 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     {
         // Act
         var response = await _client.GetAsync("/api/documenttypes");
-        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeMaster>>();
+        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeResponse>>();
 
         // Assert - Check balance impact for different document types
         documentTypes.Should().NotBeNull();
         var types = documentTypes!;
-        types.First(d => d.Code == "FA").BalanceImpact.Should().Be(1);  // Factura increases debt
-        types.First(d => d.Code == "NC").BalanceImpact.Should().Be(-1); // NC decreases debt
-        types.First(d => d.Code == "ND").BalanceImpact.Should().Be(1);  // ND increases debt
-        types.First(d => d.Code == "RE").BalanceImpact.Should().Be(-1); // Recibo decreases debt
+        types.First(d => d.ShortCode == "FA").BalanceImpact.Should().Be(1);
+        types.First(d => d.ShortCode == "NCA").BalanceImpact.Should().Be(-1);
+        types.First(d => d.ShortCode == "NDA").BalanceImpact.Should().Be(1);
+        types.First(d => d.ShortCode == "PG").BalanceImpact.Should().Be(-1);
     }
 
     [Fact]
@@ -215,16 +220,16 @@ public class AuxiliaryEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     {
         // Act
         var response = await _client.GetAsync("/api/documenttypes");
-        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeMaster>>();
+        var documentTypes = await response.Content.ReadFromJsonAsync<List<DocumentTypeResponse>>();
 
         // Assert - Check which account line each document type affects
         documentTypes.Should().NotBeNull();
         var types = documentTypes!;
-        types.First(d => d.Code == "FA").IsBillingLine.Should().BeTrue();   // Factura -> Billing
-        types.First(d => d.Code == "NC").IsBillingLine.Should().BeTrue();   // NC -> Billing
-        types.First(d => d.Code == "ND").IsBillingLine.Should().BeTrue();   // ND -> Billing
-        types.First(d => d.Code == "PR").IsBillingLine.Should().BeFalse();  // Presupuesto -> Budget
-        types.First(d => d.Code == "NDI").IsBillingLine.Should().BeFalse(); // NDI -> Budget
+        types.First(d => d.ShortCode == "FA").IsBillingLine.Should().BeTrue();
+        types.First(d => d.ShortCode == "NCA").IsBillingLine.Should().BeTrue();
+        types.First(d => d.ShortCode == "NDA").IsBillingLine.Should().BeTrue();
+        types.First(d => d.ShortCode == "PR").IsBillingLine.Should().BeFalse();
+        types.First(d => d.ShortCode == "PG").IsBillingLine.Should().BeTrue();
     }
 
     // ===========================================

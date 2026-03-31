@@ -760,6 +760,40 @@ public class ApiService : IApiService
         }
     }
 
+    public async Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsByRangeAsync(
+        int customerId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        int? line = null)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"dateFrom={dateFrom:yyyy-MM-dd}",
+                $"dateTo={dateTo:yyyy-MM-dd}"
+            };
+
+            if (line.HasValue)
+            {
+                queryParams.Add($"line={line.Value}");
+            }
+
+            var queryString = string.Join("&", queryParams);
+            return await _http.GetFromJsonAsync<CurrentAccountMovementsDto>(
+                $"/api/current-accounts/{customerId}/movements/range?{queryString}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching full-range current account movements for customer {CustomerId}", customerId);
+            return null;
+        }
+    }
+
     public async Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null)
     {
         try

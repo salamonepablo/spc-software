@@ -16,6 +16,9 @@ public class CurrentAccountMovementResponseSerializationTests
           "movementDate": "2026-03-28T00:00:00",
           "documentType": "Factura A",
           "documentTypeCode": 101,
+          "documentTypeShortCode": "FA",
+          "documentTypeLabel": "Factura A",
+          "documentTypeTooltip": "Invoice A",
           "documentNumber": 12345,
           "billingAmount": 1000,
           "budgetAmount": 0,
@@ -40,6 +43,9 @@ public class CurrentAccountMovementResponseSerializationTests
 
         // Assert
         movement.Should().NotBeNull();
+        movement!.DocumentTypeShortCode.Should().Be("FA");
+        movement.DocumentTypeLabel.Should().Be("Factura A");
+        movement.DocumentTypeTooltip.Should().Be("Invoice A");
         movement!.Navigation.TargetType.Should().Be("document");
         movement.Navigation.TargetKind.Should().Be("invoice");
         movement.Navigation.TargetRoute.Should().Be("/invoices?search=12345");
@@ -73,7 +79,8 @@ public class CurrentAccountMovementResponseSerializationTests
 
         // Assert
         movement.Should().NotBeNull();
-        movement!.Navigation.Should().NotBeNull();
+        movement!.DocumentTypeShortCode.Should().Be("OT");
+        movement.Navigation.Should().NotBeNull();
         movement.Navigation.TargetType.Should().Be("other");
         movement.Navigation.TargetKind.Should().Be("other");
         movement.Navigation.CanOpen.Should().BeFalse();
