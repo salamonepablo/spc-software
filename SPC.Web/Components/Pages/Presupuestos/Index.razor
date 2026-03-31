@@ -1,0 +1,449 @@
+﻿@page "/quotes"
+@page "/presupuestos"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Presupuestos - SPC</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Presupuestos</h3>
+        <div>
+            <button class="btn btn-primary" @onclick="NuevoPresupuesto">
+                + Nuevo Presupuesto
+            </button>
+        </div>
+    </div>
+
+    @* Resumen de presupuestos *@
+    @if (resumen != null)
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Hoy</h6>
+                        <h3 class="mb-0 text-nowrap">@resumen.MontoHoy.ToString("C0")</h3>
+                        <small>@resumen.QuotesHoy presupuestos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Este Mes</h6>
+                        <h3 class="mb-0 text-nowrap">@resumen.MontoMes.ToString("C0")</h3>
+                        <small>@resumen.QuotesMes presupuestos</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Este Año</h6>
+                        <h3 class="mb-0 text-nowrap">@resumen.MontoAnio.ToString("C0")</h3>
+                        <small>total acumulado</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title opacity-75">Total Historico</h6>
+                        <h3 class="mb-0 text-nowrap">@resumen.TotalQuotes.ToString("N0")</h3>
+                        <small>presupuestos emitidos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Buscar por numero o cliente..."
+                               @bind="searchTerm"
+                               @bind:event="oninput"
+                               @onkeyup="HandleSearchKeyUp" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="Search">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text">Desde</span>
+                        <input type="date" class="form-control" @bind="fechaDesde" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text">Hasta</span>
+                        <input type="date" class="form-control" @bind="fechaHasta" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" @onclick="FilterByDate">
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando presupuestos..." />
+    }
+    else if (presupuestos == null || presupuestos.Count == 0)
+    {
+        <div class="alert alert-info">
+            No se encontraron presupuestos con los criterios seleccionados.
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Numero</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Vendedor</th>
+                                <th class="text-end">Total</th>
+                                <th>Estado</th>
+                                <th style="width: 120px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var presupuesto in presupuestos)
+                            {
+                                <tr class="@(presupuesto.IsVoided ? "table-danger text-muted" : "")">
+                                    <td>
+                                        <strong>@presupuesto.QuoteNumber</strong>
+                                    </td>
+                                    <td>@presupuesto.QuoteDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@presupuesto.CustomerName</td>
+                                    <td><small>@(presupuesto.SalesRepName ?? "-")</small></td>
+                                    <td class="text-end text-nowrap">
+                                        <strong>@presupuesto.Total.ToString("C2")</strong>
+                                    </td>
+                                    <td>
+                                        @if (presupuesto.IsVoided)
+                                        {
+                                            <span class="badge bg-danger">IsVoided</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Vigente</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                @onclick="() => VerDetalle(presupuesto.Id)"
+                                                title="Ver detalle">
+                                            Ver
+                                        </button>
+                                        @if (!presupuesto.IsVoided)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    @onclick="() => ConfirmarAnular(presupuesto)"
+                                                    title="Anular">
+                                                Anular
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @if (presupuestos.Count >= pageSize)
+            {
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Mostrando @presupuestos.Count presupuestos</span>
+                        <button class="btn btn-outline-primary" @onclick="LoadMore">
+                            Cargar mas...
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Modal para ver detalle *@
+@if (presupuestoSeleccionado != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Presupuesto @presupuestoSeleccionado.QuoteNumber</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarDetalle"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Cliente:</strong> @presupuestoSeleccionado.CustomerName</p>
+                            <p><strong>Vendedor:</strong> @(presupuestoSeleccionado.SalesRepName ?? "-")</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <p><strong>Fecha:</strong> @presupuestoSeleccionado.QuoteDate.ToString("dd/MM/yyyy")</p>
+                            @if (presupuestoSeleccionado.IsVoided)
+                            {
+                                <span class="badge bg-danger">IsVoided</span>
+                            }
+                        </div>
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th class="text-end">Cant.</th>
+                                <th class="text-end">Precio</th>
+                                <th class="text-end">Dto%</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var det in presupuestoSeleccionado.Details)
+                            {
+                                <tr>
+                                    <td><code>@det.ProductCode</code></td>
+                                    <td>@det.ProductDescription</td>
+                                    <td class="text-end text-nowrap">@det.Quantity.ToString("N0")</td>
+                                    <td class="text-end text-nowrap">@det.UnitPrice.ToString("C2")</td>
+                                    <td class="text-end">@(det.DiscountPercent > 0 ? det.DiscountPercent.ToString("N1") + "%" : "-")</td>
+                                    <td class="text-end text-nowrap">@det.Subtotal.ToString("C2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end text-nowrap">@presupuestoSeleccionado.Subtotal.ToString("C2")</td>
+                            </tr>
+                            @if (presupuestoSeleccionado.DiscountAmount > 0)
+                            {
+                                <tr>
+                                <td colspan="5" class="text-end">Descuento (@presupuestoSeleccionado.DiscountPercent.ToString("N1")%):</td>
+                                <td class="text-end text-danger text-nowrap">-@presupuestoSeleccionado.DiscountAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            <tr class="table-primary">
+                                <td colspan="5" class="text-end"><strong>TOTAL:</strong></td>
+                                <td class="text-end text-nowrap"><strong>@presupuestoSeleccionado.Total.ToString("C2")</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    @if (!string.IsNullOrEmpty(presupuestoSeleccionado.Notes))
+                    {
+                        <div class="mt-3">
+                            <strong>Notes:</strong>
+                            <p class="text-muted mb-0">@presupuestoSeleccionado.Notes</p>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarDetalle">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Modal para anular *@
+@if (presupuestoAnular != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Anular Presupuesto</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelarAnular"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Esta por anular el presupuesto <strong>@presupuestoAnular.QuoteNumber</strong> por un total de <strong>@presupuestoAnular.Total.ToString("C2")</strong>.</p>
+                    <p class="text-danger"><strong>Esta accion no se puede deshacer.</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo de anulacion:</label>
+                        <textarea class="form-control" rows="2" @bind="motivoAnulacion" 
+                                  placeholder="Ingrese el motivo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelarAnular">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="Anular" 
+                            disabled="@(string.IsNullOrWhiteSpace(motivoAnulacion))">
+                        Confirmar Anulacion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? SearchQuery { get; set; }
+
+    private List<QuoteDto>? presupuestos;
+    private QuotesResumenDto? resumen;
+    private QuoteCompletaDto? presupuestoSeleccionado;
+    private QuoteDto? presupuestoAnular;
+    private string motivoAnulacion = "";
+    private bool loading = true;
+    private string searchTerm = "";
+    private DateTime fechaDesde = DateTime.Today.AddMonths(-1);
+    private DateTime fechaHasta = DateTime.Today;
+    private int pageSize = 50;
+    private int currentPage = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resumenTask = Api.GetQuotesResumenAsync();
+        Task<List<QuoteDto>> presupuestosTask;
+
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            presupuestosTask = Api.GetQuotesAsync(0, pageSize);
+        }
+        else
+        {
+            searchTerm = SearchQuery.Trim();
+            presupuestosTask = Api.BuscarQuotesAsync(searchTerm);
+        }
+
+        await Task.WhenAll(resumenTask, presupuestosTask);
+
+        resumen = await resumenTask;
+        presupuestos = await presupuestosTask;
+        loading = false;
+    }
+
+    private void NuevoPresupuesto()
+    {
+        Navigation.NavigateTo("/quotes/new");
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await LoadPresupuestos();
+            return;
+        }
+
+        loading = true;
+        try
+        {
+            presupuestos = await Api.BuscarQuotesAsync(searchTerm);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task FilterByDate()
+    {
+        loading = true;
+        try
+        {
+            presupuestos = await Api.GetQuotesByFechaAsync(fechaDesde, fechaHasta);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadPresupuestos()
+    {
+        currentPage = 0;
+        loading = true;
+        try
+        {
+            presupuestos = await Api.GetQuotesAsync(0, pageSize);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        currentPage++;
+        var more = await Api.GetQuotesAsync(currentPage * pageSize, pageSize);
+        if (more.Any())
+        {
+            presupuestos?.AddRange(more);
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+    private async Task VerDetalle(int id)
+    {
+        presupuestoSeleccionado = await Api.GetQuoteAsync(id);
+    }
+
+    private void CerrarDetalle()
+    {
+        presupuestoSeleccionado = null;
+    }
+
+    private void ConfirmarAnular(QuoteDto presupuesto)
+    {
+        presupuestoAnular = presupuesto;
+        motivoAnulacion = "";
+    }
+
+    private void CancelarAnular()
+    {
+        presupuestoAnular = null;
+        motivoAnulacion = "";
+    }
+
+    private async Task Anular()
+    {
+        if (presupuestoAnular == null || string.IsNullOrWhiteSpace(motivoAnulacion))
+            return;
+
+        var success = await Api.AnularQuoteAsync(presupuestoAnular.Id, motivoAnulacion);
+        
+        if (success)
+        {
+            // Refresh the list
+            await LoadPresupuestos();
+            resumen = await Api.GetQuotesResumenAsync();
+        }
+
+        presupuestoAnular = null;
+        motivoAnulacion = "";
+    }
+}

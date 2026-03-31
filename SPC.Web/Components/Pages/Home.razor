@@ -1,7 +1,181 @@
-﻿@page "/"
+@page "/"
+@using SPC.Web.Services.Models
+@inject IApiService Api
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SPC - Sistema de Gestion</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-12">
+            <h5 class="fw-bold mb-0">Bienvenido a SPC - Software</h5>
+            <small class="text-muted">Sistema de Gestion Integral - ERP</small>
+        </div>
+    </div>
 
-Welcome to your new app.
+    @* Primera fila: Clientes, Presupuestos, Stock *@
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body py-2">
+                    <h6 class="card-title fw-bold mb-1">Clientes</h6>
+                    <p class="card-text small mb-2">Gestión de clientes y condiciones comerciales.</p>
+                    @if (clientesCount.HasValue)
+                    {
+                        <p class="h4 text-primary mb-0">@clientesCount.Value.ToString("N0")</p>
+                        <small class="text-muted">clientes activos</small>
+                    }
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <a href="/clientes" class="btn btn-primary btn-sm">Ir a Clientes</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-body py-2">
+                    <h6 class="card-title fw-bold mb-1">Presupuestos</h6>
+                    <p class="card-text small mb-2">Seguimiento de presupuestos y actividad diaria.</p>
+                    @if (quotesResumen != null)
+                    {
+                        <p class="h4 text-primary mb-0">@quotesResumen.TotalQuotes.ToString("N0")</p>
+                        <small class="text-muted">presupuestos emitidos</small>
+                    }
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <a href="/quotes" class="btn btn-primary btn-sm">Ir a Presupuestos</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-success">
+                <div class="card-body py-2">
+                    <h6 class="card-title fw-bold mb-1">Stock</h6>
+                    <p class="card-text small mb-2">Control de inventario y alertas de stock mínimo.</p>
+                    @if (stockValor.HasValue)
+                    {
+                        <p class="h4 text-success mb-0">@stockValor.Value.ToString("C0")</p>
+                        <small class="text-muted">valor total en stock</small>
+                    }
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <a href="/stock" class="btn btn-success btn-sm">Ir a Stock</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Segunda fila: Facturación *@
+    <div class="row g-3 mt-1">
+        <div class="col-md-8">
+            <div class="card h-100 border-warning">
+                <div class="card-body py-2">
+                    <h6 class="card-title fw-bold mb-1">Facturación</h6>
+                    <p class="card-text small mb-2">Consulta de facturas emitidas con integración AFIP.</p>
+                    @if (facturacionResumen != null)
+                    {
+                        <div class="row">
+                            <div class="col-4">
+                                <p class="h5 text-warning mb-0">@facturacionResumen.TotalInvoices.ToString("N0")</p>
+                                <small class="text-muted">facturas totales</small>
+                            </div>
+                            <div class="col-4">
+                                <p class="h5 text-success mb-0">@facturacionResumen.MontoMes.ToString("C0")</p>
+                                <small class="text-muted">este mes</small>
+                            </div>
+                            <div class="col-4">
+                                <p class="h5 text-info mb-0">@facturacionResumen.MontoAnio.ToString("C0")</p>
+                                <small class="text-muted">este año</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <a href="/invoices" class="btn btn-warning btn-sm">Ver Facturas</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-body py-2">
+                    <h6 class="card-title fw-bold mb-1">Cuentas Corrientes</h6>
+                    <p class="card-text small mb-2">Saldos de clientes y movimientos.</p>
+                    <p class="h5 text-secondary mb-0">Disponible</p>
+                    <small class="text-muted">consultas y movimientos</small>
+                </div>
+                <div class="card-footer bg-transparent py-2">
+                    <a href="/current-account" class="btn btn-secondary btn-sm">Ir a Cuenta Corriente</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Estado del sistema *@
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center gap-4 flex-wrap">
+                        <span class="fw-bold">Estado:</span>
+                        <span>
+                            API:
+                            @if (apiStatus == true)
+                            {
+                                <span class="badge bg-success ms-1">Conectado</span>
+                            }
+                            else if (apiStatus == false)
+                            {
+                                <span class="badge bg-danger ms-1">Desconectado</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary ms-1">Verificando...</span>
+                            }
+                        </span>
+                        <span>BD: <span class="badge bg-info">SQL Server</span></span>
+                        <span>Version: <span class="text-muted">1.0.0-dev</span></span>
+                        <span>Fecha: <span class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int? clientesCount;
+    private QuotesResumenDto? quotesResumen;
+    private decimal? stockValor;
+    private InvoicecionResumenDto? facturacionResumen;
+    private bool? apiStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Use optimized count endpoints instead of loading all records
+            var clientesCountTask = Api.GetCustomersCountAsync();
+            var quotesTask = Api.GetQuotesResumenAsync();
+            var stockTask = Api.GetStockResumenAsync();
+            var facturacionTask = Api.GetInvoicecionResumenAsync();
+
+            await Task.WhenAll(clientesCountTask, quotesTask, stockTask, facturacionTask);
+
+            clientesCount = await clientesCountTask;
+            quotesResumen = await quotesTask;
+
+            var stockList = await stockTask;
+            stockValor = stockList.Sum(s => s.ValorStock);
+
+            facturacionResumen = await facturacionTask;
+
+            apiStatus = true;
+        }
+        catch
+        {
+            apiStatus = false;
+        }
+    }
+}

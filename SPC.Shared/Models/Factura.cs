@@ -4,35 +4,66 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Factura - Cabecera (FacturaC en Access)
+/// Invoice header. Fiscal document that generates balance in billing (Line 1).
 /// </summary>
-public class Factura
+public class Invoice
 {
     public int Id { get; set; }
     
+    /// <summary>Issuing branch.</summary>
+    public int BranchId { get; set; }
+    public Branch? Branch { get; set; }
+    
     [Required]
     [StringLength(1)]
-    public string TipoFactura { get; set; } = "B";  // A o B
+    public string InvoiceType { get; set; } = "B";  // A or B
     
-    public int PuntoVenta { get; set; } = 1;
+    public int PointOfSale { get; set; } = 1;
     
-    public long NumeroFactura { get; set; }
+    public long InvoiceNumber { get; set; }
     
-    public DateTime FechaFactura { get; set; } = DateTime.Now;
+    public DateTime InvoiceDate { get; set; } = DateTime.Now;
     
-    // Relación con Cliente
-    public int ClienteId { get; set; }
-    public Cliente Cliente { get; set; } = null!;
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
     
-    // Totales
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
+    
+    // Totals
     [Column(TypeName = "decimal(18,2)")]
     public decimal Subtotal { get; set; } = 0;
     
+    /// <summary>Applied VAT percentage.</summary>
+    public decimal VATPercent { get; set; } = 21;
+    
+    /// <summary>
+    /// Itemized VAT amount (Invoice A).
+    /// For Invoice B this is 0 because VAT is included in the price.
+    /// </summary>
     [Column(TypeName = "decimal(18,2)")]
-    public decimal ImporteIVA { get; set; } = 0;
+    public decimal VATAmount { get; set; } = 0;
+    
+    /// <summary>
+    /// VAT included in the final price (Invoice B only).
+    /// Required by Law 27.743 - Fiscal Transparency Act.
+    /// For Invoice A this is 0.
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal IncludedVAT { get; set; } = 0;
+    
+    /// <summary>IIBB rate (perceptions).</summary>
+    public decimal IIBBPercent { get; set; } = 0;
     
     [Column(TypeName = "decimal(18,2)")]
-    public decimal ImportePercepcionIIBB { get; set; } = 0;
+    public decimal IIBBPerceptionAmount { get; set; } = 0;
+    
+    /// <summary>Discount percentage.</summary>
+    public decimal DiscountPercent { get; set; } = 0;
+    
+    /// <summary>Discount amount.</summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DiscountAmount { get; set; } = 0;
     
     [Column(TypeName = "decimal(18,2)")]
     public decimal Total { get; set; } = 0;
@@ -41,14 +72,34 @@ public class Factura
     [StringLength(20)]
     public string? CAE { get; set; }
     
-    public DateTime? FechaVencimientoCAE { get; set; }
+    public DateTime? CAEExpirationDate { get; set; }
     
-    // Estado
-    public bool Anulada { get; set; } = false;
+    /// <summary>Sales condition.</summary>
+    [StringLength(50)]
+    public string? SalesCondition { get; set; }
+    
+    /// <summary>Payment method.</summary>
+    public int? PaymentMethodId { get; set; }
+    
+    /// <summary>Business unit.</summary>
+    [StringLength(50)]
+    public string? BusinessUnit { get; set; }
+    
+    /// <summary>Associated delivery note.</summary>
+    public int? DeliveryNoteId { get; set; }
+    
+    /// <summary>Clarification on invoice.</summary>
+    [StringLength(200)]
+    public string? Clarification { get; set; }
+    
+    // Status
+    public bool IsVoided { get; set; } = false;
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
     
-    // Navegación
-    public List<FacturaDetalle> Detalles { get; set; } = new();
+    // Navigation
+    public List<InvoiceDetail> Details { get; set; } = new();
+    public List<DeliveryNote> DeliveryNotes { get; set; } = new();
+    public List<CreditNote> CreditNotes { get; set; } = new();
 }

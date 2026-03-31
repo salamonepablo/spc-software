@@ -1,0 +1,60 @@
+@* Alert message component for notifications *@
+
+@if (Visible)
+{
+    <div class="alert alert-@TypeClass alert-dismissible fade show" role="alert">
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <strong>@Title</strong>
+            <span> </span>
+        }
+        @Message
+        @if (Dismissible)
+        {
+            <button type="button" class="btn-close" @onclick="Dismiss" aria-label="Cerrar"></button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string Message { get; set; } = "";
+
+    [Parameter]
+    public AlertType Type { get; set; } = AlertType.Info;
+
+    [Parameter]
+    public bool Dismissible { get; set; } = true;
+
+    [Parameter]
+    public bool Visible { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    private string TypeClass => Type switch
+    {
+        AlertType.Success => "success",
+        AlertType.Error => "danger",
+        AlertType.Warning => "warning",
+        AlertType.Info => "info",
+        _ => "info"
+    };
+
+    private async Task Dismiss()
+    {
+        Visible = false;
+        await OnDismiss.InvokeAsync();
+    }
+
+    public enum AlertType
+    {
+        Success,
+        Error,
+        Warning,
+        Info
+    }
+}

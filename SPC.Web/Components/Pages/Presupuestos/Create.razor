@@ -1,0 +1,641 @@
+﻿@page "/quotes/new"
+@page "/presupuestos/nuevo"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nuevo Presupuesto - SPC</PageTitle>
+
+<div class="container-fluid" @onkeydown="OnGlobalKeyDown">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>Nuevo Presupuesto</h3>
+            <small class="text-muted">Los presupuestos usan precio de presupuesto (IVA incluido) y no generan comprobante fiscal.</small>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" @onclick="Cancelar">Cancelar</button>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <LoadingSpinner Message="Cargando datos..." />
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Datos del Presupuesto</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Sucursal</label>
+                                <select class="form-select" @bind="presupuesto.BranchId">
+                                    @foreach (var s in sucursales)
+                                    {
+                                        <option value="@s.Id">@s.Name (@s.PointOfSale)</option>
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-8">
+                                <label class="form-label">Cliente</label>
+                                <TypeaheadInput @ref="clienteTypeahead"
+                                                TItem="CustomerDto"
+                                                Placeholder="Buscar cliente..."
+                                                SearchAsync="Api.SearchCustomersAsync"
+                                                DisplaySelector="FormatCustomerDisplay"
+                                                OnSelected="OnCustomerSelected"
+                                                OnEnterAfterSelect="() => vendedorSelect.FocusAsync()"
+                                                SelectedText="@(clienteSeleccionado != null ? FormatCustomerDisplay(clienteSeleccionado) : "")"
+                                                InputClass="form-control" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Vendedor</label>
+                                <select @ref="vendedorSelect" class="form-select" @bind="presupuesto.SalesRepId"
+                                        @onkeydown="OnVendedorKeyDown">
+                                    <option value="">Sin vendedor</option>
+                                    @foreach (var v in vendedores)
+                                    {
+                                        <option value="@v.Id">@v.FirstName</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Descuento General (%)</label>
+                                <input @ref="descuentoInput" type="number" class="form-control" step="0.01" min="0" max="100"
+                                       @bind="presupuesto.DiscountPercent"
+                                       @onkeydown="OnDescuentoKeyDown">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Unidad de Negocio</label>
+                                <input @ref="unidadNegocioInput" type="text" class="form-control" @bind="presupuesto.BusinessUnit"
+                                       @onkeydown="OnUnidadNegocioKeyDown"
+                                       placeholder="Opcional">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Items</h5>
+                        <button class="btn btn-primary btn-sm" @onclick="AgregarItem">
+                            + Agregar Item
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (presupuesto.Details.Count == 0)
+                        {
+                            <div class="text-center text-muted p-4">
+                                No hay items agregados. Haga clic en "Agregar Item" para comenzar.
+                            </div>
+                        }
+                        else
+                        {
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40%;">Producto</th>
+                                        <th class="text-end">Cant.</th>
+                                        <th class="text-end">Precio</th>
+                                        <th class="text-end">Dto %</th>
+                                        <th class="text-end">Subtotal</th>
+                                        <th style="width: 80px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < presupuesto.Details.Count; i++)
+                                    {
+                                        var index = i;
+                                        <tr>
+                                            <td>
+                                                <TypeaheadInput @ref="productTypeaheads[index]"
+                                                                TItem="ProductDto"
+                                                                Placeholder="Buscar producto..."
+                                                                SearchAsync="Api.SearchProductsAsync"
+                                                                DisplaySelector="FormatProductDisplay"
+                                                                OnSelected="@(product => OnProductSelected(index, product))"
+                                                                OnEnterAfterSelect="@(() => FocusCantidad(index))"
+                                                                SelectedText="@GetSelectedProductText(index)"
+                                                                InputClass="form-control form-control-sm" />
+                                            </td>
+                                            <td>
+                                                <input @ref="cantidadInputs[index]"
+                                                       type="number" class="form-control form-control-sm text-end"
+                                                       step="1" min="1"
+                                                       @bind="presupuesto.Details[index].Quantity"
+                                                       @bind:event="oninput"
+                                                       @onkeydown="@(e => OnCantidadKeyDown(e, index))">
+                                            </td>
+                                            <td>
+                                                <input @ref="precioInputs[index]"
+                                                       type="number"
+                                                       class="form-control form-control-sm text-end"
+                                                       inputmode="decimal"
+                                                       step="0.01"
+                                                       @bind="presupuesto.Details[index].UnitPrice"
+                                                       @bind:event="oninput"
+                                                       @bind:after="() => MarkManualPrice(index)"
+                                                       @onkeydown="@(e => OnPrecioKeyDown(e, index))" />
+                                            </td>
+                                            <td>
+                                                <input @ref="dtoInputs[index]"
+                                                       type="number" class="form-control form-control-sm text-end"
+                                                       step="0.01" min="0" max="100"
+                                                       @bind="presupuesto.Details[index].DiscountPercent"
+                                                       @bind:event="oninput"
+                                                       @onkeydown="@(e => OnDtoKeyDown(e, index))">
+                                            </td>
+                                            <td class="text-end fw-bold text-nowrap">
+                                                @CalcularSubtotalLinea(index).ToString("C2")
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <button @ref="addButtons[index]"
+                                                        class="btn btn-outline-success btn-sm me-1"
+                                                        @onclick="@(() => AgregarItemYFocus())"
+                                                        title="Agregar item">
+                                                    +
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm"
+                                                        @onclick="EventCallback.Factory.Create(this, () => EliminarItem(index))"
+                                                        title="Eliminar">
+                                                    &times;
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="2" 
+                                  @bind="presupuesto.Notes"
+                                  placeholder="Notes adicionales (opcional)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Totales (IVA Incluido)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span class="text-nowrap">@subtotal.ToString("C2")</span>
+                        </div>
+                        
+                        @if (presupuesto.DiscountPercent > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 text-danger">
+                                <span>Descuento (@presupuesto.DiscountPercent%):</span>
+                                <span class="text-nowrap">-@descuento.ToString("C2")</span>
+                            </div>
+                        }
+                        
+                        <hr />
+                        <div class="d-flex justify-content-between">
+                            <h5>TOTAL:</h5>
+                            <h5 class="text-primary text-nowrap">@total.ToString("C2")</h5>
+                        </div>
+                        
+                        <hr />
+                        <small class="text-muted">
+                            <strong>Nota:</strong> Los precios de presupuesto incluyen IVA. 
+                            Este documento NO es fiscal y genera saldo en la linea de Presupuestos 
+                            de la cuenta corriente del cliente.
+                        </small>
+                    </div>
+                </div>
+
+                @if (clienteSeleccionado != null)
+                {
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Cliente Seleccionado</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>@clienteSeleccionado.CompanyName</strong></p>
+                            <p class="mb-1"><small>CUIT: @(clienteSeleccionado.CUIT ?? "-")</small></p>
+                            @if (clienteSeleccionado.DiscountPercent > 0)
+                            {
+                                <p class="mb-0"><small class="text-success">Descuento cliente: @clienteSeleccionado.DiscountPercent%</small></p>
+                            }
+                        </div>
+                    </div>
+                }
+                
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-success btn-lg"
+                            disabled="@(!puedeGuardar)"
+                            @onclick="Guardar"
+                            title="Ctrl+Enter para guardar">
+                        @(guardando ? "Guardando..." : "Guardar Presupuesto")
+                        <small class="d-block opacity-75" style="font-size: 0.7em;">(Ctrl+Enter)</small>
+                    </button>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger mt-3">@mensajeError</div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success mt-3">@successMessage</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private CreateQuoteDto presupuesto = new() { BusinessUnit = "4" };
+    private List<SalesRepDto> vendedores = new();
+    private List<SucursalDto> sucursales = new();
+    private CustomerDto? clienteSeleccionado;
+    private readonly List<ProductDto?> selectedProducts = new();
+    private readonly List<bool> manualPriceOverrides = new();
+    private bool loading = true;
+    private bool guardando = false;
+    private string mensajeError = "";
+    private string successMessage = "";
+    private bool shouldFocusCliente = false;
+
+    // Element references for keyboard navigation
+    private TypeaheadInput<CustomerDto>? clienteTypeahead;
+    private ElementReference vendedorSelect;
+    private ElementReference descuentoInput;
+    private ElementReference unidadNegocioInput;
+    private Dictionary<int, TypeaheadInput<ProductDto>> productTypeaheads = new();
+    private Dictionary<int, ElementReference> cantidadInputs = new();
+    private Dictionary<int, ElementReference> precioInputs = new();
+    private Dictionary<int, ElementReference> dtoInputs = new();
+    private Dictionary<int, ElementReference> addButtons = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var vendedoresTask = Api.GetSalesRepesAsync();
+        var sucursalesTask = Api.GetBranchesAsync();
+
+        await Task.WhenAll(vendedoresTask, sucursalesTask);
+
+        vendedores = await vendedoresTask;
+        sucursales = await sucursalesTask;
+
+        if (sucursales.Any())
+        {
+            presupuesto.BranchId = sucursales.First().Id;
+        }
+
+        loading = false;
+        shouldFocusCliente = true;
+    }
+
+    private Task OnCustomerSelected(CustomerDto customer)
+    {
+        presupuesto.CustomerId = customer.Id;
+        clienteSeleccionado = customer;
+
+        if (clienteSeleccionado.DiscountPercent > 0 && presupuesto.DiscountPercent == 0)
+        {
+            presupuesto.DiscountPercent = clienteSeleccionado.DiscountPercent;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnProductSelected(int index, ProductDto product)
+    {
+        if (index < 0 || index >= presupuesto.Details.Count)
+        {
+            return;
+        }
+
+        presupuesto.Details[index].ProductId = product.Id;
+        EnsureSelectedProductsSize(index);
+        EnsureManualPriceSize(index);
+        selectedProducts[index] = product;
+        manualPriceOverrides[index] = false;
+
+        // Set price from product (QuotePrice includes VAT)
+        presupuesto.Details[index].UnitPrice = product.QuotePrice;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void AgregarItem()
+    {
+        mensajeError = "";
+
+        presupuesto.Details.Add(new CreateQuoteDetailDto
+        {
+            Quantity = 1,
+            DiscountPercent = 0
+        });
+
+        selectedProducts.Add(null);
+        manualPriceOverrides.Add(false);
+    }
+
+    private void EliminarItem(int index)
+    {
+        if (index >= 0 && index < presupuesto.Details.Count)
+        {
+            presupuesto.Details.RemoveAt(index);
+            if (index < selectedProducts.Count)
+            {
+                selectedProducts.RemoveAt(index);
+            }
+            if (index < manualPriceOverrides.Count)
+            {
+                manualPriceOverrides.RemoveAt(index);
+            }
+        }
+    }
+
+    private decimal CalcularSubtotalLinea(int index)
+    {
+        if (index < 0 || index >= presupuesto.Details.Count) return 0;
+        
+        var item = presupuesto.Details[index];
+        if (item.ProductId == 0 || item.Quantity <= 0) return 0;
+
+        var precio = item.UnitPrice ?? 0;
+        var Quantity = item.Quantity;
+        var descuentoPct = item.DiscountPercent;
+
+        var subtotalLinea = precio * Quantity;
+        var montoDescuento = subtotalLinea * (descuentoPct / 100);
+
+        return subtotalLinea - montoDescuento;
+    }
+
+    private decimal subtotal
+    {
+        get
+        {
+            decimal total = 0;
+            for (int i = 0; i < presupuesto.Details.Count; i++)
+            {
+                total += CalcularSubtotalLinea(i);
+            }
+            return total;
+        }
+    }
+    
+    private decimal descuento => subtotal * (presupuesto.DiscountPercent / 100);
+    
+    private decimal total => subtotal - descuento;
+
+    private void MarkManualPrice(int index)
+    {
+        EnsureManualPriceSize(index);
+        manualPriceOverrides[index] = true;
+    }
+
+    private bool puedeGuardar => presupuesto.CustomerId > 0 
+        && presupuesto.Details.Count > 0 
+        && presupuesto.Details.Any(d => d.ProductId > 0)
+        && !guardando;
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        mensajeError = "";
+        successMessage = "";
+
+        try
+        {
+            var itemsValidos = presupuesto.Details
+                .Where(d => d.ProductId > 0 && d.Quantity > 0)
+                .ToList();
+            
+            if (!itemsValidos.Any())
+            {
+                mensajeError = "Debe agregar al menos un producto";
+                guardando = false;
+                return;
+            }
+
+            presupuesto.Details = itemsValidos;
+
+            if (total <= 0)
+            {
+                mensajeError = "El total del presupuesto debe ser mayor a 0";
+                return;
+            }
+
+            var result = await Api.CreateQuoteAsync(presupuesto);
+
+            if (result != null)
+            {
+                successMessage = $"Presupuesto #{result.QuoteNumber} guardado con exito.";
+                ResetForm();
+                shouldFocusCliente = true;
+            }
+            else
+            {
+                mensajeError = "Error al guardar el presupuesto";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/quotes");
+    }
+
+    private void ResetForm()
+    {
+        var branchId = sucursales.FirstOrDefault()?.Id ?? 0;
+
+        presupuesto = new CreateQuoteDto
+        {
+            BranchId = branchId,
+            BusinessUnit = "4"
+        };
+
+        clienteSeleccionado = null;
+        selectedProducts.Clear();
+        manualPriceOverrides.Clear();
+        productTypeaheads.Clear();
+        cantidadInputs.Clear();
+        precioInputs.Clear();
+        dtoInputs.Clear();
+        addButtons.Clear();
+    }
+
+    private string FormatCustomerDisplay(CustomerDto customer)
+    {
+        if (string.IsNullOrWhiteSpace(customer.TradeName))
+        {
+            return customer.CompanyName;
+        }
+
+        return $"{customer.CompanyName} ({customer.TradeName})";
+    }
+
+    private string FormatProductDisplay(ProductDto product)
+    {
+        return $"{product.Code} - {product.Description}";
+    }
+
+    private string GetSelectedProductText(int index)
+    {
+        if (index < 0 || index >= selectedProducts.Count)
+        {
+            return "";
+        }
+
+        var product = selectedProducts[index];
+        return product != null ? FormatProductDisplay(product) : "";
+    }
+
+    private void EnsureSelectedProductsSize(int index)
+    {
+        while (selectedProducts.Count <= index)
+        {
+            selectedProducts.Add(null);
+        }
+    }
+
+    private void EnsureManualPriceSize(int index)
+    {
+        while (manualPriceOverrides.Count <= index)
+        {
+            manualPriceOverrides.Add(false);
+        }
+    }
+
+    // =============================================
+    // KEYBOARD NAVIGATION HANDLERS
+    // =============================================
+
+    private async Task OnVendedorKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            await descuentoInput.FocusAsync();
+        }
+    }
+
+    private async Task OnDescuentoKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            await unidadNegocioInput.FocusAsync();
+        }
+    }
+
+    private async Task OnUnidadNegocioKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            // Add item and focus on product
+            await AgregarItemYFocus();
+        }
+    }
+
+    private async Task FocusCantidad(int index)
+    {
+        await Task.Delay(50); // Small delay for DOM update
+        if (cantidadInputs.TryGetValue(index, out var input))
+        {
+            await input.FocusAsync();
+        }
+    }
+
+    private async Task OnCantidadKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (precioInputs.TryGetValue(index, out var input))
+            {
+                await input.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnPrecioKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (dtoInputs.TryGetValue(index, out var input))
+            {
+                await input.FocusAsync();
+            }
+        }
+    }
+
+    private async Task OnDtoKeyDown(KeyboardEventArgs e, int index)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            if (addButtons.TryGetValue(index, out var button))
+            {
+                await button.FocusAsync();
+            }
+        }
+    }
+
+    // Note: Enter on button triggers onclick by default, no need to handle here
+    // This prevents double-add issue
+
+    private async Task AgregarItemYFocus()
+    {
+        AgregarItem();
+        await Task.Delay(100); // Wait for DOM update
+        var newIndex = presupuesto.Details.Count - 1;
+        if (productTypeaheads.TryGetValue(newIndex, out var typeahead) && typeahead != null)
+        {
+            await typeahead.FocusAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldFocusCliente && clienteTypeahead != null)
+        {
+            shouldFocusCliente = false;
+            await Task.Delay(100); // Wait for DOM
+            await clienteTypeahead.FocusAsync();
+        }
+    }
+
+    private async Task OnGlobalKeyDown(KeyboardEventArgs e)
+    {
+        // Ctrl+Enter or Ctrl+S to save
+        if (e.CtrlKey && (e.Key == "Enter" || e.Key == "s"))
+        {
+            if (puedeGuardar)
+            {
+                await Guardar();
+            }
+        }
+    }
+}

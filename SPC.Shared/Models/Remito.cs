@@ -4,38 +4,55 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Remito - Cabecera
+/// Delivery note header.
 /// </summary>
-public class Remito
+public class DeliveryNote
 {
     public int Id { get; set; }
     
-    public int PuntoVenta { get; set; } = 1;
+    public int BranchId { get; set; }
+    public Branch? Branch { get; set; }
     
-    public long NumeroRemito { get; set; }
+    public int PointOfSale { get; set; } = 1;
     
-    public DateTime FechaRemito { get; set; } = DateTime.Now;
+    public long DeliveryNoteNumber { get; set; }
     
-    // Relación con Cliente
-    public int ClienteId { get; set; }
-    public Cliente Cliente { get; set; } = null!;
+    public DateTime DeliveryNoteDate { get; set; } = DateTime.Now;
     
-    // Dirección de entrega (puede ser diferente a la del cliente)
+    public int CustomerId { get; set; }
+    public Customer Customer { get; set; } = null!;
+    
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
+    
     [StringLength(300)]
-    public string? DireccionEntrega { get; set; }
+    public string? DeliveryAddress { get; set; }
     
     [StringLength(100)]
-    public string? LocalidadEntrega { get; set; }
+    public string? DeliveryCity { get; set; }
     
-    // Estado
-    public bool Facturado { get; set; } = false;
-    public int? FacturaId { get; set; }
+    /// <summary>Business unit.</summary>
+    [StringLength(50)]
+    public string? BusinessUnit { get; set; }
     
-    public bool Anulado { get; set; } = false;
+    /// <summary>Clarification on delivery note.</summary>
+    [StringLength(200)]
+    public string? Clarification { get; set; }
+    
+    // Status
+    public bool IsInvoiced { get; set; } = false;
+    public int? InvoiceId { get; set; }
+    public Invoice? Invoice { get; set; }
+    
+    /// <summary>Associated invoice type.</summary>
+    [StringLength(1)]
+    public string? InvoiceType { get; set; }
+    
+    public bool IsVoided { get; set; } = false;
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
     
-    // Navegación
-    public List<RemitoDetalle> Detalles { get; set; } = new();
+    // Navigation
+    public List<DeliveryNoteDetail> Details { get; set; } = new();
 }

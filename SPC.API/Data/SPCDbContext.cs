@@ -1,11 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SPC.Shared.Models;
 
 namespace SPC.API.Data;
 
 /// <summary>
-/// DbContext principal de SPC
-/// Equivalente a la conexión con Access en VB6
+/// DbContext principal de SPC.
+/// Equivalente a la conexion con Access en VB6.
 /// </summary>
 public class SPCDbContext : DbContext
 {
@@ -13,60 +13,413 @@ public class SPCDbContext : DbContext
     {
     }
     
-    // Tablas principales
-    public DbSet<Cliente> Clientes => Set<Cliente>();
-    public DbSet<Producto> Productos => Set<Producto>();
-    public DbSet<Factura> Facturas => Set<Factura>();
-    public DbSet<FacturaDetalle> FacturaDetalles => Set<FacturaDetalle>();
-    public DbSet<Remito> Remitos => Set<Remito>();
-    public DbSet<RemitoDetalle> RemitoDetalles => Set<RemitoDetalle>();
+    // ===========================================
+    // ENTIDADES PRINCIPALES
+    // ===========================================
     
-    // Tablas auxiliares
-    public DbSet<CondicionIva> CondicionesIva => Set<CondicionIva>();
-    public DbSet<Vendedor> Vendedores => Set<Vendedor>();
-    public DbSet<ZonaVenta> ZonasVenta => Set<ZonaVenta>();
-    public DbSet<Rubro> Rubros => Set<Rubro>();
-    public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
-    public DbSet<Deposito> Depositos => Set<Deposito>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
+    public DbSet<Product> Products => Set<Product>();
+    
+    // Documentos Billing (Linea 1 - Fiscales)
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceDetail> InvoiceDetails => Set<InvoiceDetail>();
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+    public DbSet<CreditNoteDetail> CreditNoteDetails => Set<CreditNoteDetail>();
+    public DbSet<DebitNote> DebitNotes => Set<DebitNote>();
+    public DbSet<DebitNoteDetail> DebitNoteDetails => Set<DebitNoteDetail>();
+    
+    // Documentos Budget (Linea 2 - Internos)
+    public DbSet<Quote> Quotes => Set<Quote>();
+    public DbSet<QuoteDetail> QuoteDetails => Set<QuoteDetail>();
+    public DbSet<InternalDebitNote> InternalDebitNotes => Set<InternalDebitNote>();
+    public DbSet<InternalDebitNoteDetail> InternalDebitNoteDetails => Set<InternalDebitNoteDetail>();
+    
+    // DeliveryNotes
+    public DbSet<DeliveryNote> DeliveryNotes => Set<DeliveryNote>();
+    public DbSet<DeliveryNoteDetail> DeliveryNoteDetails => Set<DeliveryNoteDetail>();
+    public DbSet<CasualDeliveryNote> CasualDeliveryNotes => Set<CasualDeliveryNote>();
+    public DbSet<CasualDeliveryNoteDetail> CasualDeliveryNoteDetails => Set<CasualDeliveryNoteDetail>();
+    
+    // Pagos
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentDetail> PaymentDetails => Set<PaymentDetail>();
+    
+    // Cuenta Corriente
+    public DbSet<CurrentAccount> CurrentAccounts => Set<CurrentAccount>();
+    public DbSet<CurrentAccountMovement> CurrentAccountMovements => Set<CurrentAccountMovement>();
+    
+    // Consignaciones
+    public DbSet<Consignment> Consignments => Set<Consignment>();
+    public DbSet<ConsignmentDetail> ConsignmentDetails => Set<ConsignmentDetail>();
+    
+    // Stock
     public DbSet<Stock> Stocks => Set<Stock>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockMovementDetail> StockMovementDetails => Set<StockMovementDetail>();
+    
+    // ===========================================
+    // TABLAS AUXILIARES
+    // ===========================================
+    
+    public DbSet<Branch> Branches => Set<Branch>();
+    public DbSet<TaxCondition> TaxConditions => Set<TaxCondition>();
+    public DbSet<SalesRep> SalesReps => Set<SalesRep>();
+    public DbSet<SalesZone> SalesZones => Set<SalesZone>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
+    public DbSet<TaxSetting> TaxSettings => Set<TaxSetting>();
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<DocumentTypeMaster> DocumentTypes => Set<DocumentTypeMaster>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Índice único para Stock (Producto + Depósito)
+        // ===========================================
+        // CONFIGURACION DE PRECISION DECIMALES
+        // ===========================================
+        
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.Property(c => c.CreditLimit).HasPrecision(18, 2);
+            entity.Property(c => c.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(c => c.IIBBPercent).HasPrecision(5, 2);
+        });
+
+        modelBuilder.Entity<SalesRep>(entity =>
+        {
+            entity.Property(v => v.CommissionPercent).HasPrecision(5, 2);
+            entity.HasIndex(v => v.EmployeeCode).IsUnique();
+        });
+
+        // Invoices
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.Property(f => f.VATPercent).HasPrecision(5, 2);
+            entity.Property(f => f.IIBBPercent).HasPrecision(5, 2);
+            entity.Property(f => f.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(f => f.DiscountAmount).HasPrecision(18, 2);
+        });
+
+        // Quotes
+        modelBuilder.Entity<Quote>(entity =>
+        {
+            entity.Property(q => q.Subtotal).HasPrecision(18, 2);
+            entity.Property(q => q.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(q => q.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(q => q.Total).HasPrecision(18, 2);
+        });
+        
+        modelBuilder.Entity<QuoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+            entity.Property(d => d.UnitPrice).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+        });
+
+        // Credit Notes
+        modelBuilder.Entity<CreditNote>(entity =>
+        {
+            entity.Property(c => c.Subtotal).HasPrecision(18, 2);
+            entity.Property(c => c.VATPercent).HasPrecision(5, 2);
+            entity.Property(c => c.VATAmount).HasPrecision(18, 2);
+            entity.Property(c => c.IIBBPercent).HasPrecision(5, 2);
+            entity.Property(c => c.IIBBAmount).HasPrecision(18, 2);
+            entity.Property(c => c.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(c => c.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(c => c.Total).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<CreditNoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+            entity.Property(d => d.UnitPrice).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+        });
+
+        // Debit Notes
+        modelBuilder.Entity<DebitNote>(entity =>
+        {
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+            entity.Property(d => d.VATPercent).HasPrecision(5, 2);
+            entity.Property(d => d.VATAmount).HasPrecision(18, 2);
+            entity.Property(d => d.IIBBPercent).HasPrecision(5, 2);
+            entity.Property(d => d.IIBBAmount).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Total).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<DebitNoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+            entity.Property(d => d.UnitPrice).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+        });
+
+        // Internal Debit Notes
+        modelBuilder.Entity<InternalDebitNote>(entity =>
+        {
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Total).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<InternalDebitNoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+            entity.Property(d => d.UnitPrice).HasPrecision(18, 2);
+            entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
+            entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+        });
+
+        // Payments
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.Property(p => p.TotalAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<PaymentDetail>(entity =>
+        {
+            entity.Property(d => d.Amount).HasPrecision(18, 2);
+        });
+
+        // Current Account
+        modelBuilder.Entity<CurrentAccount>(entity =>
+        {
+            entity.Property(c => c.BillingBalance).HasPrecision(18, 2);
+            entity.Property(c => c.BudgetBalance).HasPrecision(18, 2);
+            entity.Property(c => c.TotalBalance).HasPrecision(18, 2);
+            entity.HasIndex(c => c.CustomerId).IsUnique();
+        });
+
+        modelBuilder.Entity<CurrentAccountMovement>(entity =>
+        {
+            entity.Property(m => m.BillingAmount).HasPrecision(18, 2);
+            entity.Property(m => m.BudgetAmount).HasPrecision(18, 2);
+            entity.Property(m => m.BillingRunningBalance).HasPrecision(18, 2);
+            entity.Property(m => m.BudgetRunningBalance).HasPrecision(18, 2);
+            entity.HasIndex(m => new { m.CustomerId, m.MovementDate, m.Id });
+        });
+
+        // Consignments
+        modelBuilder.Entity<ConsignmentDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+        });
+
+        // Stock
+        modelBuilder.Entity<StockMovementDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+        });
+
+        // DeliveryNote details
+        modelBuilder.Entity<DeliveryNoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<CasualDeliveryNoteDetail>(entity =>
+        {
+            entity.Property(d => d.Quantity).HasPrecision(18, 2);
+        });
+
+        // ===========================================
+        // INDICES UNICOS
+        // ===========================================
+        
         modelBuilder.Entity<Stock>()
-            .HasIndex(s => new { s.ProductoId, s.DepositoId })
+            .HasIndex(s => new { s.ProductId, s.WarehouseId })
             .IsUnique();
         
-        // Índice único para Factura (Tipo + Número)
-        modelBuilder.Entity<Factura>()
-            .HasIndex(f => new { f.TipoFactura, f.PuntoVenta, f.NumeroFactura })
+        modelBuilder.Entity<Invoice>()
+            .HasIndex(f => new { f.InvoiceType, f.PointOfSale, f.InvoiceNumber })
             .IsUnique();
+
+        modelBuilder.Entity<Quote>()
+            .HasIndex(q => new { q.BranchId, q.QuoteNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<CreditNote>()
+            .HasIndex(c => new { c.VoucherType, c.PointOfSale, c.CreditNoteNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<DebitNote>()
+            .HasIndex(d => new { d.VoucherType, d.PointOfSale, d.DebitNoteNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<InternalDebitNote>()
+            .HasIndex(d => new { d.VoucherType, d.BranchId, d.InternalDebitNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Payment>()
+            .HasIndex(p => new { p.BranchId, p.PaymentNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<DeliveryNote>()
+            .HasIndex(r => new { r.BranchId, r.DeliveryNoteNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Branch>()
+            .HasIndex(b => b.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<PaymentMethod>()
+            .HasIndex(p => p.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<TaxSetting>(entity =>
+        {
+            entity.Property(t => t.Rate).HasPrecision(5, 2);
+            entity.HasIndex(t => new { t.TaxCode, t.EffectiveFrom }).IsUnique();
+        });
+
+        modelBuilder.Entity<DocumentTypeMaster>(entity =>
+        {
+            entity.Property(d => d.Code).HasMaxLength(10).IsRequired();
+            entity.Property(d => d.ShortCode).HasMaxLength(10).IsRequired();
+            entity.Property(d => d.Description).HasMaxLength(100).IsRequired();
+            entity.Property(d => d.LabelEs).HasMaxLength(120).IsRequired();
+            entity.Property(d => d.LabelEn).HasMaxLength(120).IsRequired();
+            entity.HasIndex(d => d.Code).IsUnique();
+            entity.HasIndex(d => d.ShortCode).IsUnique();
+        });
+
+        // ===========================================
+        // RELACIONES
+        // ===========================================
         
-        // Datos iniciales - Condiciones IVA
-        modelBuilder.Entity<CondicionIva>().HasData(
-            new CondicionIva { Id = 1, Codigo = "RI", Descripcion = "Responsable Inscripto", TipoFactura = "A" },
-            new CondicionIva { Id = 2, Codigo = "MO", Descripcion = "Monotributo", TipoFactura = "B" },
-            new CondicionIva { Id = 3, Codigo = "CF", Descripcion = "Consumidor Final", TipoFactura = "B" },
-            new CondicionIva { Id = 4, Codigo = "EX", Descripcion = "Exento", TipoFactura = "B" }
+        // DeliveryNote -> Invoice (un remito pertenece a una factura)
+        // Restrict to avoid cascade path conflict: Customer -> Invoice -> DeliveryNote vs Customer -> DeliveryNote
+        modelBuilder.Entity<Invoice>()
+            .HasOne(f => f.Customer)
+            .WithMany(c => c.Invoices)
+            .HasForeignKey(f => f.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Invoice>()
+            .HasOne(f => f.SalesRep)
+            .WithMany()
+            .HasForeignKey(f => f.SalesRepId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<InvoiceDetail>()
+            .HasOne(d => d.Invoice)
+            .WithMany(f => f.Details)
+            .HasForeignKey(d => d.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<InvoiceDetail>()
+            .HasOne(d => d.Product)
+            .WithMany()
+            .HasForeignKey(d => d.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DeliveryNote>()
+            .HasOne(r => r.Invoice)
+            .WithMany(f => f.DeliveryNotes)
+            .HasForeignKey(r => r.InvoiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // CreditNote -> Invoice (NC se emite contra una factura)
+        modelBuilder.Entity<CreditNote>()
+            .HasOne(c => c.Invoice)
+            .WithMany(f => f.CreditNotes)
+            .HasForeignKey(c => c.InvoiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // StockMovement -> Warehouses (evitar cascade multiple)
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(s => s.SourceWarehouse)
+            .WithMany()
+            .HasForeignKey(s => s.SourceWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<StockMovement>()
+            .HasOne(s => s.DestinationWarehouse)
+            .WithMany()
+            .HasForeignKey(s => s.DestinationWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ===========================================
+        // DATOS INICIALES (SEED)
+        // ===========================================
+        
+        // Condiciones IVA
+        modelBuilder.Entity<TaxCondition>().HasData(
+            new TaxCondition { Id = 1, Code = "RI", Description = "Responsable Inscripto", InvoiceType = "A" },
+            new TaxCondition { Id = 2, Code = "MO", Description = "Monotributo", InvoiceType = "B" },
+            new TaxCondition { Id = 3, Code = "CF", Description = "Consumidor Final", InvoiceType = "B" },
+            new TaxCondition { Id = 4, Code = "EX", Description = "Exento", InvoiceType = "B" }
         );
         
-        // Datos iniciales - Unidades de Medida
-        modelBuilder.Entity<UnidadMedida>().HasData(
-            new UnidadMedida { Id = 1, Codigo = "UN", Nombre = "Unidades" },
-            new UnidadMedida { Id = 2, Codigo = "CJ", Nombre = "Cajas" }
+        // Unidades de Medida
+        modelBuilder.Entity<UnitOfMeasure>().HasData(
+            new UnitOfMeasure { Id = 1, Code = "UN", Name = "Unidades" },
+            new UnitOfMeasure { Id = 2, Code = "CJ", Name = "Cajas" }
         );
         
-        // Datos iniciales - Depósito principal
-        modelBuilder.Entity<Deposito>().HasData(
-            new Deposito { Id = 1, Nombre = "Depósito Principal", Activo = true }
+        // Warehouse principal
+        modelBuilder.Entity<Warehouse>().HasData(
+            new Warehouse { Id = 1, Name = "Warehouse Principal", IsActive = true }
         );
         
-        // Datos iniciales - Rubros
-        modelBuilder.Entity<Rubro>().HasData(
-            new Rubro { Id = 1, Nombre = "Baterías Auto", Activo = true },
-            new Rubro { Id = 2, Nombre = "Baterías Moto", Activo = true },
-            new Rubro { Id = 3, Nombre = "Baterías Camión", Activo = true },
-            new Rubro { Id = 4, Nombre = "Accesorios", Activo = true }
+        // Categories
+        modelBuilder.Entity<Category>().HasData(
+            new Category { Id = 1, Name = "Baterias Auto", IsActive = true },
+            new Category { Id = 2, Name = "Baterias Moto", IsActive = true },
+            new Category { Id = 3, Name = "Baterias Camion", IsActive = true },
+            new Category { Id = 4, Name = "Accesorios", IsActive = true }
+        );
+
+        // Branches
+        modelBuilder.Entity<Branch>().HasData(
+            new Branch { Id = 1, Code = "CALLE", Name = "Calle (SalesReps)", PointOfSale = 2, IsActive = true },
+            new Branch { Id = 2, Code = "DISTRIB", Name = "Distribuidora (Oficina)", PointOfSale = 5, IsActive = true }
+        );
+
+        // Formas de Pago
+        modelBuilder.Entity<PaymentMethod>().HasData(
+            new PaymentMethod { Id = 1, Code = "EF", Description = "Efectivo", Type = PaymentMethodType.Cash, IsActive = true },
+            new PaymentMethod { Id = 2, Code = "CH", Description = "Cheque", Type = PaymentMethodType.Check, RequiresDetail = true, IsActive = true },
+            new PaymentMethod { Id = 3, Code = "TR", Description = "Transferencia", Type = PaymentMethodType.Transfer, IsActive = true },
+            new PaymentMethod { Id = 4, Code = "TC", Description = "Tarjeta de Credito", Type = PaymentMethodType.Card, IsActive = true },
+            new PaymentMethod { Id = 5, Code = "TD", Description = "Tarjeta de Debito", Type = PaymentMethodType.Card, IsActive = true },
+            new PaymentMethod { Id = 6, Code = "RZ", Description = "Rezago (Baterias usadas)", Type = PaymentMethodType.Barter, RequiresDetail = true, IsActive = true },
+            new PaymentMethod { Id = 7, Code = "ME", Description = "Mercaderia (Canje)", Type = PaymentMethodType.Barter, RequiresDetail = true, IsActive = true }
+        );
+
+        // Tax Settings (IVA y percepciones)
+        modelBuilder.Entity<TaxSetting>().HasData(
+            new TaxSetting { Id = 1, TaxCode = "VAT", Description = "IVA General", Rate = 21.00m, IsDefault = true, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 2, TaxCode = "VAT_REDUCED", Description = "IVA Reducido", Rate = 10.50m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 3, TaxCode = "VAT_EXEMPT", Description = "IVA Exento", Rate = 0.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 4, TaxCode = "IIBB_BA", Description = "IIBB Buenos Aires", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) },
+            new TaxSetting { Id = 5, TaxCode = "IIBB_CABA", Description = "IIBB CABA", Rate = 3.00m, IsDefault = false, IsActive = true, EffectiveFrom = new DateTime(2000, 1, 1) }
+        );
+
+        // Document Types for Current Account
+        modelBuilder.Entity<DocumentTypeMaster>().HasData(
+            new DocumentTypeMaster { Id = 1, Code = "FA", ShortCode = "FA", Description = "Factura A", LabelEs = "Factura A", LabelEn = "Invoice A", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 2, Code = "FB", ShortCode = "FB", Description = "Factura B", LabelEs = "Factura B", LabelEn = "Invoice B", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 3, Code = "NCA", ShortCode = "NCA", Description = "Nota de Crédito A", LabelEs = "Nota de Crédito A", LabelEn = "Credit Note A", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 4, Code = "NCB", ShortCode = "NCB", Description = "Nota de Crédito B", LabelEs = "Nota de Crédito B", LabelEn = "Credit Note B", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 5, Code = "NDA", ShortCode = "NDA", Description = "Nota de Débito A", LabelEs = "Nota de Débito A", LabelEn = "Debit Note A", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 6, Code = "NDB", ShortCode = "NDB", Description = "Nota de Débito B", LabelEs = "Nota de Débito B", LabelEn = "Debit Note B", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 7, Code = "PR", ShortCode = "PR", Description = "Presupuesto", LabelEs = "Presupuesto", LabelEn = "Quote", BalanceImpact = 1, IsBillingLine = false, IsActive = true },
+            new DocumentTypeMaster { Id = 8, Code = "PG", ShortCode = "PG", Description = "Pago", LabelEs = "Pago", LabelEn = "Payment", BalanceImpact = -1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 9, Code = "SI", ShortCode = "SI", Description = "Saldo Inicial", LabelEs = "Saldo inicial", LabelEn = "Initial balance", BalanceImpact = 1, IsBillingLine = true, IsActive = true },
+            new DocumentTypeMaster { Id = 10, Code = "OT", ShortCode = "OT", Description = "Otros", LabelEs = "Otros", LabelEn = "Other", BalanceImpact = 0, IsBillingLine = true, IsActive = true }
         );
     }
 }

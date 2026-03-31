@@ -3,21 +3,28 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Depósito / Almacén
+/// Warehouse. Can be a fixed warehouse or a sales rep delivery truck.
 /// </summary>
-public class Deposito
+public class Warehouse
 {
     public int Id { get; set; }
     
     [Required]
     [StringLength(100)]
-    public string Nombre { get; set; } = "";
+    public string Name { get; set; } = "";
     
     [StringLength(300)]
-    public string? Direccion { get; set; }
+    public string? Address { get; set; }
     
-    public bool Activo { get; set; } = true;
+    /// <summary>
+    /// Associated sales rep (for delivery trucks).
+    /// Null means it is a fixed warehouse.
+    /// </summary>
+    public int? AssociatedSalesRepId { get; set; }
+    public SalesRep? AssociatedSalesRep { get; set; }
     
-    // Navegación
+    public bool IsActive { get; set; } = true;
+    
+    // Navigation
     public List<Stock> Stocks { get; set; } = new();
 }

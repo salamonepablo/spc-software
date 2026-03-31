@@ -1,0 +1,227 @@
+﻿@page "/clientes/nuevo"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nuevo Customer - SPC</PageTitle>
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/clientes">Customers</a></li>
+            <li class="breadcrumb-item active">Nuevo</li>
+        </ol>
+    </nav>
+
+    <h3 class="mb-4">Nuevo Customer</h3>
+
+    @if (errorMessage != null)
+    {
+        <AlertMessage Message="@errorMessage" 
+                      Type="AlertMessage.AlertType.Error" 
+                      OnDismiss="() => errorMessage = null" />
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <EditForm Model="cliente" OnValidSubmit="HandleSubmit" FormName="CreateCustomer">
+                <DataAnnotationsValidator />
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Datos Principales</h5>
+                        
+                        <div class="mb-3">
+                            <label for="CompanyName" class="form-label">Razón Social *</label>
+                            <InputText id="CompanyName" class="form-control" @bind-Value="cliente.CompanyName" />
+                            <ValidationMessage For="() => cliente.CompanyName" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="TradeName" class="form-label">Name Fantasía</label>
+                            <InputText id="TradeName" class="form-control" @bind-Value="cliente.TradeName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cuit" class="form-label">CUIT</label>
+                            <InputText id="cuit" class="form-control" @bind-Value="cliente.CUIT" placeholder="XX-XXXXXXXX-X" />
+                            <ValidationMessage For="() => cliente.CUIT" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="condicionIva" class="form-label">Condición IVA</label>
+                            <InputSelect id="condicionIva" class="form-select" @bind-Value="cliente.TaxConditionId">
+                                <option value="">-- Seleccionar --</option>
+                                @foreach (var cond in TaxConditions)
+                                {
+                                    <option value="@cond.Id">@cond.Description (@cond.InvoiceType)</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" type="email" class="form-control" @bind-Value="cliente.Email" />
+                            <ValidationMessage For="() => cliente.Email" class="text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Dirección y Contacto</h5>
+
+                        <div class="mb-3">
+                            <label for="Address" class="form-label">Dirección</label>
+                            <InputText id="Address" class="form-control" @bind-Value="cliente.Address" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="City" class="form-label">City</label>
+                                <InputText id="City" class="form-control" @bind-Value="cliente.City" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="PostalCode" class="form-label">CP</label>
+                                <InputText id="PostalCode" class="form-control" @bind-Value="cliente.PostalCode" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="provincia" class="form-label">Provincia</label>
+                            <InputText id="provincia" class="form-control" @bind-Value="cliente.Province" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="Phone" class="form-label">Teléfono</label>
+                                <InputText id="Phone" class="form-control" @bind-Value="cliente.Phone" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="Mobile" class="form-label">Mobile</label>
+                                <InputText id="Mobile" class="form-control" @bind-Value="cliente.Mobile" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Comercial</h5>
+
+                        <div class="mb-3">
+                            <label for="vendedor" class="form-label">SalesRep</label>
+                            <InputSelect id="vendedor" class="form-select" @bind-Value="cliente.SalesRepId">
+                                <option value="">-- Sin asignar --</option>
+                                @foreach (var v in vendedores)
+                                {
+                                    <option value="@v.Id">@v.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="zonaVenta" class="form-label">Zona de Venta</label>
+                            <InputSelect id="zonaVenta" class="form-select" @bind-Value="cliente.SalesZoneId">
+                                <option value="">-- Sin asignar --</option>
+                                @foreach (var z in SalesZones)
+                                {
+                                    <option value="@z.Id">@z.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="descuento" class="form-label">% Descuento</label>
+                                <InputNumber id="descuento" class="form-control" @bind-Value="cliente.DiscountPercent" />
+                                <ValidationMessage For="() => cliente.DiscountPercent" class="text-danger" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="CreditLimit" class="form-label">Límite Crédito</label>
+                                <InputNumber id="CreditLimit" class="form-control" @bind-Value="cliente.CreditLimit" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Notes</h5>
+                        
+                        <div class="mb-3">
+                            <InputTextArea id="Notes" class="form-control" rows="5" @bind-Value="cliente.Notes" />
+                            <ValidationMessage For="() => cliente.Notes" class="text-danger" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/clientes" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @if (saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        Guardar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateCustomerDto cliente = new();
+    private List<TaxConditionDto> TaxConditions = new();
+    private List<SalesRepDto> vendedores = new();
+    private List<SalesZoneDto> SalesZones = new();
+    
+    private bool saving = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load dropdown data in parallel
+        var condicionesTask = Api.GetCondicionesIvaAsync();
+        var vendedoresTask = Api.GetSalesRepesAsync();
+        var zonasTask = Api.GetZonasVentaAsync();
+
+        await Task.WhenAll(condicionesTask, vendedoresTask, zonasTask);
+
+        TaxConditions = await condicionesTask;
+        vendedores = await vendedoresTask;
+        SalesZones = await zonasTask;
+    }
+
+    private async Task HandleSubmit()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await Api.CreateCustomerAsync(cliente);
+
+            if (result != null)
+            {
+                Navigation.NavigateTo("/clientes?created=true");
+            }
+            else
+            {
+                errorMessage = "Error al crear el cliente. Verifique los datos e intente nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}

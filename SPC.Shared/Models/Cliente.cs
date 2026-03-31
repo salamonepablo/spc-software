@@ -3,69 +3,93 @@ using System.ComponentModel.DataAnnotations;
 namespace SPC.Shared.Models;
 
 /// <summary>
-/// Entidad Cliente - Equivalente a tabla Clientes en Access
+/// Customer entity.
 /// </summary>
-public class Cliente
+public class Customer
 {
     public int Id { get; set; }
     
-    [Required(ErrorMessage = "La razón social es requerida")]
-    [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
-    public string RazonSocial { get; set; } = "";
+    [Required(ErrorMessage = "Company name is required")]
+    [StringLength(200, ErrorMessage = "Max 200 characters")]
+    public string CompanyName { get; set; } = "";
     
     [StringLength(200)]
-    public string? NombreFantasia { get; set; }
+    public string? TradeName { get; set; }
     
     [StringLength(13)]
     public string? CUIT { get; set; }
     
     [StringLength(300)]
-    public string? Direccion { get; set; }
+    public string? Address { get; set; }
     
     [StringLength(100)]
-    public string? Localidad { get; set; }
+    public string? City { get; set; }
     
     [StringLength(100)]
-    public string? Provincia { get; set; }
+    public string? Province { get; set; }
     
     [StringLength(10)]
-    public string? CodigoPostal { get; set; }
+    public string? PostalCode { get; set; }
     
     [StringLength(50)]
-    public string? Telefono { get; set; }
+    public string? Phone { get; set; }
     
     [StringLength(50)]
-    public string? Celular { get; set; }
+    public string? Mobile { get; set; }
     
     [StringLength(200)]
-    [EmailAddress(ErrorMessage = "Email inválido")]
+    [EmailAddress(ErrorMessage = "Invalid email")]
     public string? Email { get; set; }
     
-    // Relación con CondicionIva
-    public int? CondicionIvaId { get; set; }
-    public CondicionIva? CondicionIva { get; set; }
+    // Relationship with TaxCondition
+    public int? TaxConditionId { get; set; }
+    public TaxCondition? TaxCondition { get; set; }
     
-    // Relación con Vendedor
-    public int? VendedorId { get; set; }
-    public Vendedor? Vendedor { get; set; }
+    // Relationship with SalesRep
+    public int? SalesRepId { get; set; }
+    public SalesRep? SalesRep { get; set; }
     
-    // Relación con Zona de Venta
-    public int? ZonaVentaId { get; set; }
-    public ZonaVenta? ZonaVenta { get; set; }
+    // Relationship with SalesZone
+    public int? SalesZoneId { get; set; }
+    public SalesZone? SalesZone { get; set; }
     
-    [Range(0, 100, ErrorMessage = "Descuento debe estar entre 0 y 100")]
-    public decimal PorcentajeDescuento { get; set; } = 0;
+    [Range(0, 100, ErrorMessage = "Discount must be between 0 and 100")]
+    public decimal DiscountPercent { get; set; } = 0;
     
-    public decimal LimiteCredito { get; set; } = 0;
+    public decimal CreditLimit { get; set; } = 0;
+    
+    // ===================================
+    // IIBB Perception (from AFIP/ARCA registry)
+    // ===================================
+    
+    /// <summary>
+    /// IIBB perception rate for this customer.
+    /// From ARBA/AGIP/etc. registry by province.
+    /// 0 = Exempt or not applicable.
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "IIBB rate must be between 0 and 100")]
+    public decimal IIBBPercent { get; set; } = 0;
+    
+    /// <summary>
+    /// Province code from the IIBB registry applicable to this customer.
+    /// E.g.: "BA" (Buenos Aires/ARBA), "CABA" (AGIP), etc.
+    /// </summary>
+    [StringLength(10)]
+    public string? IIBBRegistryProvince { get; set; }
     
     [StringLength(500)]
-    public string? Observaciones { get; set; }
+    public string? Notes { get; set; }
     
-    public bool Activo { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     
-    public DateTime FechaAlta { get; set; } = DateTime.Now;
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
     
-    // Navegación: un cliente tiene muchas facturas, remitos, etc.
-    public List<Factura> Facturas { get; set; } = new();
-    public List<Remito> Remitos { get; set; } = new();
+    // Navigation
+    public List<Invoice> Invoices { get; set; } = new();
+    public List<DeliveryNote> DeliveryNotes { get; set; } = new();
+    public List<CustomerAddress> DeliveryAddresses { get; set; } = new();
+    public List<Quote> Quotes { get; set; } = new();
+    public List<CreditNote> CreditNotes { get; set; } = new();
+    public List<DebitNote> DebitNotes { get; set; } = new();
+    public List<Payment> Payments { get; set; } = new();
 }
