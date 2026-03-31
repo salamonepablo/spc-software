@@ -13,16 +13,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [1.0.0] - 2026-03-31
+
+### Major Release - Current Account Module Complete
+
+This release marks the first stable version of SPC Software with the Current Account module fully implemented and verified against the legacy system.
+
 ### Added
-- CSV migration is now the default and required path for data imports.
-- Automatic CSV generation via `SPC.Migration/export_access.py` when files are missing.
-- SQL Server migrations consolidated under `SPC.API/Migrations`.
+
+#### Current Account Module
+- **DocumentTypeResolver**: Maps known document types to canonical codes (FA, NC, ND, PG, PR, etc.)
+- **DocumentTypeCatalogVerifier**: Startup validation ensuring catalog integrity
+- **Explicit search flow**: UI requires date range selection + button click (no auto-load)
+- **Full period retrieval**: Removed fixed `take=50` limit for complete movement history
+- **Movement drill-down**: Navigate from movements to payment/note details
+- **Balance verification**: Saldos match legacy system exactly (L1, L2, Total)
+
+#### API Endpoints
+- `GET /api/cuenta-corriente/{customerId}` - Account summary
+- `GET /api/cuenta-corriente/{customerId}/movements` - Movements with date range
+- `GET /api/cuenta-corriente/{customerId}/balance` - Current balance (L1/L2)
+- `POST /api/cuenta-corriente/{customerId}/initial-balance` - Set initial balance
+
+#### Architecture
+- CQRS-lite pattern: Services split into Query + Command
+- DocumentTypeMaster entity with catalog seed data
+- Two EF Core migrations for catalog upgrade and guardrails
+
+#### Testing
+- 298 tests (up from 111)
+- Unit tests for DocumentTypeResolver
+- Unit tests for CurrentAccountService
+- Integration tests for CurrentAccountEndpoints
+- DocumentTypeCatalogValidation tests
+
+#### UI
+- Blazor UI for Products, Invoices, Quotes, Stock
+- Current Account view with movement list and balance display
+- Document type badges with color coding
 
 ### Changed
-- Migration runner marked Windows-only to match OleDb dependencies.
+- CSV migration is now the default and required path for data imports
+- Automatic CSV generation via `SPC.Migration/export_access.py` when files are missing
+- SQL Server migrations consolidated under `SPC.API/Migrations`
 
 ### Fixed
-- Test nullability warning in `AuxiliaryEndpointsTests`.
+- Document types no longer collapse to "Otros" (OT)
+- Test nullability warning in `AuxiliaryEndpointsTests`
 
 ## [0.2.0] - 2026-03-10
 
@@ -154,6 +193,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.0.0 | 2026-03-31 | Current Account module, 298 tests, CQRS-lite, full UI |
 | 0.2.0 | 2026-03-10 | English naming convention, 28 models, 111 tests, full CRUD |
 | 0.1.0 | 2026-02-28 | Initial release - Project structure and basic CRUD |
 
@@ -164,6 +204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Repository](https://github.com/salamonepablo/spc-software)
 - [Issues](https://github.com/salamonepablo/spc-software/issues)
 
-[Unreleased]: https://github.com/salamonepablo/spc-software/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/salamonepablo/spc-software/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/salamonepablo/spc-software/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/salamonepablo/spc-software/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/salamonepablo/spc-software/releases/tag/v0.1.0

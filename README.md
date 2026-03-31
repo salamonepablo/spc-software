@@ -1,8 +1,9 @@
 # SPC - Integral Management Software
 
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue)]()
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Server-512BD4)](https://blazor.net/)
-[![Tests](https://img.shields.io/badge/Tests-111%20tests%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-298%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
 
 ## Overview
@@ -305,6 +306,17 @@ CSV files are expected in `SPC.Migration/data`. If any are missing, the tool run
 
 ---
 
+### Current Accounts (Cuenta Corriente)
+
+| Method | Endpoint                                      | Description                    |
+| ------ | --------------------------------------------- | ------------------------------ |
+| GET    | `/api/cuenta-corriente/{customerId}`         | Get customer account summary   |
+| GET    | `/api/cuenta-corriente/{customerId}/movements` | Get movements with date range |
+| GET    | `/api/cuenta-corriente/{customerId}/balance` | Get current balance (L1/L2)    |
+| POST   | `/api/cuenta-corriente/{customerId}/initial-balance` | Set initial balance   |
+
+---
+
 ## Architecture Decisions
 
 Key architectural decisions are documented in **docs/adr**.
@@ -342,24 +354,23 @@ All internal code uses **English identifiers** for classes, properties, methods,
 
 ## Current Status
 
-### Implemented
+### Implemented (v1.0.0)
 
 - REST API with full CRUD for Customers, Products
 - Full CRUD for Invoices, Quotes, Credit Notes, Debit Notes
 - Business rules: Invoice A vs B, IIBB perception, multi-level discounts, VAT immutability
 - Blazor Server UI for Customer management (list, create, edit, delete)
-- Clean Architecture with Services, DTOs and modular Endpoints
-- Integration and Unit tests (111 tests passing)
+- Blazor Server UI for Products, Invoices, Quotes, Stock
+- **Current Account module** with movement tracking and balance calculation
+  - Document type resolution (no more collapsing to "Otros")
+  - Explicit search flow with date range selection
+  - Full period retrieval without pagination limits
+  - Drill-down navigation to payment and note details
+- Clean Architecture with CQRS-lite pattern (Query + Command services)
+- Integration and Unit tests (298 tests passing)
 - Architecture Decision Records (ADRs)
 - CSV-based data migration tool with bulk inserts and skip logging
-- CSV import enforced with automatic export when files are missing
-- **English naming convention** for all code identifiers (v0.2.0)
-
-### In Progress
-
-- Blazor UI for Products and Invoicing
-- Stock management integration
-- Current account updates on document creation
+- **English naming convention** for all code identifiers
 
 ### Planned
 
@@ -372,11 +383,11 @@ All internal code uses **English identifiers** for classes, properties, methods,
 
 ## Screenshots
 
-Init page
-![alt text](image.png)
+### Dashboard
+![Home Dashboard](docs/images/home-dashboard.png)
 
-Customer list
-
+### Cuenta Corriente (Current Account)
+![Cuenta Corriente](docs/images/cuenta-corriente.png)
 
 ---
 
