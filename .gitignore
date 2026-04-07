@@ -22,6 +22,9 @@ bld/
 # Visual Studio Code
 .vscode/
 
+# Claude Code
+.claude/settings.local.json
+
 # Rider
 .idea/
 
