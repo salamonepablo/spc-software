@@ -1,0 +1,103 @@
+strict_tdd: true
+project:
+  name: spc-software
+  type: dotnet-erp-modernization
+  language: C#
+  framework: .NET 10
+  frontend: Blazor Server
+  backend: ASP.NET Core Minimal APIs
+  database: SQLite
+  orm: Entity Framework Core 10
+  test_framework: xUnit + FluentAssertions
+  solution: SPC.slnx
+context: |
+  spc-software is a .NET 10 / C# ERP-style business management system.
+  It modernizes a legacy VB6 + Microsoft Access operational system into a modern .NET architecture.
+  The application uses ASP.NET Core Minimal APIs, Blazor Server, Entity Framework Core, and SQLite as the active database context for development/local work.
+  There is no Node.js/npm or Python runtime requirement for normal project work.
+
+  Architectural intent:
+  - Preserve Clean Architecture dependency direction: Presentation -> Application -> Domain -> Infrastructure.
+  - Keep business rules in services/use cases, not endpoints or Blazor UI components.
+  - Keep domain/shared models free from infrastructure-specific dependencies.
+  - Use English identifiers for code artifacts; preserve Spanish API routes only for backward compatibility.
+
+  Main project layout:
+  - SPC.API: ASP.NET Core Minimal API backend, contracts, endpoints, services, EF Core DbContext and migrations.
+  - SPC.Web: Blazor Server frontend.
+  - SPC.Shared: shared domain models and licensing models.
+  - SPC.Tests: xUnit unit and integration tests.
+  - SPC.Migration: C# migration tooling for legacy data modernization.
+
+  Current verified baseline from repository context:
+  - Version 1.0.0 release documents the Current Account module as complete.
+  - Current session context reports 299 passing tests as of 2026-06-02.
+  - Current account navigation metadata uses resolved document type short codes for historical movements imported as DocumentType.Other.
+rules:
+  proposal:
+    require_problem_statement: true
+    require_non_goals: true
+  spec:
+    require_acceptance_criteria: true
+    require_backward_compatibility_notes: true
+  design:
+    require_tradeoffs: true
+    require_architecture_boundary_check: true
+  tasks:
+    protect_review_workload: true
+    default_pr_strategy: single-pr-default
+    review_budget_changed_lines: 400
+  apply:
+    test_command: "dotnet test SPC.Tests/SPC.Tests.csproj -c Release"
+    require_red_green_refactor_evidence: true
+  verify:
+    build_command: "dotnet build SPC.slnx -c Release"
+    test_command: "dotnet test SPC.Tests/SPC.Tests.csproj -c Release"
+testing:
+  detected: "2026-06-02"
+  runner:
+    command: "dotnet test SPC.Tests/SPC.Tests.csproj -c Release"
+    framework: "xUnit + FluentAssertions"
+  layers:
+    unit: "SPC.Tests/Unit"
+    integration: "SPC.Tests/Integration"
+    e2e: ""
+  commands:
+    build:
+      - "dotnet build SPC.slnx -c Release"
+    unit:
+      - "dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter FullyQualifiedName~Unit"
+    integration:
+      - "dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter FullyQualifiedName~Integration"
+    all:
+      - "dotnet test SPC.Tests/SPC.Tests.csproj -c Release"
+  coverage:
+    command: "dotnet test SPC.Tests/SPC.Tests.csproj -c Release --collect:\"XPlat Code Coverage\""
+    commands:
+      - "dotnet test SPC.Tests/SPC.Tests.csproj -c Release --collect:\"XPlat Code Coverage\""
+quality:
+  restore: "dotnet restore SPC.slnx"
+  build: "dotnet build SPC.slnx -c Release"
+  lint: ""
+  lint_commands: []
+  typecheck: "dotnet build SPC.slnx -c Release"
+  typecheck_commands:
+    - "dotnet build SPC.slnx -c Release"
+  format: "dotnet format SPC.slnx --verify-no-changes"
+  format_commands:
+    - "dotnet format SPC.slnx --verify-no-changes"
+sdd_session_defaults:
+  execution_mode: interactive
+  artifact_store: openspec
+  chained_pr_strategy: single-pr-default
+  review_budget_changed_lines: 400
+memory:
+  provider: engram
+  status: available
+  project: spc-software
+  usage: "Use OpenSpec for SDD phase artifacts by default; use Engram for session summaries, important discoveries, decisions, and restart context when the CLI/tooling is available."
+  cli:
+    context: "engram context spc-software"
+    search: "engram search <query> --project spc-software"
+    save: "engram save <title> <message> --project spc-software --scope project"
+    sync: "engram sync --project spc-software"

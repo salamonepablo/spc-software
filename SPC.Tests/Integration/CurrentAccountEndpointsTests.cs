@@ -320,6 +320,39 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
     }
 
     [Fact]
+    public async Task GetCurrentAccountMovements_UsesResolvedDocumentType_ForNavigationMetadata()
+    {
+        // Arrange
+        await SeedMovementAsync(new CurrentAccountMovement
+        {
+            CustomerId = 4,
+            MovementDate = new DateTime(2026, 3, 6),
+            DocumentType = DocumentType.Other,
+            DocumentNumber = 4501,
+            Description = "Factura A legacy import",
+            BillingAmount = 2500
+        });
+
+        // Act
+        var response = await _client.GetAsync("/api/current-accounts/4/movements");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+        result.Should().NotBeNull();
+
+        var movement = result!.Movements.Single(m => m.DocumentNumber == 4501);
+        movement.DocumentTypeCode.Should().Be((int)DocumentType.Other);
+        movement.DocumentTypeShortCode.Should().Be("FA");
+        movement.Navigation.TargetType.Should().Be("document");
+        movement.Navigation.TargetKind.Should().Be("invoice");
+        movement.Navigation.TargetRoute.Should().Be("/invoices?search=4501");
+        movement.Navigation.TargetId.Should().Be("4501");
+        movement.Navigation.CanOpen.Should().BeTrue();
+        movement.Navigation.DisabledReason.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetCurrentAccountMovements_ReturnsRequiredDocumentTypeShortCode_AndOptionalMetadata()
     {
         // Arrange

@@ -104,7 +104,7 @@ public static class CurrentAccountEndpoints
                     BudgetRunningBalance = movement.BudgetRunningBalance,
                     TotalRunningBalance = movement.BillingRunningBalance + movement.BudgetRunningBalance,
                     Description = movement.Description,
-                    Navigation = BuildNavigationMetadata(movement)
+                    Navigation = BuildNavigationMetadata(movement, resolvedType.ShortCode)
                 });
             }
 
@@ -188,7 +188,7 @@ public static class CurrentAccountEndpoints
                     BudgetRunningBalance = movement.BudgetRunningBalance,
                     TotalRunningBalance = movement.BillingRunningBalance + movement.BudgetRunningBalance,
                     Description = movement.Description,
-                    Navigation = BuildNavigationMetadata(movement)
+                    Navigation = BuildNavigationMetadata(movement, resolvedType.ShortCode)
                 });
             }
 
@@ -261,14 +261,17 @@ public static class CurrentAccountEndpoints
         };
     }
 
-    private static CurrentAccountNavigationMetadataResponse BuildNavigationMetadata(CurrentAccountMovement movement)
+    private static CurrentAccountNavigationMetadataResponse BuildNavigationMetadata(
+        CurrentAccountMovement movement,
+        string? resolvedDocumentTypeShortCode)
     {
         var documentNumber = movement.DocumentNumber.ToString(CultureInfo.InvariantCulture);
         var encodedNumber = Uri.EscapeDataString(documentNumber);
+        var shortCode = resolvedDocumentTypeShortCode?.Trim().ToUpperInvariant();
 
-        return movement.DocumentType switch
+        return shortCode switch
         {
-            DocumentType.Invoice or DocumentType.InvoiceA or DocumentType.InvoiceB => new CurrentAccountNavigationMetadataResponse
+            "FA" or "FB" => new CurrentAccountNavigationMetadataResponse
             {
                 TargetType = "document",
                 TargetKind = "invoice",
@@ -277,7 +280,7 @@ public static class CurrentAccountEndpoints
                 CanOpen = true
             },
 
-            DocumentType.Quote or DocumentType.QuoteVoid => new CurrentAccountNavigationMetadataResponse
+            "PR" => new CurrentAccountNavigationMetadataResponse
             {
                 TargetType = "document",
                 TargetKind = "quote",
@@ -286,7 +289,7 @@ public static class CurrentAccountEndpoints
                 CanOpen = true
             },
 
-            DocumentType.CreditNote or DocumentType.CreditNoteA or DocumentType.CreditNoteB => new CurrentAccountNavigationMetadataResponse
+            "NCA" or "NCB" => new CurrentAccountNavigationMetadataResponse
             {
                 TargetType = "document",
                 TargetKind = "credit-note",
@@ -295,27 +298,25 @@ public static class CurrentAccountEndpoints
                 CanOpen = true
             },
 
-            DocumentType.DebitNote or DocumentType.DebitNoteA or DocumentType.DebitNoteB
-                or DocumentType.InternalDebitNote or DocumentType.InternalDebitA or DocumentType.InternalDebitB => new CurrentAccountNavigationMetadataResponse
-                {
-                    TargetType = "document",
-                    TargetKind = "debit-note",
-                    TargetRoute = $"/debit-notes/{encodedNumber}?customerId={movement.CustomerId}",
-                    TargetId = documentNumber,
-                    CanOpen = true
-                },
+            "NDA" or "NDB" => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "document",
+                TargetKind = "debit-note",
+                TargetRoute = $"/debit-notes/{encodedNumber}?customerId={movement.CustomerId}",
+                TargetId = documentNumber,
+                CanOpen = true
+            },
 
-            DocumentType.Payment or DocumentType.Receipt or DocumentType.PaymentBilling or DocumentType.PaymentVoidBilling
-                or DocumentType.PaymentBudget or DocumentType.PaymentVoidBudget => new CurrentAccountNavigationMetadataResponse
-                {
-                    TargetType = "payment",
-                    TargetKind = "payment",
-                    TargetRoute = $"/payments/{encodedNumber}?customerId={movement.CustomerId}",
-                    TargetId = documentNumber,
-                    CanOpen = true
-                },
+            "PG" => new CurrentAccountNavigationMetadataResponse
+            {
+                TargetType = "payment",
+                TargetKind = "payment",
+                TargetRoute = $"/payments/{encodedNumber}?customerId={movement.CustomerId}",
+                TargetId = documentNumber,
+                CanOpen = true
+            },
 
-            DocumentType.Other => new CurrentAccountNavigationMetadataResponse
+            "SI" => new CurrentAccountNavigationMetadataResponse
             {
                 TargetType = "initial-balance",
                 TargetKind = "initial-balance",
