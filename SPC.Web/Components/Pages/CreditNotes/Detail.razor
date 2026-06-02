@@ -1,4 +1,6 @@
 @page "/credit-notes/{CreditNoteNumber:long}"
+@page "/credit-notes/{VoucherType}/{CreditNoteNumber:long}"
+@page "/credit-notes/{VoucherType}/{PointOfSale:int}/{CreditNoteNumber:long}"
 @page "/notas-credito/{CreditNoteNumber:long}"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
@@ -76,6 +78,37 @@
                                 </tr>
                             }
                         </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end text-nowrap">@creditNote.Subtotal.ToString("C2")</td>
+                            </tr>
+                            @if (creditNote.VATAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">IVA:</td>
+                                    <td class="text-end text-nowrap">@creditNote.VATAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (creditNote.IIBBAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">Percepción IIBB:</td>
+                                    <td class="text-end text-nowrap">@creditNote.IIBBAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (creditNote.DiscountAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">Descuento:</td>
+                                    <td class="text-end text-danger text-nowrap">-@creditNote.DiscountAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            <tr class="table-primary">
+                                <td colspan="5" class="text-end"><strong>TOTAL:</strong></td>
+                                <td class="text-end text-nowrap"><strong>@creditNote.Total.ToString("C2")</strong></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -86,6 +119,12 @@
 @code {
     [Parameter]
     public long CreditNoteNumber { get; set; }
+
+    [Parameter]
+    public string? VoucherType { get; set; }
+
+    [Parameter]
+    public int? PointOfSale { get; set; }
 
     [SupplyParameterFromQuery(Name = "customerId")]
     public int? CustomerId { get; set; }
@@ -99,7 +138,7 @@
 
         try
         {
-            creditNote = await Api.GetCreditNoteByNumberAsync(CreditNoteNumber, CustomerId);
+            creditNote = await Api.GetCreditNoteByNumberAsync(CreditNoteNumber, CustomerId, VoucherType, PointOfSale);
         }
         finally
         {

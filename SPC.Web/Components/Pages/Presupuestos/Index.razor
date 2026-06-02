@@ -1,4 +1,5 @@
 ﻿@page "/quotes"
+@page "/quotes/{QuoteNumber:long}"
 @page "/presupuestos"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
@@ -304,6 +305,9 @@
     [SupplyParameterFromQuery(Name = "search")]
     public string? SearchQuery { get; set; }
 
+    [Parameter]
+    public long? QuoteNumber { get; set; }
+
     private List<QuoteDto>? presupuestos;
     private QuotesResumenDto? resumen;
     private QuoteCompletaDto? presupuestoSeleccionado;
@@ -318,6 +322,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (QuoteNumber.HasValue)
+        {
+            await LoadDirectQuote(QuoteNumber.Value);
+            return;
+        }
+
         var resumenTask = Api.GetQuotesResumenAsync();
         Task<List<QuoteDto>> presupuestosTask;
 
@@ -336,6 +346,23 @@
         resumen = await resumenTask;
         presupuestos = await presupuestosTask;
         loading = false;
+    }
+
+    private async Task LoadDirectQuote(long quoteNumber)
+    {
+        searchTerm = quoteNumber.ToString();
+        loading = true;
+        try
+        {
+            presupuestoSeleccionado = await Api.GetQuoteByNumberAsync(quoteNumber);
+            presupuestos = presupuestoSeleccionado == null
+                ? new List<QuoteDto>()
+                : new List<QuoteDto> { presupuestoSeleccionado };
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
     private void NuevoPresupuesto()

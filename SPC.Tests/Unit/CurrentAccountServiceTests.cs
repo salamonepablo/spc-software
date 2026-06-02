@@ -1,8 +1,10 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using SPC.API.Data;
 using SPC.API.Services;
+using SPC.API.Services.CurrentAccount;
 using SPC.Shared.Licensing;
 using SPC.Shared.Models;
 
@@ -41,9 +43,12 @@ public class CurrentAccountServiceTests : IDisposable
         _db.Dispose();
     }
 
-    private CurrentAccountService CreateService()
+    private CurrentAccountService CreateService(CurrentAccountGuardrailOptions? guardrailOptions = null)
     {
-        return new CurrentAccountService(_db, _licenseServiceMock.Object);
+        return new CurrentAccountService(
+            _db,
+            _licenseServiceMock.Object,
+            guardrailOptions == null ? null : Options.Create(guardrailOptions));
     }
 
     // ===========================================
@@ -930,7 +935,7 @@ public class CurrentAccountServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetMovementsByRangeAsync_AppliesRangeGuardrail_WhenRequestedSpanExceedsConfiguredMaxDays()
+    public async Task GetMovementsByRangeAsync_AllowsWideRanges_WhenUserRequestsFullHistory()
     {
         // Arrange
         var service = CreateService();
@@ -944,9 +949,39 @@ public class CurrentAccountServiceTests : IDisposable
             cancellationToken: CancellationToken.None);
 
         // Assert
+        result.GuardrailApplied.Should().BeFalse();
+        result.GuardrailMode.Should().Be("none");
+        result.WarningCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetMovementsByRangeAsync_ReturnsAllRowsWithWarning_WhenResultExceedsConfiguredThreshold()
+    {
+        // Arrange
+        var baseDate = new DateTime(2026, 1, 1);
+        _db.CurrentAccountMovements.AddRange(
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = baseDate, DocumentType = DocumentType.InvoiceA, DocumentNumber = 1, BillingAmount = 10 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = baseDate.AddDays(1), DocumentType = DocumentType.InvoiceA, DocumentNumber = 2, BillingAmount = 10 },
+            new CurrentAccountMovement { CustomerId = 1, MovementDate = baseDate.AddDays(2), DocumentType = DocumentType.InvoiceA, DocumentNumber = 3, BillingAmount = 10 });
+        await _db.SaveChangesAsync();
+
+        var service = CreateService(new CurrentAccountGuardrailOptions { MaxRows = 2 });
+
+        // Act
+        var result = await service.GetMovementsByRangeAsync(
+            customerId: 1,
+            dateFrom: baseDate,
+            dateTo: baseDate.AddDays(2),
+            line: null,
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        result.Movements.Should().HaveCount(3);
+        result.TotalCount.Should().Be(3);
+        result.ReturnedCount.Should().Be(3);
         result.GuardrailApplied.Should().BeTrue();
-        result.GuardrailMode.Should().Be("rejected");
-        result.WarningCode.Should().Be("RANGE_TOO_WIDE");
-        result.Movements.Should().BeEmpty();
+        result.GuardrailMode.Should().Be("warning");
+        result.WarningCode.Should().Be("LARGE_RESULT");
+        result.WarningMessage.Should().Contain("3 movimientos");
     }
 }

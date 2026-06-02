@@ -66,6 +66,21 @@ public class QuoteQueryService : IQuoteQueryService
         return MapToCompleteResponse(quote);
     }
 
+    public async Task<QuoteCompletoResponse?> GetByNumberAsync(long quoteNumber)
+    {
+        var quote = await _db.Quotes
+            .Include(q => q.Customer)
+            .Include(q => q.SalesRep)
+            .Include(q => q.Branch)
+            .Include(q => q.Details)
+                .ThenInclude(d => d.Product)
+            .FirstOrDefaultAsync(q => q.QuoteNumber == quoteNumber);
+
+        if (quote == null) return null;
+
+        return MapToCompleteResponse(quote);
+    }
+
     public async Task<IEnumerable<QuoteResponse>> GetByCustomerAsync(int customerId)
     {
         var quotes = await _db.Quotes
@@ -130,13 +145,17 @@ public class QuoteQueryService : IQuoteQueryService
 
     public async Task<IEnumerable<QuoteResponse>> SearchAsync(string term)
     {
-        long.TryParse(term, out var quoteNumber);
+        var trimmedTerm = term.Trim();
+        var isNumericSearch = long.TryParse(trimmedTerm, out var quoteNumber);
 
-        var quotes = await _db.Quotes
-            .AsNoTracking()
-            .Where(q => q.QuoteNumber == quoteNumber ||
-                       q.Customer!.CompanyName.Contains(term) ||
-                       (q.Customer!.TradeName != null && q.Customer.TradeName.Contains(term)))
+        var query = _db.Quotes.AsNoTracking();
+
+        query = isNumericSearch
+            ? query.Where(q => q.QuoteNumber == quoteNumber)
+            : query.Where(q => q.Customer!.CompanyName.Contains(trimmedTerm) ||
+                               (q.Customer!.TradeName != null && q.Customer.TradeName.Contains(trimmedTerm)));
+
+        var quotes = await query
             .OrderByDescending(q => q.QuoteDate)
             .ThenByDescending(q => q.QuoteNumber)
             .Take(100)

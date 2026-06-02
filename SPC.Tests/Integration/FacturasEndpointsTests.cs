@@ -49,6 +49,65 @@ public class InvoicesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetInvoiceByDocument_ReturnsInvoiceDetails_WhenOfficialDocumentExists()
+    {
+        // Arrange
+        var request = new CreateInvoiceRequest
+        {
+            BranchId = 1,
+            InvoiceType = "A",
+            CustomerId = 1,
+            Details = new List<CreateInvoiceDetailRequest>
+            {
+                new CreateInvoiceDetailRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/invoices", request);
+        var created = await createResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
+
+        // Act
+        var response = await _client.GetAsync($"/api/invoices/by-document/{created!.InvoiceType}/{created.InvoiceNumber}?pointOfSale={created.PointOfSale}&customerId={created.CustomerId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var invoice = await response.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
+        invoice.Should().NotBeNull();
+        invoice!.Id.Should().Be(created.Id);
+        invoice.InvoiceType.Should().Be("A");
+        invoice.PointOfSale.Should().Be(created.PointOfSale);
+        invoice.InvoiceNumber.Should().Be(created.InvoiceNumber);
+        invoice.Details.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchInvoices_WithOfficialFormattedTerm_ReturnsExactDocumentOnly()
+    {
+        // Arrange
+        var request = new CreateInvoiceRequest
+        {
+            BranchId = 1,
+            InvoiceType = "B",
+            CustomerId = 1,
+            Details = new List<CreateInvoiceDetailRequest>
+            {
+                new CreateInvoiceDetailRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/invoices", request);
+        var created = await createResponse.Content.ReadFromJsonAsync<InvoiceCompletaResponse>();
+        var officialNumber = $"{created!.InvoiceType} {created.PointOfSale:D4}-{created.InvoiceNumber:D8}";
+
+        // Act
+        var response = await _client.GetAsync($"/api/invoices/buscar?termino={Uri.EscapeDataString(officialNumber)}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var invoices = await response.Content.ReadFromJsonAsync<List<InvoiceResponse>>();
+        invoices.Should().NotBeNull();
+        invoices.Should().ContainSingle(i => i.Id == created.Id);
+    }
+
+    [Fact]
     public async Task CreateInvoice_ReturnsCreated_WithValidData()
     {
         // Arrange

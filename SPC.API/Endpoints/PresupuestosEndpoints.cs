@@ -124,6 +124,21 @@ public static class QuotesEndpoints
                 .WithDescription("Returns a quote by ID with all details");
         }
 
+        // GET /api/quotes/by-number/{quoteNumber} - Get quote by document number with details
+        builder = group.MapGet("/by-number/{quoteNumber:long}", async (long quoteNumber, IQuoteQueryService queryService) =>
+        {
+            var quote = await queryService.GetByNumberAsync(quoteNumber);
+            return quote != null
+                ? Results.Ok(quote)
+                : Results.NotFound(new { error = "Quote not found" });
+        });
+
+        if (includeMetadata)
+        {
+            builder.WithName("GetQuoteByNumber")
+                .WithDescription("Returns a quote by quote number with all details");
+        }
+
         // GET /api/quotes/cliente/{id} - Get quotes by customer
         builder = group.MapGet("/cliente/{customerId:int}", async (int customerId, IQuoteQueryService queryService) =>
         {

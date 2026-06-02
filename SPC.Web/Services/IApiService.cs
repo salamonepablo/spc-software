@@ -44,6 +44,7 @@ public interface IApiService
     // Invoices
     Task<List<InvoiceDto>> GetInvoicesAsync(int skip = 0, int take = 50);
     Task<InvoiceCompletaDto?> GetInvoiceAsync(int id);
+    Task<InvoiceCompletaDto?> GetInvoiceByDocumentAsync(string invoiceType, long invoiceNumber, int? pointOfSale = null, int? customerId = null);
     Task<List<InvoiceDto>> BuscarInvoicesAsync(string termino);
     Task<List<InvoiceDto>> GetInvoicesByCustomerAsync(int clienteId);
     Task<List<InvoiceDto>> GetInvoicesByFechaAsync(DateTime desde, DateTime hasta);
@@ -57,6 +58,7 @@ public interface IApiService
     // Quotes (Presupuestos)
     Task<List<QuoteDto>> GetQuotesAsync(int skip = 0, int take = 50);
     Task<QuoteCompletaDto?> GetQuoteAsync(int id);
+    Task<QuoteCompletaDto?> GetQuoteByNumberAsync(long quoteNumber);
     Task<List<QuoteDto>> BuscarQuotesAsync(string termino);
     Task<List<QuoteDto>> GetQuotesByCustomerAsync(int clienteId);
     Task<List<QuoteDto>> GetQuotesByFechaAsync(DateTime desde, DateTime hasta);
@@ -85,6 +87,6 @@ public interface IApiService
     Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null);
 
     // Credit/Debit Notes
-    Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null);
-    Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null);
+    Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null);
+    Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null);
 }

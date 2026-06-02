@@ -14,8 +14,8 @@ public interface IDebitNoteQueryService
     /// <summary>Get debit note by ID with all details</summary>
     Task<DebitNoteCompletaResponse?> GetByIdAsync(int id);
 
-    /// <summary>Get debit note by document number and optional customer filter</summary>
-    Task<DebitNoteCompletaResponse?> GetByNumberAsync(long debitNoteNumber, int? customerId = null);
+    /// <summary>Get debit note by document number and optional official document filters</summary>
+    Task<DebitNoteCompletaResponse?> GetByNumberAsync(long debitNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null);
 
     /// <summary>Get debit notes by customer</summary>
     Task<IEnumerable<DebitNoteResponse>> GetByCustomerAsync(int customerId);

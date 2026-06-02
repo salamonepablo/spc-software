@@ -14,6 +14,9 @@ public interface IInvoiceQueryService
     /// <summary>Get invoice by ID with all details</summary>
     Task<InvoiceCompletaResponse?> GetByIdAsync(int id);
 
+    /// <summary>Get invoice by official document identity with all details</summary>
+    Task<InvoiceCompletaResponse?> GetByDocumentAsync(string invoiceType, long invoiceNumber, int? pointOfSale = null, int? customerId = null);
+
     /// <summary>Get invoices by customer</summary>
     Task<IEnumerable<InvoiceResponse>> GetByCustomerAsync(int customerId);
 

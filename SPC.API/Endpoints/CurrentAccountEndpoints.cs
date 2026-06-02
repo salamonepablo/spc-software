@@ -3,13 +3,14 @@ using SPC.API.Services;
 using SPC.API.Services.CurrentAccount;
 using SPC.Shared.Models;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace SPC.API.Endpoints;
 
 /// <summary>
 /// Endpoint module for Current Account queries (read-only)
 /// </summary>
-public static class CurrentAccountEndpoints
+public static partial class CurrentAccountEndpoints
 {
     public static IEndpointRouteBuilder MapCurrentAccountEndpoints(this IEndpointRouteBuilder app)
     {
@@ -268,6 +269,7 @@ public static class CurrentAccountEndpoints
         var documentNumber = movement.DocumentNumber.ToString(CultureInfo.InvariantCulture);
         var encodedNumber = Uri.EscapeDataString(documentNumber);
         var shortCode = resolvedDocumentTypeShortCode?.Trim().ToUpperInvariant();
+        var officialDocument = BuildOfficialDocumentRouteParts(movement, shortCode, encodedNumber);
 
         return shortCode switch
         {
@@ -275,7 +277,7 @@ public static class CurrentAccountEndpoints
             {
                 TargetType = "document",
                 TargetKind = "invoice",
-                TargetRoute = $"/invoices?search={encodedNumber}",
+                TargetRoute = officialDocument.InvoiceRoute,
                 TargetId = documentNumber,
                 CanOpen = true
             },
@@ -284,7 +286,7 @@ public static class CurrentAccountEndpoints
             {
                 TargetType = "document",
                 TargetKind = "quote",
-                TargetRoute = $"/quotes?search={encodedNumber}",
+                TargetRoute = $"/quotes/{encodedNumber}",
                 TargetId = documentNumber,
                 CanOpen = true
             },
@@ -293,7 +295,7 @@ public static class CurrentAccountEndpoints
             {
                 TargetType = "document",
                 TargetKind = "credit-note",
-                TargetRoute = $"/credit-notes/{encodedNumber}?customerId={movement.CustomerId}",
+                TargetRoute = officialDocument.CreditNoteRoute,
                 TargetId = documentNumber,
                 CanOpen = true
             },
@@ -302,7 +304,7 @@ public static class CurrentAccountEndpoints
             {
                 TargetType = "document",
                 TargetKind = "debit-note",
-                TargetRoute = $"/debit-notes/{encodedNumber}?customerId={movement.CustomerId}",
+                TargetRoute = officialDocument.DebitNoteRoute,
                 TargetId = documentNumber,
                 CanOpen = true
             },
@@ -335,4 +337,57 @@ public static class CurrentAccountEndpoints
             }
         };
     }
+
+    private static OfficialDocumentRouteParts BuildOfficialDocumentRouteParts(
+        CurrentAccountMovement movement,
+        string? shortCode,
+        string encodedNumber)
+    {
+        var voucherType = shortCode switch
+        {
+            "FA" or "NCA" or "NDA" => "A",
+            "FB" or "NCB" or "NDB" => "B",
+            _ => null
+        };
+
+        var pointOfSale = TryExtractPointOfSale(movement.Description, movement.DocumentNumber);
+        var customerQuery = $"?customerId={movement.CustomerId}";
+        var officialPath = voucherType != null && pointOfSale.HasValue
+            ? $"/{voucherType}/{pointOfSale.Value:D4}/{encodedNumber}"
+            : voucherType != null
+                ? $"/{voucherType}/{encodedNumber}"
+                : $"/{encodedNumber}";
+
+        return new OfficialDocumentRouteParts(
+            InvoiceRoute: $"/invoices{officialPath}{customerQuery}",
+            CreditNoteRoute: $"/credit-notes{officialPath}{customerQuery}",
+            DebitNoteRoute: $"/debit-notes{officialPath}{customerQuery}");
+    }
+
+    private static int? TryExtractPointOfSale(string? description, long documentNumber)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        var match = OfficialDocumentDescriptionRegex().Match(description);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var parsedNumber = long.Parse(match.Groups["number"].Value, CultureInfo.InvariantCulture);
+        if (parsedNumber != documentNumber)
+        {
+            return null;
+        }
+
+        return int.Parse(match.Groups["point"].Value, CultureInfo.InvariantCulture);
+    }
+
+    [GeneratedRegex(@"\b[AB]\s+(?<point>\d{4})-(?<number>\d{8})\b", RegexOptions.IgnoreCase)]
+    private static partial Regex OfficialDocumentDescriptionRegex();
+
+    private sealed record OfficialDocumentRouteParts(string InvoiceRoute, string CreditNoteRoute, string DebitNoteRoute);
 }

@@ -56,13 +56,42 @@ public class CreditNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await createResponse.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
 
-        var response = await _client.GetAsync($"/api/notas-credito/number/{created!.CreditNoteNumber}?customerId={created.CustomerId}");
+        var response = await _client.GetAsync($"/api/notas-credito/number/{created!.CreditNoteNumber}?customerId={created.CustomerId}&voucherType={created.VoucherType}&pointOfSale={created.PointOfSale}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var note = await response.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
         note.Should().NotBeNull();
         note!.CreditNoteNumber.Should().Be(created.CreditNoteNumber);
         note.CustomerId.Should().Be(created.CustomerId);
+        note.VoucherType.Should().Be(created.VoucherType);
+        note.PointOfSale.Should().Be(created.PointOfSale);
+    }
+
+    [Fact]
+    public async Task SearchCreditNotes_WithOfficialFormattedTerm_ReturnsExactDocumentOnly()
+    {
+        var createRequest = new CreateCreditNoteRequest
+        {
+            BranchId = 1,
+            VoucherType = "A",
+            CustomerId = 1,
+            Details = new List<CreateCreditNoteDetalleRequest>
+            {
+                new CreateCreditNoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/notas-credito", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreditNoteCompletaResponse>();
+        var officialNumber = $"NC {created!.VoucherType} {created.PointOfSale:D4}-{created.CreditNoteNumber:D8}";
+
+        var response = await _client.GetAsync($"/api/notas-credito/buscar?termino={Uri.EscapeDataString(officialNumber)}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var notes = await response.Content.ReadFromJsonAsync<List<CreditNoteResponse>>();
+        notes.Should().NotBeNull();
+        notes.Should().ContainSingle(n => n.Id == created.Id);
     }
 
     [Fact]

@@ -56,13 +56,42 @@ public class DebitNotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await createResponse.Content.ReadFromJsonAsync<DebitNoteCompletaResponse>();
 
-        var response = await _client.GetAsync($"/api/notas-debito/number/{created!.DebitNoteNumber}?customerId={created.CustomerId}");
+        var response = await _client.GetAsync($"/api/notas-debito/number/{created!.DebitNoteNumber}?customerId={created.CustomerId}&voucherType={created.VoucherType}&pointOfSale={created.PointOfSale}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var note = await response.Content.ReadFromJsonAsync<DebitNoteCompletaResponse>();
         note.Should().NotBeNull();
         note!.DebitNoteNumber.Should().Be(created.DebitNoteNumber);
         note.CustomerId.Should().Be(created.CustomerId);
+        note.VoucherType.Should().Be(created.VoucherType);
+        note.PointOfSale.Should().Be(created.PointOfSale);
+    }
+
+    [Fact]
+    public async Task SearchDebitNotes_WithOfficialFormattedTerm_ReturnsExactDocumentOnly()
+    {
+        var createRequest = new CreateDebitNoteRequest
+        {
+            BranchId = 1,
+            VoucherType = "A",
+            CustomerId = 1,
+            Details = new List<CreateDebitNoteDetalleRequest>
+            {
+                new CreateDebitNoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+
+        var createResponse = await _client.PostAsJsonAsync("/api/notas-debito", createRequest);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<DebitNoteCompletaResponse>();
+        var officialNumber = $"ND {created!.VoucherType} {created.PointOfSale:D4}-{created.DebitNoteNumber:D8}";
+
+        var response = await _client.GetAsync($"/api/notas-debito/buscar?termino={Uri.EscapeDataString(officialNumber)}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var notes = await response.Content.ReadFromJsonAsync<List<DebitNoteResponse>>();
+        notes.Should().NotBeNull();
+        notes.Should().ContainSingle(n => n.Id == created.Id);
     }
 
     [Fact]

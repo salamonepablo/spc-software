@@ -65,3 +65,235 @@
 - Risks / Follow-ups:
   - Restart Pi or run `/reload` so the new Pi package/MCP config is active in the interactive runtime.
   - If direct Engram MCP tools are still not shown, verify the `engram` binary is on PATH in the Pi process or set `ENGRAM_BIN` explicitly.
+
+## 2026-06-02 - Current Account New-Tab Document Navigation
+
+- Date: 2026-06-02
+- Scope: Updated current account movement document navigation so opening a linked document preserves the current account origin page in the existing tab.
+- Routing Decision: Direct TDD UI behavior change; scoped to one Blazor page. Project skills used: session-sync, tdd-feature, architecture-guard.
+- Files changed:
+  - `SPC.Web/Components/Pages/CuentaCorriente/Index.razor`
+  - `SPC.Tests/Unit/CurrentAccountSearchFlowComponentLogicTests.cs`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation/UI behavior only.
+  - Domain, API contracts, persistence, and business rules unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: Initially added `OpenDocument_OpensTargetRouteInNewBrowserTab` to capture the new-tab requirement.
+  - GREEN: Implemented new-tab opening behavior.
+  - REFACTOR: Replaced JS/navigation handling with native anchor links using `target="_blank"` and `rel="noopener noreferrer"` for immediate browser-managed tab opening.
+- Tests added/updated:
+  - Unit: Existing current account component-logic tests preserved; obsolete JS-interoperability test removed after native-anchor refactor.
+  - Integration: none.
+  - Regression: none beyond existing navigation metadata coverage.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter CurrentAccountSearchFlowComponentLogicTests` passed, 4/4 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 300/300 tests.
+- Risks / Follow-ups:
+  - Native anchor behavior should avoid popup-blocker timing issues and preserve the origin tab.
+
+## 2026-06-02 - Quote Direct Navigation and Numeric Search Optimization
+
+- Date: 2026-06-02
+- Scope: Fixed slow quote document opening from current account by replacing quote-list search navigation with direct quote-number detail navigation and optimizing numeric quote searches.
+- Routing Decision: Direct TDD API/Web change; no callable subagent tooling available in this session, and the change remained bounded to quote query/navigation paths. Project skills used: session-sync, tdd-feature, architecture-guard.
+- Files changed:
+  - `SPC.API/Endpoints/CurrentAccountEndpoints.cs`
+  - `SPC.API/Endpoints/PresupuestosEndpoints.cs`
+  - `SPC.API/Services/IQuoteQueryService.cs`
+  - `SPC.API/Services/QuoteQueryService.cs`
+  - `SPC.Tests/Integration/CurrentAccountEndpointsTests.cs`
+  - `SPC.Tests/Integration/PresupuestosEndpointsTests.cs`
+  - `SPC.Web/Components/Pages/CuentaCorriente/Index.razor`
+  - `SPC.Web/Components/Pages/Presupuestos/Index.razor`
+  - `SPC.Web/Services/ApiService.cs`
+  - `SPC.Web/Services/IApiService.cs`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation: current account links now use native new-tab anchors; quote page supports `/quotes/{QuoteNumber:long}` direct loading.
+  - API/Application service: quote query service now exposes direct lookup by quote number and numeric searches avoid broad customer `Contains` filters.
+  - Domain and persistence schema unchanged.
+  - Clean Architecture boundary preserved: UI consumes API service; endpoint delegates to query service.
+- TDD evidence:
+  - RED: Added `GetQuoteByNumber_ReturnsQuoteDetails_WhenQuoteExists` and `SearchQuotes_WithNumericTerm_ReturnsExactQuoteNumberOnly`; updated current account navigation metadata expectation from `/quotes?search=...` to `/quotes/...`.
+  - GREEN: Added `GetByNumberAsync`, `/api/quotes/by-number/{quoteNumber}`, Web `GetQuoteByNumberAsync`, direct `/quotes/{QuoteNumber:long}` route, and current account quote route mapping.
+  - REFACTOR: Numeric `SearchAsync` now branches to exact `QuoteNumber` filtering and avoids customer text predicates for numeric terms.
+- Tests added/updated:
+  - Integration: Added quote-by-number endpoint test; added numeric exact quote search test; updated current account quote navigation route assertion.
+  - Unit: Removed obsolete JS interop test after native-anchor refactor.
+  - Regression: Quote direct navigation avoids the slow `/quotes?search=<number>` list-search flow shown in user server logs.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~PresupuestosEndpointsTests|FullyQualifiedName~CurrentAccountEndpointsTests|FullyQualifiedName~CurrentAccountSearchFlowComponentLogicTests"` passed, 20/20 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 301/301 tests.
+- Risks / Follow-ups:
+  - Direct quote detail now depends on quote numbers being unique enough for navigation; current system already treats `DocumentNumber` as the quote number in current account movements.
+
+## 2026-06-02 - Official Document Direct Navigation Expansion
+
+- Date: 2026-06-02
+- Scope: Extended direct current account document navigation to invoices, credit notes, and debit notes using official document identity (`A/B`, point of sale, document number, customer filter).
+- Routing Decision: Direct TDD API/Web change; no callable subagent tooling available in this session. The change is broad enough to watch review workload, but all edits stayed within current-account navigation and official document query paths.
+- Files changed:
+  - `SPC.API/Endpoints/CurrentAccountEndpoints.cs`
+  - `SPC.API/Endpoints/FacturasEndpoints.cs`
+  - `SPC.API/Endpoints/NotasCreditoEndpoints.cs`
+  - `SPC.API/Endpoints/NotasDebitoEndpoints.cs`
+  - `SPC.API/Services/IInvoiceQueryService.cs`
+  - `SPC.API/Services/InvoiceQueryService.cs`
+  - `SPC.API/Services/ICreditNoteQueryService.cs`
+  - `SPC.API/Services/CreditNoteQueryService.cs`
+  - `SPC.API/Services/IDebitNoteQueryService.cs`
+  - `SPC.API/Services/DebitNoteQueryService.cs`
+  - `SPC.API/Services/OfficialDocumentSearchParser.cs`
+  - `SPC.Tests/Integration/CurrentAccountEndpointsTests.cs`
+  - `SPC.Tests/Integration/FacturasEndpointsTests.cs`
+  - `SPC.Tests/Integration/NotasCreditoEndpointsTests.cs`
+  - `SPC.Tests/Integration/NotasDebitoEndpointsTests.cs`
+  - `SPC.Web/Components/Pages/Facturas/Index.razor`
+  - `SPC.Web/Components/Pages/CreditNotes/Detail.razor`
+  - `SPC.Web/Components/Pages/DebitNotes/Detail.razor`
+  - `SPC.Web/Services/ApiService.cs`
+  - `SPC.Web/Services/IApiService.cs`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation: invoice, credit note, and debit note pages support direct official-document routes.
+  - API/Application service: invoice lookup by official document identity added; NC/ND lookups accept voucher type and point-of-sale filters; official formatted search parsing centralized in `OfficialDocumentSearchParser`.
+  - Domain and persistence schema unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: Added/updated integration tests for current account official routes, invoice by-document lookup, invoice official formatted search, and NC/ND official formatted search/filtering.
+  - GREEN: Implemented official document parser, exact query filtering, route generation, API endpoints, and Web service/page wiring.
+  - REFACTOR: Avoided broad customer `Contains` predicates for official/numeric document searches.
+- Tests added/updated:
+  - Integration: Current account route assertions; invoice by-document and official search tests; NC/ND official search and filtered number lookup tests.
+  - Unit: none.
+  - Regression: Covers official formats such as `A 0002-00009866`, `NC A 0002-00000001`, and `ND A 0002-00000001`.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~FacturasEndpointsTests|FullyQualifiedName~NotasCreditoEndpointsTests|FullyQualifiedName~NotasDebitoEndpointsTests|FullyQualifiedName~CurrentAccountEndpointsTests"` passed, 17/17 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 305/305 tests.
+- Risks / Follow-ups:
+  - Current account official-document routes depend on movement descriptions containing the point-of-sale segment. If historical rows lack it, routes fall back to type + number + customer filter.
+  - Diff size is above 400 changed lines; consider a focused review around parser/query semantics before merge.
+
+## 2026-06-02 - Invoice Tax Breakdown and Range Guardrail Feedback
+
+- Date: 2026-06-02
+- Scope: Improved invoice detail readability and current account range-search error handling after manual UX testing.
+- Routing Decision: Direct UI/service adjustment; small follow-up within active navigation UX work.
+- Files changed:
+  - `SPC.Web/Components/Pages/Facturas/Index.razor`
+  - `SPC.Web/Components/Pages/CuentaCorriente/Index.razor`
+  - `SPC.Web/Services/ApiService.cs`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation/Web service only.
+  - API behavior and domain unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: Not a new business rule; change followed manual UX evidence from the user.
+  - GREEN: Displayed available invoice tax breakdown fields and converted current-account guardrail BadRequest into UI warning state.
+  - REFACTOR: Range guardrail responses now use a typed DTO in `ApiService` instead of surfacing as generic fetch failures.
+- Tests added/updated:
+  - Unit: none.
+  - Integration: none.
+  - Regression: existing invoice/current-account tests preserved.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CurrentAccountSearchFlowComponentLogicTests|FullyQualifiedName~FacturasEndpointsTests"` passed, 3/3 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 305/305 tests.
+- Risks / Follow-ups:
+  - Current invoice DTO/model has VAT, included VAT, and IIBB perception fields; no retention amount is currently available to display.
+
+## 2026-06-02 - Current Account Full-History Range Policy
+
+- Date: 2026-06-02
+- Scope: Changed current account explicit date-range searches to allow full customer history without a maximum date-span rejection or row truncation.
+- Routing Decision: Direct TDD policy adjustment in current account service and Web warning display.
+- Files changed:
+  - `SPC.API/Services/CurrentAccountService.cs`
+  - `SPC.API/Services/CurrentAccount/CurrentAccountGuardrailOptions.cs`
+  - `SPC.API/appsettings.json`
+  - `SPC.Tests/Unit/CurrentAccountServiceTests.cs`
+  - `SPC.Tests/Integration/CurrentAccountEndpointsTests.cs`
+  - `SPC.Web/Components/Pages/CuentaCorriente/Index.razor`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Application service policy changed for range query guardrails.
+  - Presentation displays warnings while still rendering all rows.
+  - Domain and persistence unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: Updated range guardrail tests to expect wide ranges to return OK/full history; added service test for large result warning without truncation.
+  - GREEN: Removed `MaxRangeDays`, removed reject/truncate modes for result size, and made `MaxRows` a warning threshold only.
+  - REFACTOR: Simplified guardrail options to `MaxRows` and made UI show non-blocking warnings.
+- Tests added/updated:
+  - Unit: `GetMovementsByRangeAsync_AllowsWideRanges_WhenUserRequestsFullHistory`; `GetMovementsByRangeAsync_ReturnsAllRowsWithWarning_WhenResultExceedsConfiguredThreshold`.
+  - Integration: `GetCurrentAccountMovementsRange_AllowsWideRanges_ForFullCustomerHistory`.
+  - Regression: Existing current-account range/list tests preserved.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CurrentAccountServiceTests|FullyQualifiedName~CurrentAccountEndpointsTests|FullyQualifiedName~CurrentAccountSearchFlowComponentLogicTests"` passed, 55/55 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 306/306 tests.
+- Risks / Follow-ups:
+  - Very large histories will now load and render fully as requested; this can be slow and memory-heavy for both API and browser.
+  - `MaxRows` is now only the threshold for the warning message.
+
+## 2026-06-02 - NC/ND Fallback Detail Routes
+
+- Date: 2026-06-02
+- Scope: Fixed Blazor `Not Found` when opening a credit/debit note route that has voucher type and document number but no point-of-sale segment.
+- Routing Decision: Direct one-line route additions per detail page after user-provided screenshot/log.
+- Files changed:
+  - `SPC.Web/Components/Pages/CreditNotes/Detail.razor`
+  - `SPC.Web/Components/Pages/DebitNotes/Detail.razor`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation route surface only.
+  - API, domain, and persistence unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: User screenshot showed `/credit-notes/A/529?customerId=1370` rendering Blazor `Not Found` because the route template was missing.
+  - GREEN: Added `/credit-notes/{VoucherType}/{CreditNoteNumber:long}` and `/debit-notes/{VoucherType}/{DebitNoteNumber:long}` routes.
+  - REFACTOR: none.
+- Tests added/updated:
+  - Unit: none.
+  - Integration: none.
+  - Regression: existing NC/ND/current-account tests preserved.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~NotasCreditoEndpointsTests|FullyQualifiedName~NotasDebitoEndpointsTests|FullyQualifiedName~CurrentAccountEndpointsTests"` passed, 17/17 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 306/306 tests.
+- Risks / Follow-ups:
+  - If point-of-sale exists in movement description, direct route still uses the more specific type + point + number form.
+
+## 2026-06-02 - NC/ND Tax Breakdown Display
+
+- Date: 2026-06-02
+- Scope: Added tax breakdown totals to credit note and debit note detail screens.
+- Routing Decision: Direct UI parity fix with invoice detail display.
+- Files changed:
+  - `SPC.Web/Components/Pages/CreditNotes/Detail.razor`
+  - `SPC.Web/Components/Pages/DebitNotes/Detail.razor`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Presentation only.
+  - API, domain, and persistence unchanged.
+  - Clean Architecture boundary preserved.
+- TDD evidence:
+  - RED: Manual UX evidence from `NC-view-001.png` showed NC detail listed line subtotals and header total but not the tax/discount breakdown.
+  - GREEN: Added table footers for subtotal, IVA, Percepción IIBB, discount, and total when present.
+  - REFACTOR: Applied same footer structure to debit notes for consistency.
+- Tests added/updated:
+  - Unit: none.
+  - Integration: none.
+  - Regression: existing NC/ND endpoint tests preserved.
+- Validation results:
+  - Focused test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --filter "FullyQualifiedName~CreditNotesEndpointsTests|FullyQualifiedName~DebitNotesEndpointsTests"` passed, 16/16 tests.
+  - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 306/306 tests.
+- Risks / Follow-ups:
+  - Retention amounts are not available in current NC/ND DTO/model; only IVA, IIBB perception, discount, and total can be displayed.

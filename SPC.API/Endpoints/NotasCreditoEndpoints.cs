@@ -71,9 +71,11 @@ public static class CreditNotesEndpoints
         group.MapGet("/number/{creditNoteNumber:long}", async (
             long creditNoteNumber,
             int? customerId,
+            string? voucherType,
+            int? pointOfSale,
             ICreditNoteQueryService queryService) =>
         {
-            var note = await queryService.GetByNumberAsync(creditNoteNumber, customerId);
+            var note = await queryService.GetByNumberAsync(creditNoteNumber, customerId, voucherType, pointOfSale);
             return note != null
                 ? Results.Ok(note)
                 : Results.NotFound(new { error = "Nota de credito no encontrada" });

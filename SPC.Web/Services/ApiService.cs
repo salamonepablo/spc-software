@@ -432,6 +432,35 @@ public class ApiService : IApiService
         }
     }
 
+    public async Task<InvoiceCompletaDto?> GetInvoiceByDocumentAsync(string invoiceType, long invoiceNumber, int? pointOfSale = null, int? customerId = null)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+            if (pointOfSale.HasValue)
+            {
+                queryParams.Add($"pointOfSale={pointOfSale.Value}");
+            }
+            if (customerId.HasValue)
+            {
+                queryParams.Add($"customerId={customerId.Value}");
+            }
+
+            var queryString = queryParams.Count == 0 ? "" : $"?{string.Join("&", queryParams)}";
+            return await _http.GetFromJsonAsync<InvoiceCompletaDto>(
+                $"/api/invoices/by-document/{Uri.EscapeDataString(invoiceType)}/{invoiceNumber}{queryString}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching factura {InvoiceType} {InvoiceNumber}", invoiceType, invoiceNumber);
+            return null;
+        }
+    }
+
     public async Task<List<InvoiceDto>> BuscarInvoicesAsync(string termino)
     {
         try
@@ -506,6 +535,14 @@ public class ApiService : IApiService
         public int Total { get; set; }
     }
 
+    private class CurrentAccountGuardrailErrorDto
+    {
+        public string? Code { get; set; }
+        public string? Message { get; set; }
+        public string? GuardrailMode { get; set; }
+        public int RangeDays { get; set; }
+    }
+
     public async Task<InvoiceCompletaDto?> CreateInvoiceAsync(CreateInvoiceDto factura)
     {
         try
@@ -572,6 +609,23 @@ public class ApiService : IApiService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching presupuesto {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<QuoteCompletaDto?> GetQuoteByNumberAsync(long quoteNumber)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<QuoteCompletaDto>($"/api/quotes/by-number/{quoteNumber}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching presupuesto by quote number {QuoteNumber}", quoteNumber);
             return null;
         }
     }
@@ -780,11 +834,38 @@ public class ApiService : IApiService
             }
 
             var queryString = string.Join("&", queryParams);
-            return await _http.GetFromJsonAsync<CurrentAccountMovementsDto>(
-                $"/api/current-accounts/{customerId}/movements/range?{queryString}");
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
+            var response = await _http.GetAsync($"/api/current-accounts/{customerId}/movements/range?{queryString}");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<CurrentAccountMovementsDto>();
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var guardrail = await response.Content.ReadFromJsonAsync<CurrentAccountGuardrailErrorDto>();
+                _logger.LogWarning(
+                    "Current account range search rejected for customer {CustomerId}: {Code} - {Message}",
+                    customerId,
+                    guardrail?.Code,
+                    guardrail?.Message);
+
+                return new CurrentAccountMovementsDto
+                {
+                    CustomerId = customerId,
+                    GuardrailApplied = true,
+                    GuardrailMode = guardrail?.GuardrailMode ?? "rejected",
+                    WarningCode = guardrail?.Code,
+                    WarningMessage = guardrail?.Message ?? "La búsqueda fue rechazada por las reglas de rango de cuenta corriente.",
+                    RangeDays = guardrail?.RangeDays ?? 0
+                };
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            response.EnsureSuccessStatusCode();
             return null;
         }
         catch (Exception ex)
@@ -794,13 +875,11 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null)
+    public async Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null)
     {
         try
         {
-            var route = customerId.HasValue
-                ? $"/api/notas-credito/number/{creditNoteNumber}?customerId={customerId.Value}"
-                : $"/api/notas-credito/number/{creditNoteNumber}";
+            var route = BuildNoteByNumberRoute("/api/notas-credito/number", creditNoteNumber, customerId, voucherType, pointOfSale);
 
             return await _http.GetFromJsonAsync<CreditNoteDetailDto>(route);
         }
@@ -815,13 +894,11 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null)
+    public async Task<DebitNoteDetailDto?> GetDebitNoteByNumberAsync(long debitNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null)
     {
         try
         {
-            var route = customerId.HasValue
-                ? $"/api/notas-debito/number/{debitNoteNumber}?customerId={customerId.Value}"
-                : $"/api/notas-debito/number/{debitNoteNumber}";
+            var route = BuildNoteByNumberRoute("/api/notas-debito/number", debitNoteNumber, customerId, voucherType, pointOfSale);
 
             return await _http.GetFromJsonAsync<DebitNoteDetailDto>(route);
         }
@@ -834,6 +911,26 @@ public class ApiService : IApiService
             _logger.LogError(ex, "Error fetching debit note {DebitNoteNumber}", debitNoteNumber);
             return null;
         }
+    }
+
+    private static string BuildNoteByNumberRoute(string baseRoute, long documentNumber, int? customerId, string? voucherType, int? pointOfSale)
+    {
+        var queryParams = new List<string>();
+        if (customerId.HasValue)
+        {
+            queryParams.Add($"customerId={customerId.Value}");
+        }
+        if (!string.IsNullOrWhiteSpace(voucherType))
+        {
+            queryParams.Add($"voucherType={Uri.EscapeDataString(voucherType)}");
+        }
+        if (pointOfSale.HasValue)
+        {
+            queryParams.Add($"pointOfSale={pointOfSale.Value}");
+        }
+
+        var queryString = queryParams.Count == 0 ? "" : $"?{string.Join("&", queryParams)}";
+        return $"{baseRoute}/{documentNumber}{queryString}";
     }
 
     #endregion

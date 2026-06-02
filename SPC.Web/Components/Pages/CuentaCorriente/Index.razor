@@ -4,7 +4,6 @@
 @using SPC.Web.Services.Models
 @using SPC.Web.Components.Shared
 @inject IApiService Api
-@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <PageTitle>Cuenta Corriente - SPC</PageTitle>
@@ -137,6 +136,13 @@
                 Ajuste los filtros y haga clic en <strong>Buscar</strong> para cargar movimientos.
             </div>
         }
+        else if (movements.GuardrailMode == "rejected")
+        {
+            <div class="alert alert-warning">
+                <strong>Búsqueda demasiado amplia.</strong>
+                @(movements.WarningMessage ?? "Ajuste el rango de fechas y vuelva a intentar.")
+            </div>
+        }
         else if (movements.Movements.Count == 0)
         {
             <div class="alert alert-info">
@@ -145,6 +151,13 @@
         }
         else
         {
+            @if (movements.GuardrailApplied && !string.IsNullOrWhiteSpace(movements.WarningMessage))
+            {
+                <div class="alert alert-warning">
+                    @movements.WarningMessage
+                </div>
+            }
+
             <div class="card border-0 shadow-sm">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center bg-light">
                     <span class="small fw-semibold">Movimientos</span>
@@ -197,12 +210,13 @@
                                         <td class="py-1 text-nowrap">
                                             @if (CanOpenDocument(mov))
                                             {
-                                                <button type="button"
-                                                        class="btn btn-link btn-sm p-0 text-decoration-none"
-                                                        title="Ver documento"
-                                                        @onclick="() => OpenDocument(mov)">
+                                                <a class="btn btn-link btn-sm p-0 text-decoration-none"
+                                                   href="@mov.Navigation!.TargetRoute"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   title="Ver documento en nueva pestaña">
                                                     <code class="small">@mov.DocumentNumber</code>
-                                                </button>
+                                                </a>
                                             }
                                             else
                                             {
@@ -337,15 +351,6 @@
     {
         return movement.Navigation?.CanOpen == true
             && !string.IsNullOrWhiteSpace(movement.Navigation.TargetRoute);
-    }
-
-    private void OpenDocument(CurrentAccountMovementDto movement)
-    {
-        var route = movement.Navigation?.TargetRoute;
-        if (route != null)
-        {
-            Navigation.NavigateTo(route);
-        }
     }
 
     private static string GetUnavailableDocumentHint(CurrentAccountMovementDto movement)

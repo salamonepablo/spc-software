@@ -124,6 +124,26 @@ public static class InvoicesEndpoints
                 .WithDescription("Returns an invoice by ID with all details");
         }
 
+        // GET /api/invoices/by-document/{invoiceType}/{invoiceNumber} - Get invoice by official document identity
+        builder = group.MapGet("/by-document/{invoiceType}/{invoiceNumber:long}", async (
+            string invoiceType,
+            long invoiceNumber,
+            int? pointOfSale,
+            int? customerId,
+            IInvoiceQueryService queryService) =>
+        {
+            var invoice = await queryService.GetByDocumentAsync(invoiceType, invoiceNumber, pointOfSale, customerId);
+            return invoice != null
+                ? Results.Ok(invoice)
+                : Results.NotFound(new { error = "Invoice not found" });
+        });
+
+        if (includeMetadata)
+        {
+            builder.WithName("GetInvoiceByDocument")
+                .WithDescription("Returns an invoice by official document type, point of sale, and number");
+        }
+
         // GET /api/invoices/cliente/{id} - Get invoices by customer
         builder = group.MapGet("/cliente/{clienteId:int}", async (int clienteId, IInvoiceQueryService queryService) =>
         {

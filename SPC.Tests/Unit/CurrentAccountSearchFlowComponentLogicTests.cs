@@ -92,7 +92,6 @@ public class CurrentAccountSearchFlowComponentLogicTests
     {
         var component = new CuentaCorrienteIndex();
         SetProperty(component, "Api", api);
-        SetProperty(component, "Navigation", new TestNavigationManager());
         return component;
     }
 
@@ -125,18 +124,5 @@ public class CurrentAccountSearchFlowComponentLogicTests
         var property = target.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             ?? throw new MissingMemberException(target.GetType().FullName, propertyName);
         property.SetValue(target, value);
-    }
-
-    private sealed class TestNavigationManager : Microsoft.AspNetCore.Components.NavigationManager
-    {
-        public TestNavigationManager()
-        {
-            Initialize("http://localhost/", "http://localhost/");
-        }
-
-        protected override void NavigateToCore(string uri, bool forceLoad)
-        {
-            Uri = ToAbsoluteUri(uri).ToString();
-        }
     }
 }

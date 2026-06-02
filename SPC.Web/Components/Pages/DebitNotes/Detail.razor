@@ -1,4 +1,6 @@
 @page "/debit-notes/{DebitNoteNumber:long}"
+@page "/debit-notes/{VoucherType}/{DebitNoteNumber:long}"
+@page "/debit-notes/{VoucherType}/{PointOfSale:int}/{DebitNoteNumber:long}"
 @page "/notas-debito/{DebitNoteNumber:long}"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
@@ -76,6 +78,37 @@
                                 </tr>
                             }
                         </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="5" class="text-end"><strong>Subtotal:</strong></td>
+                                <td class="text-end text-nowrap">@debitNote.Subtotal.ToString("C2")</td>
+                            </tr>
+                            @if (debitNote.VATAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">IVA:</td>
+                                    <td class="text-end text-nowrap">@debitNote.VATAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (debitNote.IIBBAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">Percepción IIBB:</td>
+                                    <td class="text-end text-nowrap">@debitNote.IIBBAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (debitNote.DiscountAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-end">Descuento:</td>
+                                    <td class="text-end text-danger text-nowrap">-@debitNote.DiscountAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            <tr class="table-primary">
+                                <td colspan="5" class="text-end"><strong>TOTAL:</strong></td>
+                                <td class="text-end text-nowrap"><strong>@debitNote.Total.ToString("C2")</strong></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -86,6 +119,12 @@
 @code {
     [Parameter]
     public long DebitNoteNumber { get; set; }
+
+    [Parameter]
+    public string? VoucherType { get; set; }
+
+    [Parameter]
+    public int? PointOfSale { get; set; }
 
     [SupplyParameterFromQuery(Name = "customerId")]
     public int? CustomerId { get; set; }
@@ -99,7 +138,7 @@
 
         try
         {
-            debitNote = await Api.GetDebitNoteByNumberAsync(DebitNoteNumber, CustomerId);
+            debitNote = await Api.GetDebitNoteByNumberAsync(DebitNoteNumber, CustomerId, VoucherType, PointOfSale);
         }
         finally
         {

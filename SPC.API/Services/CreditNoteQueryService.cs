@@ -52,7 +52,7 @@ public class CreditNoteQueryService : ICreditNoteQueryService
         return MapToCompleteResponse(note);
     }
 
-    public async Task<CreditNoteCompletaResponse?> GetByNumberAsync(long creditNoteNumber, int? customerId = null)
+    public async Task<CreditNoteCompletaResponse?> GetByNumberAsync(long creditNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null)
     {
         var query = _db.CreditNotes
             .Include(n => n.Customer)
@@ -66,6 +66,19 @@ public class CreditNoteQueryService : ICreditNoteQueryService
         if (customerId.HasValue)
         {
             query = query.Where(n => n.CustomerId == customerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(voucherType))
+        {
+            var normalizedVoucherType = voucherType.Trim().ToUpperInvariant() == "A"
+                ? VoucherType.CreditNoteA
+                : VoucherType.CreditNoteB;
+            query = query.Where(n => n.VoucherType == normalizedVoucherType);
+        }
+
+        if (pointOfSale.HasValue)
+        {
+            query = query.Where(n => n.PointOfSale == pointOfSale.Value);
         }
 
         var note = await query
@@ -123,17 +136,38 @@ public class CreditNoteQueryService : ICreditNoteQueryService
 
     public async Task<IEnumerable<CreditNoteResponse>> SearchAsync(string term)
     {
-        long.TryParse(term.Replace("-", ""), out var noteNumber);
-
-        var notes = await _db.CreditNotes
+        var trimmedTerm = term.Trim();
+        var document = OfficialDocumentSearchParser.Parse(trimmedTerm);
+        var query = _db.CreditNotes
             .Include(n => n.Customer)
             .Include(n => n.SalesRep)
             .Include(n => n.Branch)
             .Include(n => n.Invoice)
             .Include(n => n.Details)
-            .Where(n => n.CreditNoteNumber == noteNumber ||
-                       n.Customer!.CompanyName.Contains(term) ||
-                       (n.Customer!.CUIT != null && n.Customer.CUIT.Contains(term)))
+            .AsQueryable();
+
+        if (document.Number.HasValue)
+        {
+            query = query.Where(n => n.CreditNoteNumber == document.Number.Value);
+
+            if (!string.IsNullOrWhiteSpace(document.Type))
+            {
+                var voucherType = document.Type == "A" ? VoucherType.CreditNoteA : VoucherType.CreditNoteB;
+                query = query.Where(n => n.VoucherType == voucherType);
+            }
+
+            if (document.PointOfSale.HasValue)
+            {
+                query = query.Where(n => n.PointOfSale == document.PointOfSale.Value);
+            }
+        }
+        else
+        {
+            query = query.Where(n => n.Customer!.CompanyName.Contains(trimmedTerm) ||
+                                     (n.Customer!.CUIT != null && n.Customer.CUIT.Contains(trimmedTerm)));
+        }
+
+        var notes = await query
             .OrderByDescending(n => n.CreditNoteDate)
             .Take(100)
             .ToListAsync();

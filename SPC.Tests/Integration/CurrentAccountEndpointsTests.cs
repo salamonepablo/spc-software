@@ -162,16 +162,16 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
     }
 
     [Fact]
-    public async Task GetCurrentAccountMovementsRange_ReturnsBadRequest_WithMachineReadableGuardrailCode_WhenRangeTooWide()
+    public async Task GetCurrentAccountMovementsRange_AllowsWideRanges_ForFullCustomerHistory()
     {
         // Act
         var response = await _client.GetAsync("/api/current-accounts/1/movements/range?dateFrom=2020-01-01&dateTo=2025-01-01");
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-        payload.Should().NotBeNull();
-        payload!["code"]!.ToString().Should().Be("RANGE_TOO_WIDE");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+        result.Should().NotBeNull();
+        result!.GuardrailMode.Should().NotBe("rejected");
     }
 
     [Fact]
@@ -205,7 +205,8 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
             MovementDate = new DateTime(2026, 3, 1),
             DocumentType = DocumentType.InvoiceA,
             DocumentNumber = 12345,
-            BillingAmount = 1000
+            BillingAmount = 1000,
+            Description = "Factura A 0002-00012345"
         });
 
         await SeedMovementAsync(new CurrentAccountMovement
@@ -228,14 +229,14 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
         var invoiceMovement = result!.Movements.Single(m => m.DocumentTypeCode == (int)DocumentType.InvoiceA);
         invoiceMovement.Navigation.TargetType.Should().Be("document");
         invoiceMovement.Navigation.TargetKind.Should().Be("invoice");
-        invoiceMovement.Navigation.TargetRoute.Should().Be("/invoices?search=12345");
+        invoiceMovement.Navigation.TargetRoute.Should().Be("/invoices/A/0002/12345?customerId=2");
         invoiceMovement.Navigation.TargetId.Should().Be("12345");
         invoiceMovement.Navigation.CanOpen.Should().BeTrue();
         invoiceMovement.Navigation.DisabledReason.Should().BeNull();
 
         var quoteMovement = result.Movements.Single(m => m.DocumentTypeCode == (int)DocumentType.Quote);
         quoteMovement.Navigation.TargetKind.Should().Be("quote");
-        quoteMovement.Navigation.TargetRoute.Should().Be("/quotes?search=54321");
+        quoteMovement.Navigation.TargetRoute.Should().Be("/quotes/54321");
         quoteMovement.Navigation.TargetId.Should().Be("54321");
         quoteMovement.Navigation.CanOpen.Should().BeTrue();
     }
@@ -259,7 +260,8 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
             MovementDate = new DateTime(2026, 3, 4),
             DocumentType = DocumentType.CreditNoteA,
             DocumentNumber = 8001,
-            BillingAmount = -100
+            BillingAmount = -100,
+            Description = "Nota de Crédito A 0002-00008001"
         });
 
         await SeedMovementAsync(new CurrentAccountMovement
@@ -268,7 +270,8 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
             MovementDate = new DateTime(2026, 3, 4),
             DocumentType = DocumentType.DebitNoteB,
             DocumentNumber = 8101,
-            BillingAmount = 100
+            BillingAmount = 100,
+            Description = "Nota de Débito B 0003-00008101"
         });
 
         await SeedMovementAsync(new CurrentAccountMovement
@@ -299,7 +302,7 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
         var creditNoteMovement = result.Movements.Single(m => m.DocumentTypeCode == (int)DocumentType.CreditNoteA);
         creditNoteMovement.Navigation.TargetType.Should().Be("document");
         creditNoteMovement.Navigation.TargetKind.Should().Be("credit-note");
-        creditNoteMovement.Navigation.TargetRoute.Should().Be("/credit-notes/8001?customerId=3");
+        creditNoteMovement.Navigation.TargetRoute.Should().Be("/credit-notes/A/0002/8001?customerId=3");
         creditNoteMovement.Navigation.TargetId.Should().Be("8001");
         creditNoteMovement.Navigation.CanOpen.Should().BeTrue();
         creditNoteMovement.Navigation.DisabledReason.Should().BeNull();
@@ -307,7 +310,7 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
         var debitNoteMovement = result.Movements.Single(m => m.DocumentTypeCode == (int)DocumentType.DebitNoteB);
         debitNoteMovement.Navigation.TargetType.Should().Be("document");
         debitNoteMovement.Navigation.TargetKind.Should().Be("debit-note");
-        debitNoteMovement.Navigation.TargetRoute.Should().Be("/debit-notes/8101?customerId=3");
+        debitNoteMovement.Navigation.TargetRoute.Should().Be("/debit-notes/B/0003/8101?customerId=3");
         debitNoteMovement.Navigation.TargetId.Should().Be("8101");
         debitNoteMovement.Navigation.CanOpen.Should().BeTrue();
         debitNoteMovement.Navigation.DisabledReason.Should().BeNull();
@@ -346,7 +349,7 @@ public class CurrentAccountEndpointsTests : IClassFixture<SPCWebApplicationFacto
         movement.DocumentTypeShortCode.Should().Be("FA");
         movement.Navigation.TargetType.Should().Be("document");
         movement.Navigation.TargetKind.Should().Be("invoice");
-        movement.Navigation.TargetRoute.Should().Be("/invoices?search=4501");
+        movement.Navigation.TargetRoute.Should().Be("/invoices/A/4501?customerId=4");
         movement.Navigation.TargetId.Should().Be("4501");
         movement.Navigation.CanOpen.Should().BeTrue();
         movement.Navigation.DisabledReason.Should().BeNull();

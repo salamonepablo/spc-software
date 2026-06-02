@@ -1,4 +1,6 @@
 ﻿@page "/invoices"
+@page "/invoices/{InvoiceType}/{InvoiceNumber:long}"
+@page "/invoices/{InvoiceType}/{PointOfSale:int}/{InvoiceNumber:long}"
 @page "/facturas"
 @using SPC.Web.Services
 @using SPC.Web.Services.Models
@@ -246,8 +248,22 @@
                             @if (facturaSeleccionada.VATAmount > 0)
                             {
                                 <tr>
-                                <td colspan="4" class="text-end">IVA:</td>
-                                <td class="text-end text-nowrap">@facturaSeleccionada.VATAmount.ToString("C2")</td>
+                                    <td colspan="4" class="text-end">IVA discriminado:</td>
+                                    <td class="text-end text-nowrap">@facturaSeleccionada.VATAmount.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (facturaSeleccionada.IncludedVAT > 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-end">IVA incluido:</td>
+                                    <td class="text-end text-nowrap">@facturaSeleccionada.IncludedVAT.ToString("C2")</td>
+                                </tr>
+                            }
+                            @if (facturaSeleccionada.IIBBPerceptionAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-end">Percepción IIBB:</td>
+                                    <td class="text-end text-nowrap">@facturaSeleccionada.IIBBPerceptionAmount.ToString("C2")</td>
                                 </tr>
                             }
                             @if (facturaSeleccionada.DiscountAmount > 0)
@@ -276,6 +292,18 @@
     [SupplyParameterFromQuery(Name = "search")]
     public string? SearchQuery { get; set; }
 
+    [Parameter]
+    public string? InvoiceType { get; set; }
+
+    [Parameter]
+    public int? PointOfSale { get; set; }
+
+    [Parameter]
+    public long? InvoiceNumber { get; set; }
+
+    [SupplyParameterFromQuery(Name = "customerId")]
+    public int? CustomerId { get; set; }
+
     private List<InvoiceDto>? facturas;
     private InvoicecionResumenDto? resumen;
     private InvoiceCompletaDto? facturaSeleccionada;
@@ -289,6 +317,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!string.IsNullOrWhiteSpace(InvoiceType) && InvoiceNumber.HasValue)
+        {
+            await LoadDirectInvoice(InvoiceType, InvoiceNumber.Value, PointOfSale, CustomerId);
+            return;
+        }
+
         var resumenTask = Api.GetInvoicecionResumenAsync();
         var countTask = Api.GetInvoicesCountAsync();
 
@@ -309,6 +343,26 @@
         facturas = await facturasTask;
         totalInvoices = await countTask;
         loading = false;
+    }
+
+    private async Task LoadDirectInvoice(string invoiceType, long invoiceNumber, int? pointOfSale, int? customerId)
+    {
+        searchTerm = pointOfSale.HasValue
+            ? $"{invoiceType} {pointOfSale.Value:D4}-{invoiceNumber:D8}"
+            : $"{invoiceType} {invoiceNumber}";
+        loading = true;
+        try
+        {
+            facturaSeleccionada = await Api.GetInvoiceByDocumentAsync(invoiceType, invoiceNumber, pointOfSale, customerId);
+            facturas = facturaSeleccionada == null
+                ? new List<InvoiceDto>()
+                : new List<InvoiceDto> { facturaSeleccionada };
+            totalInvoices = facturas.Count;
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 
     private async Task Search()

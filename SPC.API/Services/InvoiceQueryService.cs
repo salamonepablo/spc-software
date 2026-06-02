@@ -45,42 +45,35 @@ public class InvoiceQueryService : IInvoiceQueryService
 
         if (invoice == null) return null;
 
-        return new InvoiceCompletaResponse
+        return MapToCompleteResponse(invoice);
+    }
+
+    public async Task<InvoiceCompletaResponse?> GetByDocumentAsync(string invoiceType, long invoiceNumber, int? pointOfSale = null, int? customerId = null)
+    {
+        var normalizedType = invoiceType.Trim().ToUpperInvariant();
+        var query = _db.Invoices
+            .Include(f => f.Customer)
+            .Include(f => f.SalesRep)
+            .Include(f => f.Details)
+                .ThenInclude(d => d.Product)
+            .Where(f => f.InvoiceType == normalizedType && f.InvoiceNumber == invoiceNumber);
+
+        if (pointOfSale.HasValue)
         {
-            Id = invoice.Id,
-            InvoiceType = invoice.InvoiceType,
-            PointOfSale = invoice.PointOfSale,
-            InvoiceNumber = invoice.InvoiceNumber,
-            InvoiceDate = invoice.InvoiceDate,
-            CustomerId = invoice.CustomerId,
-            CustomerCompanyName = invoice.Customer.CompanyName,
-            CustomerCUIT = invoice.Customer.CUIT,
-            SalesRepId = invoice.SalesRepId,
-            SalesRepFirstName = invoice.SalesRep?.FirstName,
-            Subtotal = invoice.Subtotal,
-            VATAmount = invoice.VATAmount,
-            IncludedVAT = invoice.IncludedVAT,
-            IIBBPerceptionAmount = invoice.IIBBPerceptionAmount,
-            DiscountAmount = invoice.DiscountAmount,
-            Total = invoice.Total,
-            CAE = invoice.CAE,
-            CAEExpirationDate = invoice.CAEExpirationDate,
-            IsVoided = invoice.IsVoided,
-            ItemCount = invoice.Details.Count,
-            Details = invoice.Details.Select(d => new InvoiceDetailResponse
-            {
-                Id = d.Id,
-                ItemNumber = d.ItemNumber,
-                ProductId = d.ProductId,
-                ProductCode = d.Product.Code,
-                ProductDescription = d.Product.Description,
-                Quantity = d.Quantity,
-                UnitPrice = d.UnitPrice,
-                DiscountPercent = d.DiscountPercent,
-                VATPercent = d.VATPercent,
-                Subtotal = d.Subtotal
-            }).OrderBy(d => d.ItemNumber).ToList()
-        };
+            query = query.Where(f => f.PointOfSale == pointOfSale.Value);
+        }
+
+        if (customerId.HasValue)
+        {
+            query = query.Where(f => f.CustomerId == customerId.Value);
+        }
+
+        var invoice = await query
+            .OrderByDescending(f => f.InvoiceDate)
+            .ThenByDescending(f => f.Id)
+            .FirstOrDefaultAsync();
+
+        return invoice == null ? null : MapToCompleteResponse(invoice);
     }
 
     public async Task<IEnumerable<InvoiceResponse>> GetByCustomerAsync(int customerId)
@@ -113,15 +106,35 @@ public class InvoiceQueryService : IInvoiceQueryService
 
     public async Task<IEnumerable<InvoiceResponse>> SearchAsync(string term)
     {
-        long.TryParse(term.Replace("-", ""), out var invoiceNumber);
-
-        var invoices = await _db.Invoices
+        var trimmedTerm = term.Trim();
+        var document = OfficialDocumentSearchParser.Parse(trimmedTerm);
+        var query = _db.Invoices
             .Include(f => f.Customer)
             .Include(f => f.SalesRep)
             .Include(f => f.Details)
-            .Where(f => f.InvoiceNumber == invoiceNumber ||
-                       f.Customer.CompanyName.Contains(term) ||
-                       (f.Customer.CUIT != null && f.Customer.CUIT.Contains(term)))
+            .AsQueryable();
+
+        if (document.Number.HasValue)
+        {
+            query = query.Where(f => f.InvoiceNumber == document.Number.Value);
+
+            if (!string.IsNullOrWhiteSpace(document.Type))
+            {
+                query = query.Where(f => f.InvoiceType == document.Type);
+            }
+
+            if (document.PointOfSale.HasValue)
+            {
+                query = query.Where(f => f.PointOfSale == document.PointOfSale.Value);
+            }
+        }
+        else
+        {
+            query = query.Where(f => f.Customer.CompanyName.Contains(trimmedTerm) ||
+                                     (f.Customer.CUIT != null && f.Customer.CUIT.Contains(trimmedTerm)));
+        }
+
+        var invoices = await query
             .OrderByDescending(f => f.InvoiceDate)
             .Take(100)
             .ToListAsync();
@@ -168,6 +181,46 @@ public class InvoiceQueryService : IInvoiceQueryService
     // ===========================================
     // MAPPING
     // ===========================================
+
+    private static InvoiceCompletaResponse MapToCompleteResponse(Invoice invoice)
+    {
+        return new InvoiceCompletaResponse
+        {
+            Id = invoice.Id,
+            InvoiceType = invoice.InvoiceType,
+            PointOfSale = invoice.PointOfSale,
+            InvoiceNumber = invoice.InvoiceNumber,
+            InvoiceDate = invoice.InvoiceDate,
+            CustomerId = invoice.CustomerId,
+            CustomerCompanyName = invoice.Customer.CompanyName,
+            CustomerCUIT = invoice.Customer.CUIT,
+            SalesRepId = invoice.SalesRepId,
+            SalesRepFirstName = invoice.SalesRep?.FirstName,
+            Subtotal = invoice.Subtotal,
+            VATAmount = invoice.VATAmount,
+            IncludedVAT = invoice.IncludedVAT,
+            IIBBPerceptionAmount = invoice.IIBBPerceptionAmount,
+            DiscountAmount = invoice.DiscountAmount,
+            Total = invoice.Total,
+            CAE = invoice.CAE,
+            CAEExpirationDate = invoice.CAEExpirationDate,
+            IsVoided = invoice.IsVoided,
+            ItemCount = invoice.Details.Count,
+            Details = invoice.Details.Select(d => new InvoiceDetailResponse
+            {
+                Id = d.Id,
+                ItemNumber = d.ItemNumber,
+                ProductId = d.ProductId,
+                ProductCode = d.Product.Code,
+                ProductDescription = d.Product.Description,
+                Quantity = d.Quantity,
+                UnitPrice = d.UnitPrice,
+                DiscountPercent = d.DiscountPercent,
+                VATPercent = d.VATPercent,
+                Subtotal = d.Subtotal
+            }).OrderBy(d => d.ItemNumber).ToList()
+        };
+    }
 
     private static InvoiceResponse MapToResponse(Invoice invoice)
     {

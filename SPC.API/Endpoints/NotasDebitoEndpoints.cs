@@ -71,9 +71,11 @@ public static class DebitNotesEndpoints
         group.MapGet("/number/{debitNoteNumber:long}", async (
             long debitNoteNumber,
             int? customerId,
+            string? voucherType,
+            int? pointOfSale,
             IDebitNoteQueryService queryService) =>
         {
-            var note = await queryService.GetByNumberAsync(debitNoteNumber, customerId);
+            var note = await queryService.GetByNumberAsync(debitNoteNumber, customerId, voucherType, pointOfSale);
             return note != null
                 ? Results.Ok(note)
                 : Results.NotFound(new { error = "Nota de debito no encontrada" });

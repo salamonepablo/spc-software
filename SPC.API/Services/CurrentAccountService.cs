@@ -296,11 +296,6 @@ public class CurrentAccountService : ICurrentAccountService
             return CreateGuardrailResult(account, "rejected", "INVALID_RANGE", "dateTo must be greater than or equal to dateFrom", rangeDays);
         }
 
-        if (rangeDays > _guardrailOptions.MaxRangeDays)
-        {
-            return CreateGuardrailResult(account, "rejected", "RANGE_TOO_WIDE", $"Selected range exceeds the maximum allowed span of {_guardrailOptions.MaxRangeDays} days", rangeDays);
-        }
-
         var (initialBilling, initialBudget) = await CalculateInitialBalanceAsync(customerId, normalizedFrom);
 
         var query = _db.CurrentAccountMovements
@@ -317,11 +312,7 @@ public class CurrentAccountService : ICurrentAccountService
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        if (totalCount > _guardrailOptions.MaxRows &&
-            string.Equals(_guardrailOptions.OverflowMode, "rejected", StringComparison.OrdinalIgnoreCase))
-        {
-            return CreateGuardrailResult(account, "rejected", "TOO_MANY_ROWS", $"Search would return {totalCount} rows, above configured max {_guardrailOptions.MaxRows}", rangeDays);
-        }
+        var largeResultWarning = totalCount > _guardrailOptions.MaxRows;
 
         var orderedQuery = query
             .OrderBy(m => m.MovementDate)
@@ -332,19 +323,15 @@ public class CurrentAccountService : ICurrentAccountService
         string? warningCode = null;
         string? warningMessage = null;
 
-        List<CurrentAccountMovement> movements;
-        if (totalCount > _guardrailOptions.MaxRows)
+        if (largeResultWarning)
         {
             guardrailApplied = true;
-            guardrailMode = "truncated";
-            warningCode = "TOO_MANY_ROWS";
-            warningMessage = $"Result truncated to configured max {_guardrailOptions.MaxRows} rows";
-            movements = await orderedQuery.Take(_guardrailOptions.MaxRows).ToListAsync(cancellationToken);
+            guardrailMode = "warning";
+            warningCode = "LARGE_RESULT";
+            warningMessage = $"La búsqueda devuelve {totalCount} movimientos y puede demorar o generar un historial muy extenso.";
         }
-        else
-        {
-            movements = await orderedQuery.ToListAsync(cancellationToken);
-        }
+
+        var movements = await orderedQuery.ToListAsync(cancellationToken);
 
         RecalculateRunningBalances(movements, initialBilling, initialBudget);
 

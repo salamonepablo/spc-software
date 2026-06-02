@@ -14,6 +14,9 @@ public interface IQuoteQueryService
     /// <summary>Get quote by ID with all details</summary>
     Task<QuoteCompletoResponse?> GetByIdAsync(int id);
 
+    /// <summary>Get quote by quote number with all details</summary>
+    Task<QuoteCompletoResponse?> GetByNumberAsync(long quoteNumber);
+
     /// <summary>Get quotes by customer</summary>
     Task<IEnumerable<QuoteResponse>> GetByCustomerAsync(int customerId);
 

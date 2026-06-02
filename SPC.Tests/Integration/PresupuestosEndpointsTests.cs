@@ -55,6 +55,60 @@ public class QuotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetQuoteByNumber_ReturnsQuoteDetails_WhenQuoteExists()
+    {
+        // Arrange
+        var request = new CreateQuoteRequest
+        {
+            BranchId = 1,
+            CustomerId = 1,
+            Details = new List<CreateQuoteDetalleRequest>
+            {
+                new CreateQuoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/quotes", request);
+        var createdQuote = await createResponse.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
+
+        // Act
+        var response = await _client.GetAsync($"/api/quotes/by-number/{createdQuote!.QuoteNumber}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var quote = await response.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
+        quote.Should().NotBeNull();
+        quote!.Id.Should().Be(createdQuote.Id);
+        quote.QuoteNumber.Should().Be(createdQuote.QuoteNumber);
+        quote.Details.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task SearchQuotes_WithNumericTerm_ReturnsExactQuoteNumberOnly()
+    {
+        // Arrange
+        var request = new CreateQuoteRequest
+        {
+            BranchId = 1,
+            CustomerId = 1,
+            Details = new List<CreateQuoteDetalleRequest>
+            {
+                new CreateQuoteDetalleRequest { ProductId = 1, Quantity = 1 }
+            }
+        };
+        var createResponse = await _client.PostAsJsonAsync("/api/quotes", request);
+        var createdQuote = await createResponse.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
+
+        // Act
+        var response = await _client.GetAsync($"/api/quotes/buscar?termino={createdQuote!.QuoteNumber}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var quotes = await response.Content.ReadFromJsonAsync<List<QuoteResponse>>();
+        quotes.Should().NotBeNull();
+        quotes.Should().ContainSingle(q => q.Id == createdQuote.Id && q.QuoteNumber == createdQuote.QuoteNumber);
+    }
+
+    [Fact]
     public async Task CreateQuote_ReturnsCreated_WithValidData()
     {
         // Arrange
