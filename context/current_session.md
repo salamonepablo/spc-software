@@ -1,13 +1,29 @@
 # Current Session Context
 
-**Last Updated:** 2026-06-02
+**Last Updated:** 2026-06-16
 **Branch:** main
 **Version:** 1.0.0
-**Tests:** 306 passing (`dotnet test SPC.Tests/SPC.Tests.csproj -c Release`, 2026-06-02).
+**Tests:** 306 passing (`dotnet test SPC.Tests/SPC.Tests.csproj -c Release --no-restore`, 2026-06-16).
 
 ---
 
-## Session Summary (2026-06-02)
+## Session Summary (2026-06-16)
+
+Inspected failed `/sdd-init` state and restored the valid OpenSpec config baseline.
+
+### Completed
+- Confirmed the failed `/sdd-init` overwrote `openspec/config.yaml` with an incorrect Node.js/TypeScript/Python profile and disabled strict TDD.
+- Restored `openspec/config.yaml` from `openspec/OLD/config_20260616.yaml`, which correctly identifies the repository as .NET 10 / C# with xUnit tests.
+- Verified no Node.js/Python project markers exist at repository depth checked (`package.json`, `pyproject.toml`, etc. absent).
+- Confirmed repository test baseline remains green: 306/306 passing.
+
+### Current Working Tree Notes
+- `openspec/config.yaml` is restored to match the tracked baseline.
+- Removed the untracked `openspec/OLD/` backup directory after user approval.
+
+---
+
+## Previous Session Summary (2026-06-02)
 
 Completed **OpenSpec context reset / SDD init baseline**.
 

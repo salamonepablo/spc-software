@@ -297,3 +297,30 @@
   - Full test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release` passed, 306/306 tests.
 - Risks / Follow-ups:
   - Retention amounts are not available in current NC/ND DTO/model; only IVA, IIBB perception, discount, and total can be displayed.
+
+## 2026-06-16 - Failed SDD Init Inspection and Config Restore
+
+- Date: 2026-06-16
+- Scope: Inspected failed `/sdd-init` state after it misdetected the repository as Node.js/TypeScript/Python and disabled strict TDD.
+- Routing Decision: Direct inspection and artifact repair; no runtime code changes required.
+- Files changed:
+  - `openspec/config.yaml` restored from `openspec/OLD/config_20260616.yaml`
+  - `context/current_session.md`
+  - `context/session_2026-06.md`
+- Architectural impact:
+  - Process/artifact-only change; no application layer or runtime behavior changed.
+  - Restored OpenSpec metadata to the actual .NET 10 / C# architecture and strict TDD expectations.
+- TDD evidence:
+  - RED: Not applicable; no production code changed.
+  - GREEN: Restored the known-good OpenSpec config baseline.
+  - REFACTOR: Not applicable.
+- Tests added/updated:
+  - Unit: none.
+  - Integration: none.
+  - Regression: none.
+- Validation results:
+  - Repository markers: found `.csproj` projects for API, Web, Shared, Tests, Migration; no `package.json`, `pyproject.toml`, `requirements.txt`, `setup.py`, or `pytest.ini` found at inspected depth.
+  - Test command + result: `dotnet test SPC.Tests/SPC.Tests.csproj -c Release --no-restore` passed, 306/306 tests.
+  - Git status: `openspec/config.yaml` no longer differs from tracked baseline; untracked `openspec/OLD/` backup directory was removed after user approval.
+- Risks / Follow-ups:
+  - Avoid rerunning the broken `/sdd-init` detector until the detection issue is fixed or bypassed.
