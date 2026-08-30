@@ -14,7 +14,7 @@ public class DocumentTypeMigrationValidationTests
     public async Task DocumentTypeMasterCatalogUpgrade_MigratesLegacyRows_AndRemainsConsistent()
     {
         var databaseName = $"SPC_DocTypeMigration_{Guid.NewGuid():N}";
-        var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+        var connectionString = GetTestConnectionString(databaseName);
 
         try
         {
@@ -89,7 +89,7 @@ public class DocumentTypeMigrationValidationTests
     public async Task DocumentTypeCatalogVerifier_PassesAfterMigration_AndFailsWhenRequiredCodeInactive()
     {
         var databaseName = $"SPC_DocTypeVerifier_{Guid.NewGuid():N}";
-        var connectionString = $"Server=(localdb)\\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+        var connectionString = GetTestConnectionString(databaseName);
 
         try
         {
@@ -114,6 +114,14 @@ public class DocumentTypeMigrationValidationTests
             await using var cleanupContext = CreateSqlServerContext(connectionString);
             await cleanupContext.Database.EnsureDeletedAsync();
         }
+    }
+
+    private static string GetTestConnectionString(string databaseName)
+    {
+        var saPassword = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
+        return string.IsNullOrEmpty(saPassword)
+            ? $"Server=(localdb)\\MSSQLLocalDB;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True;"
+            : $"Server=localhost,1433;Database={databaseName};User Id=sa;Password={saPassword};TrustServerCertificate=True;";
     }
 
     private static SPCDbContext CreateSqlServerContext(string connectionString)
