@@ -85,3 +85,5 @@ MIGRATION_INSTRUCTIONS_*.md
 
 # Windows null device artifact
 nul
+sync-spc.ps1
+sync-log.txt
