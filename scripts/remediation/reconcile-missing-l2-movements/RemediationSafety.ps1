@@ -68,7 +68,8 @@ function Resolve-PreflightErrorCategory {
         'ManifestTargetUnapproved',
         'ManifestMovementNotUnique',
         'ManifestDocumentNotUnique',
-        'ManifestQuoteNotUnique'
+        'ManifestQuoteNotUnique',
+        'ManifestExpectedTotalInvalid'
     )
     if ($allowedCategories -contains $ErrorMessage) { return $ErrorMessage }
     return 'PreflightFailed'
@@ -84,18 +85,20 @@ function Assert-ManifestControls {
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.approvalControl)) { throw 'ManifestApprovalInvalid' }
     if ($Manifest.expectedTargetCount -ne 9 -or @($Manifest.targets).Count -ne 9) { throw 'ManifestTargetCountInvalid' }
     foreach ($target in @($Manifest.targets)) {
-        foreach ($propertyName in @('movementControl', 'customerControl', 'documentControl', 'quoteControl')) {
+        foreach ($propertyName in @('movementId', 'customerId', 'documentNumber', 'quoteId', 'branchId')) {
             $property = $target.PSObject.Properties[$propertyName]
-            if ($null -eq $property -or [string]::IsNullOrWhiteSpace([string]$property.Value)) { throw 'ManifestTargetShapeInvalid' }
+            if ($null -eq $property -or ($property.Value -isnot [int] -and $property.Value -isnot [long]) -or $property.Value -le 0) { throw 'ManifestTargetShapeInvalid' }
         }
+        $expectedTotalProperty = $target.PSObject.Properties['expectedTotal']
+        if ($null -eq $expectedTotalProperty -or -not ($expectedTotalProperty.Value -is [double] -or $expectedTotalProperty.Value -is [decimal]) -or $expectedTotalProperty.Value -le 0) { throw 'ManifestExpectedTotalInvalid' }
         if ($null -eq $target.PSObject.Properties['approved'] -or $target.approved -isnot [bool]) { throw 'ManifestTargetShapeInvalid' }
     }
-    $customers = @($Manifest.targets | ForEach-Object customerControl | Select-Object -Unique)
+    $customers = @($Manifest.targets | ForEach-Object customerId | Select-Object -Unique)
     if ($Manifest.expectedCustomerCount -ne 4 -or $customers.Count -ne 4) { throw 'ManifestCustomerCountInvalid' }
     if (@($Manifest.targets | Where-Object { -not $_.approved }).Count -ne 0) { throw 'ManifestTargetUnapproved' }
-    if (@($Manifest.targets | ForEach-Object movementControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestMovementNotUnique' }
-    if (@($Manifest.targets | ForEach-Object documentControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestDocumentNotUnique' }
-    if (@($Manifest.targets | ForEach-Object quoteControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestQuoteNotUnique' }
+    if (@($Manifest.targets | ForEach-Object movementId | Select-Object -Unique).Count -ne 9) { throw 'ManifestMovementNotUnique' }
+    if (@($Manifest.targets | ForEach-Object documentNumber | Select-Object -Unique).Count -ne 9) { throw 'ManifestDocumentNotUnique' }
+    if (@($Manifest.targets | ForEach-Object quoteId | Select-Object -Unique).Count -ne 9) { throw 'ManifestQuoteNotUnique' }
     [pscustomobject]@{ TargetCount = 9; CustomerCount = 4; UniqueMovementCount = 9; UniqueDocumentCount = 9; UniqueQuoteCount = 9 }
 }
 

@@ -1,25 +1,27 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "External approved remediation manifest template",
-  "type": "object",
-  "required": ["approvalControl", "expectedTargetCount", "expectedCustomerCount", "targets"],
-  "properties": {
-    "approvalControl": { "type": "string", "description": "<external approval control>" },
-    "expectedTargetCount": { "type": "integer", "description": "<externally approved target count>" },
-    "expectedCustomerCount": { "type": "integer", "description": "<externally approved customer count>" },
-    "targets": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["movementControl", "customerControl", "documentControl", "quoteControl", "approved"],
-        "properties": {
-          "movementControl": { "type": "string", "description": "<external movement control>" },
-          "customerControl": { "type": "string", "description": "<external customer control>" },
-          "documentControl": { "type": "string", "description": "<external document control>" },
-          "quoteControl": { "type": "string", "description": "<external quote control>" },
-          "approved": { "type": "boolean" }
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "External approved remediation manifest template",
+      "type": "object",
+      "required": ["approvalControl", "expectedTargetCount", "expectedCustomerCount", "targets"],
+      "properties": {
+        "approvalControl": { "type": "string", "description": "<external approval control>" },
+        "expectedTargetCount": { "type": "integer", "description": "<externally approved target count>" },
+        "expectedCustomerCount": { "type": "integer", "description": "<externally approved customer count>" },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["movementId", "customerId", "documentNumber", "quoteId", "branchId", "expectedTotal", "approved"],
+            "properties": {
+              "movementId": { "type": "integer", "description": "<external movement identity>" },
+              "customerId": { "type": "integer", "description": "<external customer identity>" },
+              "documentNumber": { "type": "integer", "description": "<external document number>" },
+              "quoteId": { "type": "integer", "description": "<external quote identity>" },
+              "branchId": { "type": "integer", "description": "<external branch identity>" },
+              "expectedTotal": { "type": "number", "description": "<externally approved authoritative quote total>" },
+              "approved": { "type": "boolean" }
+            }
+          }
         }
       }
     }
-  }
-}
