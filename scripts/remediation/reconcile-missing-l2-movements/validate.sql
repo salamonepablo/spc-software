@@ -5,6 +5,10 @@
      #BeforeAccountSnapshot  (Id, CustomerId, BillingBalance, BudgetBalance, TotalBalance)
    No mutation is performed. All checks are SELECT-based with THROW on failure. */
 
+-- Fixed scope declarations (single amendment point).
+DECLARE @RequiredTargetCount int = 9;
+DECLARE @RequiredCustomerCount int = 4;
+
 -- Validation 1: Exactly 9 L2 changes.
 DECLARE @changedCount int;
 SELECT @changedCount = COUNT(*)
@@ -14,8 +18,8 @@ INNER JOIN #ApprovedTargets AS t ON t.MovementId = b.Id
 WHERE b.BudgetAmount = 0
   AND m.BudgetAmount = t.ExpectedTotal;
 
-IF @changedCount <> 9
-    THROW 50002, 'Validation failed: expected exactly 9 L2 BudgetAmount changes', 1;
+IF @changedCount <> @RequiredTargetCount
+    THROW 50002, 'Validation failed: expected L2 BudgetAmount change count does not match required target count', 1;
 
 -- Validation 2: Each changed value equals the authoritative quote Total and document identity.
 DECLARE @sourceMatchCount int;
@@ -33,7 +37,7 @@ INNER JOIN Quotes AS q
 WHERE m.BudgetAmount = q.Total
   AND q.IsVoided = 0;
 
-IF @sourceMatchCount <> 9
+IF @sourceMatchCount <> @RequiredTargetCount
     THROW 50002, 'Validation failed: not all BudgetAmount values match authoritative Quotes Total', 1;
 
 -- Validation 3: Preserved identity, linkage, L1, and non-target fields.
@@ -41,6 +45,7 @@ DECLARE @preservedCount int;
 SELECT @preservedCount = COUNT(*)
 FROM #BeforeMovementSnapshot AS b
 INNER JOIN CurrentAccountMovements AS m ON m.Id = b.Id
+INNER JOIN #ApprovedTargets AS t ON t.MovementId = b.Id
 WHERE m.CustomerId = b.CustomerId
   AND m.DocumentType = b.DocumentType
   AND m.DocumentNumber = b.DocumentNumber
@@ -48,7 +53,7 @@ WHERE m.CustomerId = b.CustomerId
   AND m.MovementDate = b.MovementDate
   AND (m.Description = b.Description OR (m.Description IS NULL AND b.Description IS NULL));
 
-IF @preservedCount <> 9
+IF @preservedCount <> @RequiredTargetCount
     THROW 50002, 'Validation failed: identity linkage L1 or non-target fields were not preserved', 1;
 
 -- Validation 4: Exactly 4 account cache changes derived from full ledgers.
@@ -68,8 +73,8 @@ WHERE a.BudgetBalance = agg.LedgerBudget
   AND a.TotalBalance = agg.LedgerTotal
   AND a.BillingBalance = b.BillingBalance;
 
-IF @validAccountCount <> 4
-    THROW 50002, 'Validation failed: expected 4 account cache changes derived from full ledgers', 1;
+IF @validAccountCount <> @RequiredCustomerCount
+    THROW 50002, 'Validation failed: account cache change count does not match required customer count', 1;
 
 -- Validation 5a: Non-scoped accounts must be completely unchanged.
 DECLARE @nonScopedChanged int;
@@ -98,15 +103,35 @@ WHERE b.Id NOT IN (SELECT MovementId FROM #ApprovedTargets)
 IF @nonTargetChanged > 0
     THROW 50002, 'Validation failed: non-target movement was modified', 1;
 
--- Validation 5c: No movements outside the before snapshot were added.
-DECLARE @addedMovements int;
-SELECT @addedMovements = COUNT(*)
+-- Validation 5c: Additions and removals outside the approved movement scope are forbidden.
+DECLARE @AddedNonTargetMovements int, @DeletedNonTargetMovements int;
+SELECT @AddedNonTargetMovements = COUNT(*)
 FROM CurrentAccountMovements AS m
 WHERE NOT EXISTS (SELECT 1 FROM #BeforeMovementSnapshot AS b WHERE b.Id = m.Id)
   AND NOT EXISTS (SELECT 1 FROM #ApprovedTargets AS t WHERE t.MovementId = m.Id);
 
-IF @addedMovements > 0
-    THROW 50002, 'Validation failed: unexpected movements detected after apply', 1;
+SELECT @DeletedNonTargetMovements = COUNT(*)
+FROM #BeforeMovementSnapshot AS b
+WHERE NOT EXISTS (SELECT 1 FROM #ApprovedTargets AS t WHERE t.MovementId = b.Id)
+  AND NOT EXISTS (SELECT 1 FROM CurrentAccountMovements AS m WHERE m.Id = b.Id);
+
+IF @AddedNonTargetMovements > 0 OR @DeletedNonTargetMovements > 0
+    THROW 50002, 'Validation failed: non-target movement set changed after apply', 1;
+
+-- Validation 5d: Additions and removals outside the scoped account set are forbidden.
+DECLARE @AddedNonScopedAccounts int, @DeletedNonScopedAccounts int;
+SELECT @AddedNonScopedAccounts = COUNT(*)
+FROM CurrentAccounts AS a
+WHERE NOT EXISTS (SELECT 1 FROM #BeforeAccountSnapshot AS b WHERE b.CustomerId = a.CustomerId)
+  AND NOT EXISTS (SELECT 1 FROM #ApprovedTargets AS t WHERE t.CustomerId = a.CustomerId);
+
+SELECT @DeletedNonScopedAccounts = COUNT(*)
+FROM #BeforeAccountSnapshot AS b
+WHERE NOT EXISTS (SELECT 1 FROM #ApprovedTargets AS t WHERE t.CustomerId = b.CustomerId)
+  AND NOT EXISTS (SELECT 1 FROM CurrentAccounts AS a WHERE a.CustomerId = b.CustomerId);
+
+IF @AddedNonScopedAccounts > 0 OR @DeletedNonScopedAccounts > 0
+    THROW 50002, 'Validation failed: non-scoped account set changed after apply', 1;
 
 -- Cardinality confirmation.
 DECLARE @movementCardinality int, @customerCardinality int;
@@ -114,7 +139,7 @@ SELECT @movementCardinality = COUNT(DISTINCT MovementId),
        @customerCardinality = COUNT(DISTINCT CustomerId)
 FROM #ApprovedTargets;
 
-IF @movementCardinality <> 9 OR @customerCardinality <> 4
+IF @movementCardinality <> @RequiredTargetCount OR @customerCardinality <> @RequiredCustomerCount
     THROW 50002, 'Validation failed: staging cardinality mismatch', 1;
 
 SELECT 'L2ChangeCount' AS ValidationStep, 'Passed' AS Result, @changedCount AS Value
@@ -129,6 +154,12 @@ SELECT 'NonScopedUnchanged', 'Passed', @nonScopedChanged
 UNION ALL
 SELECT 'NonTargetUnchanged', 'Passed', @nonTargetChanged
 UNION ALL
-SELECT 'NoUnexpectedMovements', 'Passed', @addedMovements
+SELECT 'AddedNonTargetMovements', 'Passed', @AddedNonTargetMovements
+UNION ALL
+SELECT 'DeletedNonTargetMovements', 'Passed', @DeletedNonTargetMovements
+UNION ALL
+SELECT 'AddedNonScopedAccounts', 'Passed', @AddedNonScopedAccounts
+UNION ALL
+SELECT 'DeletedNonScopedAccounts', 'Passed', @DeletedNonScopedAccounts
 UNION ALL
 SELECT 'StagingCardinality', 'Passed', @movementCardinality;

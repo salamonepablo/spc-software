@@ -12,7 +12,7 @@ foreach ($token in 'CurrentAccountMovements','CurrentAccounts','Quotes','Documen
 $apply = Join-Path $package 'apply.sql'
 if (-not (Test-Path -LiteralPath $apply)) { throw 'RED: missing apply.sql' }
 $sql = Get-Content -LiteralPath $apply -Raw
-foreach ($token in 'SET XACT_ABORT ON','SET TRANSACTION ISOLATION LEVEL SERIALIZABLE','BEGIN TRANSACTION','ROLLBACK TRANSACTION','#ApprovedTargets','MovementId','CustomerId','DocumentNumber','QuoteId','BranchId','ExpectedTotal','DocumentType = 20','BudgetAmount = 0','Quotes','q.QuoteNumber = t.DocumentNumber','IsVoided = 0','UPDATE m SET BudgetAmount','UPDATE a SET BudgetBalance','BillingBalance','TotalBalance','COUNT(DISTINCT','9','4') {
+foreach ($token in 'SET XACT_ABORT ON','SET TRANSACTION ISOLATION LEVEL SERIALIZABLE','BEGIN TRANSACTION','ROLLBACK TRANSACTION','#ApprovedTargets','MovementId','CustomerId','DocumentNumber','QuoteId','BranchId','ExpectedTotal','@RequiredDocumentType','@RequiredInitialBudgetAmount','@RequiredTargetCount','@RequiredCustomerCount','Quotes','q.QuoteNumber = t.DocumentNumber','IsVoided = 0','UPDATE m SET BudgetAmount','UPDATE a SET BudgetBalance','BillingBalance','TotalBalance','COUNT(DISTINCT','9','4') {
     if (-not $sql.Contains($token)) { throw "RED: apply contract missing $token" }
 }
 if ($sql -match 'CREATE\s+TABLE|ops\.|Provenance|Claim|Replay|ExecutionId') { throw 'RED: durable control is forbidden' }

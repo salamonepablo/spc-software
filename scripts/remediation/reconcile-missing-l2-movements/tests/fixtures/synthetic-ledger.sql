@@ -21,7 +21,7 @@ CREATE TABLE dbo.CurrentAccounts (
     LastUpdated datetime2 NOT NULL
 );
 CREATE TABLE dbo.Quotes (
-    Id int NOT NULL PRIMARY KEY,
+    Id int NOT NULL CONSTRAINT PK_Quotes PRIMARY KEY,
     BranchId int NOT NULL,
     QuoteNumber bigint NOT NULL,
     QuoteDate datetime2 NOT NULL,

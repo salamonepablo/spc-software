@@ -380,3 +380,75 @@ PR2 is complete (Tasks 1–6 all `[x]`). Remaining tasks are PR3 scope:
 PATH="$HOME/.dotnet:$PATH" dotnet test SPC.Tests/SPC.Tests.csproj -c Release
 # exit 1; 304 passed, 2 failed because LocalDB is unsupported on this platform (unrelated integration tests)
 ```
+
+## PR2 corrective apply — executable disposable harness and validation snapshot completeness
+
+**Scope:** User-authorized PR2 corrective follow-up only. No PR3 runner, backup, API/writer control, real data, operational database, or commit was touched.
+
+- `tests/sql-server.tests.ps1` now invokes `Apply-SyntheticSqlServer.ps1`; the documented package suite therefore executes behavior rather than only inspecting source tokens.
+- The harness resets the disposable fixture before every scenario. The ambiguity setup is deterministic: the fixture declares `PK_Quotes`, and the ambiguity scenario drops that exact synthetic constraint before inserting its duplicate candidate. Documentation and harness summaries now correctly state 23 scenarios.
+- `validate.sql` remains read-only and now rejects additions and removals of both non-target movements and non-scoped accounts relative to supplied before snapshots.
+- README documents the executable test model and the explicit non-bypassable R4-001 gate: never run real data without a verified backup and confirmed writer/API exclusion; it remains PR3 scope.
+- `review-ledger.md` records R4-001 through R4-003 and their resolutions. R4-001 is documentation-only by user authorization.
+
+### TDD Cycle Evidence
+
+| Scope | RED | GREEN | TRIANGULATE / REFACTOR |
+|---|---|---|---|
+| Executable harness, fixture isolation, documentation gate | `sql-server.tests.ps1` exited 1: `RED: README contract missing 23 behavior scenarios`. | Static package contract passes and invokes the real harness. | Docker daemon was unavailable; the harness now fails fast, without starting a container or waiting for readiness. |
+| Snapshot additions/removals validation | `validate.tests.ps1` exited 1: `RED: validate contract missing AddedNonTargetMovements`. | Read-only `validate.sql` includes added/deleted non-target movement and non-scoped account checks; contract exits 0. | Existing preflight/apply contracts remain green; live synthetic SQL verification remains blocked by Docker. |
+
+## Corrective harness scenario ordering — comprehensive post-apply setup
+
+- Expanded the SQL Server harness static contract to cover every post-apply or preservation scenario: `Commit`, `FullLedger`, `PreservedIdentity`, `NonTarget`, `NonScopedAccount`, and `PostChangeValidation`.
+- Observed RED before implementation: `tests/sql-server.tests.ps1` exited 1 with `RED: Commit must rely on Invoke-Scenario for its baseline reset`.
+- `Invoke-Scenario` remains the sole fixture-reset authority. Removed redundant action-block resets, including from the `WrongQuoteDocumentIdentity` and `AtomicRollback` negative guard scenarios.
+- Added shared `Invoke-ValidApply`, which stages the valid 9/4 target set, executes `apply.sql`, and confirms success. Every covered post-apply scenario calls it before assertions; negative guards retain baseline-only setup.
+- GREEN validation: `tests/sql-server.tests.ps1` exited 0; static ordering checks passed and the disposable harness reported the documented Docker Desktop-unavailable path. No Docker bypass, container, database, or non-synthetic resource was used.
+
+### Focused validation
+
+```text
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/preflight.tests.ps1  # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/apply.tests.ps1      # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/validate.tests.ps1   # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/sql-server.tests.ps1 # exit 0; Docker-unavailable path verified
+```
+
+**Remaining risk:** Docker Desktop must be reachable to execute all 23 disposable SQL Server scenarios. PR3 Tasks 7–10 remain out of scope; R4-001 is a mandatory operational gate and must not be bypassed.
+
+## PR2 corrective apply — readability findings (R3-001 through R3-004) and scenario count correction
+
+**Scope:** User-authorized PR2 readability finding remediation only. No PR3 runner, backup, API/writer control, real data, operational database, or commit was touched.
+
+- **R3-001:** `apply.sql` and `validate.sql` now declare fixed scope rules as named variables (`@RequiredTargetCount`, `@RequiredCustomerCount`, `@RequiredDocumentType`, `@RequiredInitialBudgetAmount`). A future scope amendment has a single declaration point per file.
+- **R3-002:** `RemediationSafety.ps1` now exposes `Invoke-RemediationLauncher`, a shared orchestration helper. Both `preflight.ps1` and `validate.ps1` delegate to it, eliminating duplicated path validation, manifest loading, report writing, and error handling.
+- **R3-003:** Unused `$cleanup` script block removed from `Apply-SyntheticSqlServer.ps1`; all cleanup is in the outer `finally`.
+- **R3-004:** README Running-tests section documents the executable harness invocation with all 23 behavioral scenarios.
+- **Scenario count:** Corrected stale "27 scenarios" to the actual 23 across the harness summary, WhatIf message, summary output, README table/commands, and `tests/sql-server.tests.ps1` README contract check.
+
+### TDD Cycle Evidence
+
+| Scope | RED | GREEN | TRIANGULATE / REFACTOR |
+|---|---|---|---|
+| Named constants | `tests/apply.tests.ps1` exited 1: `RED: apply contract missing DocumentType = 20` (literal replaced by `@RequiredDocumentType`). | Updated token checks to verify named declarations; apply, validate, and preflight contracts pass. | R3-001 resolved; `preflight.sql` retains literals for SELECT-only simplicity. |
+| Shared launcher | N/A — structural refactor of orchestration code; preflight/validate behavior unchanged. | `tests/preflight.tests.ps1` and `tests/validate.tests.ps1` both pass with the shared `Invoke-RemediationLauncher`. | R3-002 resolved; error-category allow-list extended with `BeforeMovementSnapshotUnavailable` and `BeforeAccountSnapshotUnavailable`. |
+| Scenario count | README contained "27 behavior scenarios" but harness has 23 Invoke-Scenario blocks. | All references corrected to 23; `sql-server.tests.ps1` README contract check passes. | Harness summary, WhatIf, and final PASSED messages aligned. |
+
+### Focused validation
+
+```text
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/preflight.tests.ps1  # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/apply.tests.ps1      # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/validate.tests.ps1   # exit 0
+/home/pablo/.local/bin/pwsh -NoProfile -File scripts/remediation/reconcile-missing-l2-movements/tests/sql-server.tests.ps1 # exit 0; Docker-unavailable path verified
+```
+
+**No-regression check:**
+
+```text
+PATH="$HOME/.dotnet:$PATH" dotnet test SPC.Tests/SPC.Tests.csproj -c Release
+# exit 1; 304 passed, 2 failed (LocalDB unsupported on Linux — pre-existing, unrelated)
+```
+
+**Remaining risk:** Docker Desktop must be reachable to execute all 23 disposable SQL Server scenarios. PR3 Tasks 7–10 remain out of scope; R4-001 is a mandatory operational gate and must not be bypassed.

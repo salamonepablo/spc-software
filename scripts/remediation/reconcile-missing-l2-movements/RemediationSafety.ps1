@@ -69,7 +69,9 @@ function Resolve-PreflightErrorCategory {
         'ManifestMovementNotUnique',
         'ManifestDocumentNotUnique',
         'ManifestQuoteNotUnique',
-        'ManifestExpectedTotalInvalid'
+        'ManifestExpectedTotalInvalid',
+        'BeforeMovementSnapshotUnavailable',
+        'BeforeAccountSnapshotUnavailable'
     )
     if ($allowedCategories -contains $ErrorMessage) { return $ErrorMessage }
     return 'PreflightFailed'
@@ -136,4 +138,44 @@ function Write-ProtectedAtomicText {
     $null = Assert-ProtectedPath -RepositoryRoot $RepositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $temporary -WriteRequired
     [System.IO.File]::WriteAllText($temporary, $Content)
     Move-Item -LiteralPath $temporary -Destination $artifact -Force
+}
+
+function Invoke-RemediationLauncher {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Stage,
+        [Parameter(Mandatory)][string]$PackageRoot,
+        [Parameter(Mandatory)][string]$ProtectedDirectory,
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [Parameter(Mandatory)][string]$ReportPath,
+        [string[]]$AdditionalArtifactPaths = @(),
+        [Parameter(Mandatory)][scriptblock]$BuildReport
+    )
+
+    $repositoryRoot = Get-CanonicalPath (Join-Path $PackageRoot '../../..')
+    $executionId = [guid]::NewGuid().ToString('N')
+    try {
+        $null = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $ManifestPath
+        foreach ($extra in $AdditionalArtifactPaths) {
+            $null = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $extra
+        }
+        $report = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $ReportPath -WriteRequired
+
+        if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) { throw 'ManifestUnavailable' }
+        foreach ($extra in $AdditionalArtifactPaths) {
+            if (-not (Test-Path -LiteralPath $extra -PathType Leaf)) {
+                $label = (Split-Path -Leaf $extra) -replace '\.[^.]*$',''
+                throw "${label}Unavailable"
+            }
+        }
+
+        $controls = Assert-ManifestControls -Manifest (Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json)
+        $reportContent = & $BuildReport $controls
+        Write-ProtectedAtomicText -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $report -Content $reportContent
+        Write-Host (Format-RedactedStatus -Stage $Stage -ExecutionId $executionId -ErrorCategory 'None')
+    } catch {
+        $errorCategory = Resolve-PreflightErrorCategory -ErrorMessage ([string]$_.Exception.Message)
+        Write-Host (Format-RedactedStatus -Stage $Stage -ExecutionId $executionId -ErrorCategory $errorCategory)
+        exit 1
+    }
 }

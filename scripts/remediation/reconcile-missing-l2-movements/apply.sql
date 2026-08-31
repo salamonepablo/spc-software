@@ -6,6 +6,12 @@ SET XACT_ABORT ON
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 BEGIN TRANSACTION
 
+-- Fixed scope declarations (single amendment point).
+DECLARE @RequiredTargetCount int = 9;
+DECLARE @RequiredCustomerCount int = 4;
+DECLARE @RequiredDocumentType int = 20;   -- SPC.Shared.Models.DocumentType.Quote = 20 (PR)
+DECLARE @RequiredInitialBudgetAmount decimal(18,2) = 0;
+
 -- Guard 1: Cardinality — exactly 9 targets, 9 distinct movements, 4 distinct customers
 DECLARE @targetCount int, @movementCount int, @customerCount int
 SELECT @targetCount = COUNT(*),
@@ -13,10 +19,10 @@ SELECT @targetCount = COUNT(*),
        @customerCount = COUNT(DISTINCT CustomerId)
 FROM #ApprovedTargets
 
-IF @targetCount <> 9 OR @movementCount <> 9 OR @customerCount <> 4
+IF @targetCount <> @RequiredTargetCount OR @movementCount <> @RequiredTargetCount OR @customerCount <> @RequiredCustomerCount
 BEGIN
     ROLLBACK TRANSACTION;
-    THROW 50001, 'Cardinality guard failed: expected 9 targets, 9 distinct movements, 4 distinct customers', 1;
+    THROW 50001, 'Cardinality guard failed: expected target/movement/customer counts do not match', 1;
 END
 
 -- Guard 2: No duplicate MovementId in staging
@@ -39,14 +45,14 @@ INNER JOIN Quotes AS q WITH (UPDLOCK, HOLDLOCK)
     AND q.BranchId = t.BranchId
     AND q.CustomerId = t.CustomerId
     AND q.QuoteNumber = t.DocumentNumber
-WHERE m.DocumentType = 20
-    AND m.BudgetAmount = 0
+WHERE m.DocumentType = @RequiredDocumentType
+    AND m.BudgetAmount = @RequiredInitialBudgetAmount
     AND q.IsVoided = 0
 
-IF @requalifyCount <> 9
+IF @requalifyCount <> @RequiredTargetCount
 BEGIN
     ROLLBACK TRANSACTION;
-    THROW 50001, 'Re-qualification guard failed: expected 9 qualifying rows', 1;
+    THROW 50001, 'Re-qualification guard failed: qualifying row count does not match required target count', 1;
 END
 
 -- Guard 4: Each fully linked quote Total must equal the staged ExpectedTotal.
@@ -70,7 +76,7 @@ BEGIN
     THROW 50001, 'Source total mismatch: ExpectedTotal does not match authoritative quote Total', 1;
 END
 
--- Step 4: Update qualifying movement BudgetAmount to authoritative Quotes.Total.
+-- Step 5: Update qualifying movement BudgetAmount to authoritative Quotes.Total.
 UPDATE m SET BudgetAmount = q.Total
 FROM CurrentAccountMovements AS m
 INNER JOIN #ApprovedTargets AS t
@@ -82,18 +88,18 @@ INNER JOIN Quotes AS q
     AND q.BranchId = t.BranchId
     AND q.CustomerId = t.CustomerId
     AND q.QuoteNumber = t.DocumentNumber
-WHERE m.DocumentType = 20
-    AND m.BudgetAmount = 0
+WHERE m.DocumentType = @RequiredDocumentType
+    AND m.BudgetAmount = @RequiredInitialBudgetAmount
     AND q.IsVoided = 0
     AND q.Total = t.ExpectedTotal
 
-IF @@ROWCOUNT <> 9
+IF @@ROWCOUNT <> @RequiredTargetCount
 BEGIN
     ROLLBACK TRANSACTION;
-    THROW 50001, 'Movement update row count mismatch: expected exactly 9', 1;
+    THROW 50001, 'Movement update row count mismatch: does not match required target count', 1;
 END
 
--- Step 5: Derive and update account balances for the 4 scoped customers.
+-- Step 6: Derive and update account balances for the 4 scoped customers.
 -- BillingBalance remains untouched; SERIALIZABLE isolation protects this complete-ledger aggregation from concurrent writes.
 UPDATE a SET BudgetBalance = agg.BudgetBalance, TotalBalance = agg.TotalBalance
 FROM CurrentAccounts AS a WITH (UPDLOCK, HOLDLOCK)
@@ -106,10 +112,10 @@ INNER JOIN (
     GROUP BY m.CustomerId
 ) AS agg ON a.CustomerId = agg.CustomerId
 
-IF @@ROWCOUNT <> 4
+IF @@ROWCOUNT <> @RequiredCustomerCount
 BEGIN
     ROLLBACK TRANSACTION;
-    THROW 50001, 'Account update row count mismatch: expected exactly 4', 1;
+    THROW 50001, 'Account update row count mismatch: does not match required customer count', 1;
 END
 
 COMMIT TRANSACTION
