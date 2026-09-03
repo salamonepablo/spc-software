@@ -68,7 +68,10 @@ function Resolve-PreflightErrorCategory {
         'ManifestTargetUnapproved',
         'ManifestMovementNotUnique',
         'ManifestDocumentNotUnique',
-        'ManifestQuoteNotUnique'
+        'ManifestQuoteNotUnique',
+        'ManifestExpectedTotalInvalid',
+        'BeforeMovementSnapshotUnavailable',
+        'BeforeAccountSnapshotUnavailable'
     )
     if ($allowedCategories -contains $ErrorMessage) { return $ErrorMessage }
     return 'PreflightFailed'
@@ -84,18 +87,20 @@ function Assert-ManifestControls {
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.approvalControl)) { throw 'ManifestApprovalInvalid' }
     if ($Manifest.expectedTargetCount -ne 9 -or @($Manifest.targets).Count -ne 9) { throw 'ManifestTargetCountInvalid' }
     foreach ($target in @($Manifest.targets)) {
-        foreach ($propertyName in @('movementControl', 'customerControl', 'documentControl', 'quoteControl')) {
+        foreach ($propertyName in @('movementId', 'customerId', 'documentNumber', 'quoteId', 'branchId')) {
             $property = $target.PSObject.Properties[$propertyName]
-            if ($null -eq $property -or [string]::IsNullOrWhiteSpace([string]$property.Value)) { throw 'ManifestTargetShapeInvalid' }
+            if ($null -eq $property -or ($property.Value -isnot [int] -and $property.Value -isnot [long]) -or $property.Value -le 0) { throw 'ManifestTargetShapeInvalid' }
         }
+        $expectedTotalProperty = $target.PSObject.Properties['expectedTotal']
+        if ($null -eq $expectedTotalProperty -or -not ($expectedTotalProperty.Value -is [double] -or $expectedTotalProperty.Value -is [decimal]) -or $expectedTotalProperty.Value -le 0) { throw 'ManifestExpectedTotalInvalid' }
         if ($null -eq $target.PSObject.Properties['approved'] -or $target.approved -isnot [bool]) { throw 'ManifestTargetShapeInvalid' }
     }
-    $customers = @($Manifest.targets | ForEach-Object customerControl | Select-Object -Unique)
+    $customers = @($Manifest.targets | ForEach-Object customerId | Select-Object -Unique)
     if ($Manifest.expectedCustomerCount -ne 4 -or $customers.Count -ne 4) { throw 'ManifestCustomerCountInvalid' }
     if (@($Manifest.targets | Where-Object { -not $_.approved }).Count -ne 0) { throw 'ManifestTargetUnapproved' }
-    if (@($Manifest.targets | ForEach-Object movementControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestMovementNotUnique' }
-    if (@($Manifest.targets | ForEach-Object documentControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestDocumentNotUnique' }
-    if (@($Manifest.targets | ForEach-Object quoteControl | Select-Object -Unique).Count -ne 9) { throw 'ManifestQuoteNotUnique' }
+    if (@($Manifest.targets | ForEach-Object movementId | Select-Object -Unique).Count -ne 9) { throw 'ManifestMovementNotUnique' }
+    if (@($Manifest.targets | ForEach-Object documentNumber | Select-Object -Unique).Count -ne 9) { throw 'ManifestDocumentNotUnique' }
+    if (@($Manifest.targets | ForEach-Object quoteId | Select-Object -Unique).Count -ne 9) { throw 'ManifestQuoteNotUnique' }
     [pscustomobject]@{ TargetCount = 9; CustomerCount = 4; UniqueMovementCount = 9; UniqueDocumentCount = 9; UniqueQuoteCount = 9 }
 }
 
@@ -133,4 +138,44 @@ function Write-ProtectedAtomicText {
     $null = Assert-ProtectedPath -RepositoryRoot $RepositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $temporary -WriteRequired
     [System.IO.File]::WriteAllText($temporary, $Content)
     Move-Item -LiteralPath $temporary -Destination $artifact -Force
+}
+
+function Invoke-RemediationLauncher {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Stage,
+        [Parameter(Mandatory)][string]$PackageRoot,
+        [Parameter(Mandatory)][string]$ProtectedDirectory,
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [Parameter(Mandatory)][string]$ReportPath,
+        [string[]]$AdditionalArtifactPaths = @(),
+        [Parameter(Mandatory)][scriptblock]$BuildReport
+    )
+
+    $repositoryRoot = Get-CanonicalPath (Join-Path $PackageRoot '../../..')
+    $executionId = [guid]::NewGuid().ToString('N')
+    try {
+        $null = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $ManifestPath
+        foreach ($extra in $AdditionalArtifactPaths) {
+            $null = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $extra
+        }
+        $report = Assert-ProtectedPath -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $ReportPath -WriteRequired
+
+        if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) { throw 'ManifestUnavailable' }
+        foreach ($extra in $AdditionalArtifactPaths) {
+            if (-not (Test-Path -LiteralPath $extra -PathType Leaf)) {
+                $label = (Split-Path -Leaf $extra) -replace '\.[^.]*$',''
+                throw "${label}Unavailable"
+            }
+        }
+
+        $controls = Assert-ManifestControls -Manifest (Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json)
+        $reportContent = & $BuildReport $controls
+        Write-ProtectedAtomicText -RepositoryRoot $repositoryRoot -ProtectedDirectory $ProtectedDirectory -ArtifactPath $report -Content $reportContent
+        Write-Host (Format-RedactedStatus -Stage $Stage -ExecutionId $executionId -ErrorCategory 'None')
+    } catch {
+        $errorCategory = Resolve-PreflightErrorCategory -ErrorMessage ([string]$_.Exception.Message)
+        Write-Host (Format-RedactedStatus -Stage $Stage -ExecutionId $executionId -ErrorCategory $errorCategory)
+        exit 1
+    }
 }

@@ -1,11 +1,22 @@
 $ErrorActionPreference = 'Stop'
+
+# PR2 RED contract: the existing PR1 helper checks remain below, but preflight must
+# qualify session-local synthetic staging against the actual application columns.
+$package = Join-Path $PSScriptRoot '..'
+$preflightSqlPath = Join-Path $package 'preflight.sql'
+$preflightSql = Get-Content -LiteralPath $preflightSqlPath -Raw
+foreach ($token in '#ApprovedTargets','MovementId','CustomerId','DocumentNumber','QuoteId','BranchId','ExpectedTotal','CurrentAccountMovements','CurrentAccounts','Quotes','q.QuoteNumber = t.DocumentNumber','DocumentType = 20','BudgetAmount = 0','IsVoided = 0','COUNT(DISTINCT','9','4') {
+    if (-not $preflightSql.Contains($token)) { throw "RED: preflight contract missing $token" }
+}
+if ($preflightSql -match '\b(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b') { throw 'RED: preflight must be read-only' }
+
 . (Join-Path $PSScriptRoot '../RemediationSafety.ps1')
 
 function Assert-InvalidManifest([object]$Manifest, [string]$Category) {
     try { Assert-ManifestControls -Manifest $Manifest | Out-Null; throw "Expected $Category" } catch { if ($_.Exception.Message -ne $Category) { throw } }
 }
 function New-SyntheticManifest([int]$Targets = 9, [int]$Customers = 4) {
-    $rows = 1..$Targets | ForEach-Object { [pscustomobject]@{ movementControl="synthetic-movement-$_"; customerControl="synthetic-customer-" + (($_ - 1) % $Customers); documentControl="synthetic-document-$_"; quoteControl="synthetic-quote-$_"; approved=$true } }
+    $rows = 1..$Targets | ForEach-Object { [pscustomobject]@{ movementId=$_; customerId=(($_ - 1) % $Customers) + 1; documentNumber=$_; quoteId=$_; branchId=1; expectedTotal=($_ * 1.0); approved=$true } }
     [pscustomobject]@{ approvalControl='synthetic-approved'; expectedTargetCount=$Targets; expectedCustomerCount=$Customers; targets=@($rows) }
 }
 
@@ -14,20 +25,24 @@ Assert-InvalidManifest $malformed 'ManifestApprovalInvalid'
 $valid = New-SyntheticManifest
 $result = Assert-ManifestControls -Manifest $valid
 if ($result.TargetCount -ne 9 -or $result.CustomerCount -ne 4 -or $result.UniqueQuoteCount -ne 9) { throw 'Valid synthetic controls did not qualify.' }
-$duplicate = New-SyntheticManifest; $duplicate.targets[1].quoteControl = $duplicate.targets[0].quoteControl
+$duplicate = New-SyntheticManifest; $duplicate.targets[1].quoteId = $duplicate.targets[0].quoteId
 Assert-InvalidManifest $duplicate 'ManifestQuoteNotUnique'
-$duplicateMovement = New-SyntheticManifest; $duplicateMovement.targets[1].movementControl = $duplicateMovement.targets[0].movementControl
+$duplicateMovement = New-SyntheticManifest; $duplicateMovement.targets[1].movementId = $duplicateMovement.targets[0].movementId
 Assert-InvalidManifest $duplicateMovement 'ManifestMovementNotUnique'
-$duplicateDocument = New-SyntheticManifest; $duplicateDocument.targets[1].documentControl = $duplicateDocument.targets[0].documentControl
+$duplicateDocument = New-SyntheticManifest; $duplicateDocument.targets[1].documentNumber = $duplicateDocument.targets[0].documentNumber
 Assert-InvalidManifest $duplicateDocument 'ManifestDocumentNotUnique'
 $unapproved = New-SyntheticManifest; $unapproved.targets[0].approved = $false
 Assert-InvalidManifest $unapproved 'ManifestTargetUnapproved'
-$malformedTarget = New-SyntheticManifest; $malformedTarget.targets[0].quoteControl = ''
+$malformedTarget = New-SyntheticManifest; $malformedTarget.targets[0].movementId = 0
 Assert-InvalidManifest $malformedTarget 'ManifestTargetShapeInvalid'
 $countDrift = New-SyntheticManifest -Targets 8
 Assert-InvalidManifest $countDrift 'ManifestTargetCountInvalid'
 $customerDrift = New-SyntheticManifest -Customers 3
 Assert-InvalidManifest $customerDrift 'ManifestCustomerCountInvalid'
+$invalidTotal = New-SyntheticManifest; $invalidTotal.targets[0].expectedTotal = 0
+Assert-InvalidManifest $invalidTotal 'ManifestExpectedTotalInvalid'
+$negativeTotal = New-SyntheticManifest; $negativeTotal.targets[0].expectedTotal = -1
+Assert-InvalidManifest $negativeTotal 'ManifestExpectedTotalInvalid'
 Write-Host 'preflight tests passed'
 
 $parameters = New-PreflightSqlParameters -RequiredDocumentType 'PR' -RequiredInitialBudgetAmount ([decimal]'0.00')

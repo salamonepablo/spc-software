@@ -2,135 +2,117 @@
 
 ## Purpose
 
-Define a bounded, auditable one-time correction of documented missing L2 quote amounts in the Argentine current-account ledger while keeping all real operational data and evidence outside the public repository.
+Define a bounded, one-time trusted-operator correction of documented missing L2 quote amounts while keeping all real operational data and evidence outside the public repository.
 
 ## Requirements
 
 ### Requirement: Repository-Safe Operational Artifacts
 
-The repository MUST contain only remediation code, documentation, synthetic fixtures, and data-free templates. It MUST NOT contain or retain real manifests; customer, movement, quote, or document identifiers; financial totals or amounts; approvals; backup metadata; audit reports; real-data checksums or sign-offs; or preflight, post-change, provenance, rollback, or manual-review evidence. All such real inputs and outputs MUST reside in an operator-controlled external protected directory.
+The public repository MUST contain only remediation code, documentation, synthetic fixtures, and data-free templates. It MUST NOT contain or retain real customer, movement, quote, or document identifiers; financial values; manifests; approvals; backups; audit reports; real-data-derived hashes; or preflight, post-change, rollback, or manual-review evidence. All real inputs and outputs MUST reside in an operator-controlled external protected directory.
 
 #### Scenario: Repository artifact review
 
 - GIVEN remediation artifacts are prepared for review
 - WHEN repository content is inspected
-- THEN it contains only code, documentation, synthetic fixtures, and data-free templates and contains no real operational data or evidence
+- THEN it contains no real operational data or evidence
 
-### Requirement: Protected Path and Output Safety
+### Requirement: Protected External Evidence
 
-Remediation and validation tooling MUST require an explicit external protected directory for every real-data input and output, including the approved manifest, approvals, reports, backup metadata, and evidence. Tooling MUST canonicalize each path and reject any path that resolves under the repository root. It MUST fail closed when protected storage is absent, inaccessible, or unsafe, and MUST NOT print sensitive values to the console or repository logs.
+Before execution, a trusted operator MUST provide and review an external protected directory containing the approved manifest and operational evidence. Remediation and validation tooling MUST require this explicit directory for real-data input and output, canonicalize paths, and reject a path that resolves under the repository root. Tooling MUST fail closed if required protected storage is absent, inaccessible, or unsafe.
 
-#### Scenario: Repository-root path is supplied
+The protected evidence MUST include the reviewed manifest and approval record, source-document references, before and after snapshots, preflight and post-change results, executor and timestamp, script or version reference, backup reference, and rollback records when applicable. These records are operator-controlled operational evidence, not a permanent database approval, claim, or provenance schema.
 
-- GIVEN an operator supplies a manifest, evidence, backup, or report path that resolves within the repository root
-- WHEN preflight, execution, or validation begins
-- THEN the operation MUST fail before database mutation or real-data output and MUST not emit sensitive values to console or repository logs
+#### Scenario: Unsafe evidence location is supplied
 
-#### Scenario: Protected storage is unavailable
+- GIVEN a real-data input or output path resolves within the repository root, or protected storage is unavailable
+- WHEN preflight, execution, or validation is requested
+- THEN the operation MUST fail before database mutation
 
-- GIVEN the required external protected directory is absent, inaccessible, or unsafe
-- WHEN an operation requiring real inputs or outputs is requested
-- THEN the operation MUST fail closed without database mutation
+### Requirement: Deterministic Manifest Qualification
 
-### Requirement: Externally Approved Fixed Target Qualification
+The remediation MUST deterministically qualify the trusted operator's supplied manifest against the live database before mutation. Qualification MUST confirm exactly 9 target `CurrentAccountMovements` across exactly 4 customers; each target MUST have `DocumentType = PR`, `BudgetAmount = 0`, and exactly one linked authoritative quote through its customer and document linkage. Each proposed amount MUST equal that quote's authoritative total. Count, scope, document-type, zero-value, linkage, uniqueness, source-total, or required-evidence mismatch MUST abort before writes.
 
-The remediation MUST operate only on the externally approved manifest of nine `CurrentAccountMovements` records across exactly four customers. Every external-manifest target MUST be approved, have `DocumentType = PR`, have `BudgetAmount = 0` before mutation, and resolve by its customer and document linkage to exactly one authoritative quote. Source totals and approval controls MUST be validated against the external manifest without hard-coding real identifiers, totals, or control values into public artifacts. Missing, ambiguous, changed, or non-qualifying evidence MUST prevent mutation.
+This qualification MUST validate the supplied evidence and live state, but MUST NOT claim cryptographic binding, nonforgeability, or prevention of a privileged DBA or trusted operator deliberately supplying different staged inputs.
 
-#### Scenario: Externally approved targets qualify
+#### Scenario: Supplied manifest qualifies
 
-- GIVEN the protected external manifest, externally approved controls, and live database
-- WHEN preflight evaluates target and quote controls
-- THEN it confirms exactly 9 qualifying movements, 4 customers, and 9 unique quotes using the external controls
+- GIVEN the trusted operator has reviewed the protected manifest and evidence
+- WHEN read-only preflight evaluates it against the live database
+- THEN it confirms 9 qualifying targets, 4 customers, and one authoritative quote for each target
 
-#### Scenario: A target no longer qualifies
+#### Scenario: A target does not qualify
 
-- GIVEN any external-manifest target is unapproved, has a non-`PR` type, nonzero L2 amount, absent or ambiguous quote, or fails an external control
-- WHEN preflight or in-transaction validation runs
-- THEN the remediation MUST abort before changing data
+- GIVEN a target has a non-`PR` type, nonzero L2 amount, missing or ambiguous quote linkage, or mismatched source total
+- WHEN preflight or in-transaction qualification runs
+- THEN the remediation MUST abort without changing data
 
-### Requirement: Preflight, Backup, and API Downtime Gates
+### Requirement: Operational Execution Gates
 
-The remediation MUST produce a read-only preflight report in the external protected directory before writes. The report MUST record externally controlled target, source-document, complete-ledger, and stored-balance validations for the four affected customers without copying real values to the repository or console logs. It MUST create and verify a recoverable pre-change `sql-spc` backup, retaining its real metadata and verification results only externally, and stop the local API only after backup verification succeeds. The remediation MUST NOT mutate database data while the API is serving.
+An operational runner MUST supply successful backup and API-downtime gates before mutation. The runner MUST create and verify a recoverable pre-change `sql-spc` backup, retain its real metadata only in protected external storage, and confirm the local API is stopped. The remediation MUST NOT mutate database data while the API is serving, and MUST NOT proceed when either gate fails.
 
-#### Scenario: Verified external backup permits execution preparation
+#### Scenario: Gates permit execution
 
-- GIVEN all external preflight controls pass and a recoverable backup has passed verification
-- WHEN the API is stopped
-- THEN the operation MAY proceed to its transactional correction
+- GIVEN protected preflight succeeds, the backup is verified, and the API is confirmed stopped
+- WHEN the trusted operator requests remediation
+- THEN the operation MAY enter its bounded transaction
 
-#### Scenario: Backup or downtime gate fails
+#### Scenario: A gate fails
 
-- GIVEN backup creation or verification fails, protected evidence cannot be recorded, or the API remains serving
-- WHEN execution is requested
-- THEN the remediation MUST make no database mutation
+- GIVEN backup verification fails or the API remains serving
+- WHEN mutation is requested
+- THEN no database data MUST change
 
 ### Requirement: Atomic Bounded Correction
 
-The correction MUST execute in one database transaction and MUST repeat external-manifest target qualification controls inside that transaction. It MUST set `BudgetAmount` only for the nine externally approved movements and only to each movement's uniquely linked authoritative quote total. It MUST preserve each corrected movement's identity, date, customer, document linkage, description, L1 amount, and all non-target fields. Any failed guard, unexpected affected-row count, balance validation failure, protected-evidence write failure, or path-safety validation failure MUST roll back the entire transaction.
+The trusted operator remediation MUST execute in one bounded database transaction. It MUST repeat target qualification within that transaction, set `BudgetAmount` only for the 9 qualified manifest targets, and set each value only to its uniquely linked authoritative quote total. It MUST preserve movement identity, date, customer, document linkage, description, L1 amount, and all non-target fields. A failed guard, unexpected row count, or balance-result mismatch MUST roll back the entire transaction.
 
-#### Scenario: Valid atomic correction
+#### Scenario: Valid bounded correction
 
-- GIVEN the API is stopped, protected storage is safe, and all in-transaction guards pass
+- GIVEN all operational gates and in-transaction qualifications pass
 - WHEN the correction executes
-- THEN exactly 9 `BudgetAmount` values change and the transaction commits as one unit
+- THEN exactly 9 L2 values change and the transaction commits as one unit
 
 #### Scenario: Unexpected mutation result
 
-- GIVEN an update affects other than the externally approved nine movements or a required validation fails
+- GIVEN a guard fails or an update would affect a row outside the qualified targets
 - WHEN the transaction evaluates the result
-- THEN it MUST roll back with no partial ledger or account-balance change
+- THEN it MUST roll back without partial ledger or account-balance mutation
 
 ### Requirement: Affected-Account Derived Balance Scope
 
-For only the four customers represented by the external approved manifest, the remediation MUST derive `BudgetBalance` from the complete `CurrentAccountMovements` ledger and MUST derive `TotalBalance` from the ledger-derived L1 plus L2 amounts. It MUST NOT alter `BillingBalance`, normalize L1, or change a `CurrentAccounts` row outside those four customers. Pre-existing out-of-scope ledger-versus-stored-balance discrepancies MUST be reported only as protected external evidence and MUST NOT be corrected.
+For only the 4 customers represented by the qualified manifest, the remediation MUST derive `BudgetBalance` from the complete `CurrentAccountMovements` ledger and `TotalBalance` from ledger-derived L1 plus L2 amounts. It MUST NOT alter `BillingBalance`, normalize L1, or change a `CurrentAccounts` row outside those customers. Pre-existing out-of-scope discrepancies MUST be recorded only in protected external evidence and MUST NOT be corrected.
 
-#### Scenario: Derived balances are recomputed in scope
+#### Scenario: Derived balances are recalculated in scope
 
-- GIVEN the nine externally approved L2 amounts are corrected
-- WHEN account balances are recalculated
-- THEN each affected account's `BudgetBalance` equals its complete-ledger L2 sum and `TotalBalance` equals its ledger-derived L1 plus L2 amount
+- GIVEN the 9 qualified L2 amounts are corrected
+- WHEN affected account balances are recalculated
+- THEN each affected `BudgetBalance` equals its complete-ledger L2 sum and `TotalBalance` equals its ledger-derived L1 plus L2 amount
 
-#### Scenario: Unrelated balance discrepancy exists
+### Requirement: External Snapshot Validation and Manual Review
 
-- GIVEN another customer has a historical balance discrepancy
-- WHEN the remediation runs
-- THEN that customer's movements and stored balances MUST remain unchanged
+The process MUST capture before and after snapshots in protected external storage and perform post-change validation there. Validation MUST demonstrate that exactly 9 and only 9 L2 fields changed; each changed value equals its uniquely linked authoritative quote total; movement identity and linkage, L1 values, and non-target fields are unchanged; and only the 4 allowed accounts have derived L2 and total changes. After the API restarts through `scripts/run-api-local.sh`, manual review MUST cover all 9 movement/document links and 4 customer balance presentations, with real results retained only externally.
 
-### Requirement: Protected External Provenance and Evidence
+#### Scenario: Post-change validation passes
 
-The remediation MUST retain real operational evidence only in the external protected directory and make it reviewable with the verified backup by authorized operators. The external evidence MUST include target and source-document references, before and after values, reason, executor, timestamp, approved script or version reference, approval controls, backup reference and verification result, and preflight and post-change results. Repository artifacts and console or repository logs MUST contain no sensitive values, real-data-derived checksum material, or sign-off material.
+- GIVEN the transaction committed
+- WHEN the read-only post-change validation compares protected snapshots and live data
+- THEN it records successful change, scope, source, and balance checks only in protected external evidence
 
-#### Scenario: Authorized review of protected evidence
-
-- GIVEN a successful or failed remediation attempt
-- WHEN an authorized reviewer examines its protected external evidence and backup
-- THEN the reviewer can determine the target set, documentary sources, mutation outcome, validation results, and recovery reference without requiring real evidence in the repository
-
-### Requirement: Post-Change Validation and Manual Review
-
-Before commit and after commit, validation MUST use externally approved controls to demonstrate that exactly nine and only nine L2 fields changed; every changed value equals its approved unique quote total; required movement identity and linkage fields and all L1 values are unchanged; and only the four allowed accounts have derived L2 and total changes. The read-only audit and manual review records MUST remain protected external evidence. After restart through `scripts/run-api-local.sh`, manual review MUST cover all nine movement/document links and all four customer balance presentations.
-
-#### Scenario: Post-change controls pass
-
-- GIVEN the correction committed
-- WHEN post-change validation runs
-- THEN it records successful movement, balance, scope, and documentary controls only in protected external evidence before the API is restarted
-
-#### Scenario: Manual review finds a defect
+#### Scenario: Manual review identifies a defect
 
 - GIVEN the API has restarted through the local launcher
-- WHEN review of any required movement link or balance presentation fails
-- THEN rollback procedures MUST be initiated and rollback evidence retained only externally
+- WHEN required movement or balance review fails
+- THEN rollback procedures MUST be initiated and documented only in protected external evidence
 
 ### Requirement: Rollback and Backup Retention
 
-If a failure occurs before commit, the remediation MUST roll back and keep the API stopped until understood. If a post-commit or manual-validation failure occurs, operators MUST stop the API, restore the verified pre-change backup from the external protected directory, verify database integrity and the original protected target and balance snapshot, restart through `scripts/run-api-local.sh`, and retain remediation and rollback evidence externally. The backup MUST be retained through manual validation and MUST NOT be deleted automatically; deletion requires explicit user confirmation after successful manual validation.
+If validation fails before commit, the transaction MUST roll back and the API MUST remain stopped until the failure is understood. If post-commit validation or manual review fails, operators MUST stop the API, restore the verified pre-change backup from protected external storage, verify database integrity and the original protected snapshots, and restart through `scripts/run-api-local.sh`. The backup MUST remain protected through manual validation, MUST NOT be deleted automatically, and MAY be deleted only after explicit user confirmation following successful manual validation.
 
 #### Scenario: Post-commit recovery
 
-- GIVEN a post-commit validation or manual-review failure
+- GIVEN post-commit validation or manual review fails
 - WHEN recovery is performed
-- THEN the verified pre-change database state is restored, verified, and documented in protected external evidence before API restart
+- THEN the verified pre-change state MUST be restored and verified before API restart
 
 ### Requirement: L2 Enablement Compatibility
 
@@ -138,14 +120,25 @@ The remediation MUST NOT change quote lifecycle rules, API or UI contracts, or L
 
 #### Scenario: Configuration remains intentionally differentiated
 
-- GIVEN the remediation artifacts are prepared or executed
+- GIVEN remediation artifacts are reviewed or executed
 - WHEN public and local configuration are reviewed
 - THEN the public default remains disabled and `scripts/run-api-local.sh` remains the explicit local L2 opt-in
 
 ## Non-Goals
 
-The remediation MUST NOT perform a global or historical reconciliation, alter any movement outside the externally approved nine records, fabricate amounts or choose an ambiguous source, repair unrelated Access-imported discrepancies, change unrelated account balances, introduce application architecture or behavior changes, or store real operational data or evidence under the repository root.
+The remediation MUST NOT perform a global reconciliation; alter movements outside the qualified 9 records; fabricate amounts or choose ambiguous sources; repair unrelated discrepancies; change unrelated account balances; introduce application behavior changes; store real operational data under the repository root; add permanent database approval, claim, or provenance schema; or claim nonforgeable or cryptographic protection against a privileged DBA/operator.
+
+## Acceptance Criteria
+
+1. Repository artifacts contain no real operational data or evidence, and tooling rejects real-data paths under the repository root.
+2. A trusted operator reviews the external protected manifest and evidence before execution.
+3. Deterministic preflight blocks mutation unless exactly 9 PR zero-L2 movements across 4 customers each resolve to one authoritative quote total.
+4. A verified backup and confirmed API downtime gate supplied by the operational runner are required before mutation.
+5. One transaction changes only the 9 qualified `BudgetAmount` values and in-scope L2 and total balances, or changes nothing.
+6. Before and after snapshots, post-validation, manual review, and any rollback evidence remain only in protected external storage.
+7. L1 values and all out-of-scope movements and accounts remain unchanged.
+8. The public `DualLineCurrentAccount` default remains disabled while the existing local launcher remains the explicit L2 opt-in.
 
 ## Backward Compatibility Notes
 
-Existing movement identity, document linkage, L1 values, API/UI contracts, quote business rules, public GitHub L2 default, and local Argentine L2 opt-in behavior MUST remain compatible and unchanged.
+Movement identity and linkage, L1 values, API/UI contracts, quote business rules, the public GitHub L2 default, and the local Argentine L2 opt-in behavior MUST remain unchanged.

@@ -1,77 +1,88 @@
 # Design: Reconcile Missing L2 Quote Movements
 
-## Status and boundaries
+## Status, scope, and trust model
 
-This is a one-time operational SQL remediation, not an application feature. It changes no API, UI, quote lifecycle, licensing, configuration, or Clean Architecture boundary. No database, code, script, service, or configuration is changed by this design amendment.
+This is a one-time, trusted-operator remediation for a fixed population of nine `PR` movements across four customers. It is not an application feature, a general reconciliation, or an authorization system. It changes no API, UI, EF model/migration, configuration, quote lifecycle, or `scripts/run-api-local.sh` behavior.
 
-The eventual package is bounded by an **externally approved** manifest to nine `PR` movements across four customers. `CurrentAccountMovements` remains the ledger authority; `CurrentAccounts` balance fields are derived caches recalculated only for those manifest customers. The package must fail closed rather than discover or repair additional historical records.
+The public repository contains a lean operational package only: generic scripts, data-free templates and documentation, and synthetic fixtures/tests. The actual approved manifest, operator approval/signature, pre/post snapshots, hashes, backup metadata/files, reports, console captures, and all execution/rollback evidence are external protected operational records. They must never be committed, copied, or emitted under the repository root.
 
-### Binding public-repository boundary
+The trusted operator reviews and signs off the protected manifest and execution controls. Scripts deterministically qualify that supplied evidence against the database, but do not claim to make a privileged DBA/operator's inputs nonforgeable, cryptographically bound, or replay-proof. No permanent target-database approval, claim, provenance, or replay-control schema is introduced.
 
-This repository is public. Version control may contain only generic scripts, documentation, data-free templates, and synthetic test fixtures. It must never contain real customer, movement, document, quote, approval, amount, total, manifest, backup, report, hash/checksum derived from live data, provenance, sign-off, console capture, or rollback evidence.
-
-Every invocation that reads or writes real operational data requires an explicit operator-supplied external protected directory. The directory holds the approved manifest, approvals, backup and restore material, real-data hashes, reports, and all evidence. Repository paths are never defaults or fallbacks for these artifacts. Real provenance is retained in that protected directory and may additionally be recorded in an access-restricted target-database provenance store within the same transaction; it is never exported, copied, or logged to the repository.
+`CurrentAccountMovements` is the ledger authority. `CurrentAccounts` contains derived caches: only `BudgetBalance` and `TotalBalance` are recalculated, and only for the four manifest customers. `BillingBalance` and all L1 movement values remain untouched.
 
 ## Decisions and contracts
 
-| Decision | Design contract |
-|---|---|
-| Repository-safe package | The remediation directory contains `manifest.template.json` (data-free shape and placeholder tokens only), generic SQL/PowerShell, a runbook, and fixtures explicitly labeled synthetic. There is no real `manifest.json`, checksum file, evidence directory, backup location, approval, or captured output under the repository root. |
-| Protected-location contract | `execute.ps1`, `dry-run.ps1`, `rollback.ps1`, preflight, and validation require an explicit `-ProtectedDirectory` and explicit real input/output paths rooted beneath it. Before opening a database connection, each resolves the repository root and supplied paths to canonical physical paths (including symlink/junction/reparse-point resolution). It rejects the repository root itself and any descendant for every real input, output, temporary output, backup, restore, report, log, or manifest path. It also rejects a missing, inaccessible, non-directory, non-writable where writes are required, traversal/aliasing, or otherwise unsafe protected location. No fallback location exists. |
-| Redacted observability | Console and repository-visible logs contain only status, stage, opaque execution correlation ID, and non-sensitive error category. They never echo paths, connection strings, identifiers, amounts, SQL result rows, manifests, hashes, backup details, or approval/sign-off data. Detailed command output and reports are redirected only to protected external evidence. Failures are summarized without sensitive values. |
-| Fixed target authority | The real, approved external manifest is the sole target input. It carries the externally approved identities, quote controls, approval reference, and count controls, but none are hard-coded in repository artifacts. The launcher validates its schema and exact controls (nine movements, four customers, nine unique quotes) from the external input. Duplicate, placeholder, changed, missing, unapproved, or malformed entries fail before mutation. |
-| Quote resolution | A target movement is resolved only by its approved customer/document linkage across all branches. Candidate quotes are counted before selection; exactly one candidate must exist and match the external manifest's approved quote identity, state, and authoritative total. No branch is inferred or written. |
-| Transactional provenance | The protected directory must be writable and all required evidence files must be created/access-tested before the write transaction starts. The transaction records before/after provenance either in the protected external evidence flow and/or, if DBA/security approve it, an access-restricted target-DB `ops` provenance store. Target-DB provenance is written in the same transaction, inaccessible to application writers, has no EF migration/model/runtime dependency, and is never exported to a repository path. Any required provenance write failure rolls back. |
-| Derived values | The transaction updates only approved movements' `BudgetAmount`, using each unique authoritative quote total. It recalculates only the four manifest customers' `BudgetBalance` from complete ledger L2 sums and `TotalBalance` from complete ledger L1 plus L2 sums. It does not alter `BillingBalance`, `BillingAmount`, identities, dates, descriptions, document linkage, or non-target movements/accounts. |
+| Decision | Contract |
+| --- | --- |
+| Repository-safe package | Track only generic `README.md`, `manifest.template.json`, path/manifest helpers, parameterized SQL, and explicitly synthetic tests/fixtures under `scripts/remediation/reconcile-missing-l2-movements/`. Templates use placeholders, never real values. |
+| External protected directory | Every real invocation receives an explicit operator-controlled protected directory. Path helpers canonicalize the repository root and supplied/derived real-data paths before a database connection; a path in or resolving through the repository root, inaccessible storage, or unsafe containment fails closed. No repository default or fallback exists. |
+| External operator controls | The protected directory holds the approved manifest, signed/reviewed approval record, snapshots, hashes, reports, backup reference, and rollback evidence. The operator verifies their presence and reviews/signs the go/no-go controls. These are operational controls, not database records or cryptographic enforcement. |
+| Manifest shape and bounded scope | The data-free template describes the identities required to stage each approved target and its source quote (at minimum movement, customer, document, quote, and branch identities plus expected authoritative total), the approval reference, and expected cardinalities. The live manifest must yield exactly 9 distinct movements, 4 customers, and 9 qualified source quotes. It is never persisted by the scripts in the repository or target database. |
+| Exact source qualification | Read-only preflight and the transaction both join staged targets to the actual `CurrentAccountMovements` and `Quotes` schema. They require `DocumentType = PR`, `BudgetAmount = 0`, preserved customer/document linkage, the exact staged quote/branch identity, a permitted quote state, and its authoritative `Quotes.Total` equal to the staged expected total. Missing, ambiguous, mismatched, or fabricated source data aborts. No branch is inferred or written. |
+| Bounded atomic apply | `apply.sql` receives client-bound, session-local staging (for example `#ApprovedTargets`) and scalar expected counts/values; it does not discover a population or read a repository manifest. With `XACT_ABORT` and one explicit transaction, it repeats qualification, updates exactly 9 `CurrentAccountMovements.BudgetAmount` values, recomputes exactly 4 accounts, asserts row counts and derived results, and commits only when every guard passes. Any failure rolls back all mutation. |
+| External evidence and validation | `preflight.sql` and `validate.sql` are read-only. The future operational runner, not `apply.sql`, creates the protected snapshots/reports/hashes and captures detailed evidence. Validation compares the externally retained before snapshot and approved manifest with live data to demonstrate target-only change, source totals, preserved fields/L1, and four-account balance scope. |
+| Separation of responsibilities | A separate future runner owns backup creation/verification, API downtime and writer exclusion, external evidence capture, API restart, and rollback orchestration. It must pass those gates before invoking apply, but these platform/operational actions are not responsibilities of the lean SQL package and are not implemented by this design amendment. |
 
-## Repository files versus protected external artifacts
+## Repository file plan
 
-Proposed repository additions during a later implementation are generic only:
+The package remains generic and data-free:
 
 ```text
 scripts/remediation/reconcile-missing-l2-movements/
-  README.md                         # generic prerequisites, command order, stop/go and rollback runbook
-  manifest.template.json            # data-free schema/template; never a live manifest
-  preflight.sql                     # parameterized, read-only qualification
-  apply.sql                         # parameterized guarded transaction
-  validate.sql                      # parameterized, read-only validation
-  dry-run.ps1                       # protected-path-gated disposable restore rehearsal
-  execute.ps1                       # protected-path-gated production launcher
-  rollback.ps1                      # protected-path-gated recovery launcher
-  tests/fixtures/*.sql              # synthetic data only
-  tests/*.ps1                       # synthetic/path-safety assertions only
+  README.md                       # operator/runbook contract; no live instructions or values
+  manifest.template.json          # placeholders and manifest shape only
+  RemediationSafety.ps1           # protected-path and redaction helpers
+  preflight.ps1                   # load/shape/path gate and invoke read-only qualification
+  preflight.sql                   # parameterized, read-only qualification
+  apply.sql                       # parameterized bounded transaction against actual schema
+  validate.sql                    # parameterized, read-only post-change checks
+  tests/
+    *.tests.ps1                   # synthetic behavior and path/redaction tests
+    fixtures/*.sql                # synthetic schema/data only
 ```
 
-The operator provides a protected directory outside the canonical repository root. Its internal layout and all names are created or selected there; it contains the real manifest, approvals, evidence, backup/restore references or files, detailed SQL/client output, and review records. Scripts must not copy any of those files into the repository, even temporarily. Generated files use protected-directory temporary locations and atomic rename there; cleanup must not move data through repository paths.
+No tracked `execute`, backup, service-control, evidence, or rollback runner is required for this remediation package. If a future runner is added, it is a separately reviewed operational integration that invokes the package only after its external gates succeed. It must continue to keep all real artifacts outside the repository.
 
-## Operational data flow
+## Data flow
 
-1. **Validate protected paths before any live action.** The launcher derives the canonical repository root from its own location, canonicalizes `-ProtectedDirectory` and every derived/explicit artifact path, verifies containment beneath the protected directory and non-containment beneath the repository root, and tests required access controls. It creates a protected execution directory with an opaque ID. Path validation, protected-storage setup, manifest read, report creation, or redirection failure is a no-go with no database mutation.
-2. **Load and qualify only the external manifest.** The launcher reads the external approved manifest, validates its data-free template schema and external approval controls, and stages it only in process/session-local memory or database temporary structures. `preflight.sql` performs no DML. It confirms fixed target/customer/quote cardinalities, `PR` type, zero L2, unique candidate quote resolution, identity/state/total controls, complete-ledger sums, and current stored values. Detailed output is written only to protected evidence; console output is redacted. Other potential zero-L2 records may be reported only in protected evidence and never added to scope.
-3. **Back up and stop writes.** After protected preflight passes, create and verify a recoverable pre-change database backup in controlled external storage. Save backup identity, verification result, restore rehearsal results, and any hashes only as protected evidence. Failure prevents API stop or mutation. Then stop the local API, verify it is unavailable, and confirm no other writer/job/session can alter the target. Do not mutate while the API is serving.
-4. **Run one guarded transaction.** `apply.sql` uses `XACT_ABORT`, an explicit transaction, serializable isolation, and locked reads of manifest targets, quote ranges, and affected accounts. It repeats all path-independent manifest, qualification, cardinality, identity, quote, scope, and derived-balance guards within the transaction. It captures protected provenance, updates only the approved L2 values, asserts the exact target change set and expected movement/account affected-row counts, recalculates the scoped balance caches, verifies protected fields remain unchanged, and commits only if every guard and required provenance write succeeds. Any error rolls back all changes.
-5. **Validate and restart.** With the API still stopped, `validate.sql` independently verifies target resolution, exact change scope, authoritative totals, preserved movement/L1 fields, scoped account derivations, and provenance availability. Detailed results and manual-review material remain external. Only after validation passes may the operator restart using `scripts/run-api-local.sh` and review all approved movement links and affected balance presentations. The public L2 default remains disabled; the existing local launcher remains the explicit opt-in.
+1. The trusted operator creates/reviews/signs the real manifest and required controls in protected storage, and supplies that external directory explicitly.
+2. Path/manifest tooling rejects repository-contained or unsafe paths, validates only the manifest shape and required external control presence, and stages its values only for the invoking process/database session. It does not retain a copy in the repository or database.
+3. `preflight.sql` read-only qualifies the staged targets against `CurrentAccountMovements`, `Quotes`, and `CurrentAccounts`. Its detailed result is captured by the future runner in protected storage.
+4. The future runner verifies backup readiness, stops the API/excludes writers, captures the protected before snapshot, and obtains the operator's go/no-go review. Failure is a no-go before `apply.sql`.
+5. `apply.sql` begins its single transaction and re-qualifies all staged targets. It updates only qualified movement `BudgetAmount` fields to the authoritative quote totals. It then derives each scoped account's L2 sum from its complete movement ledger and sets `BudgetBalance` and `TotalBalance` from ledger L1 plus L2 sums. It asserts 9 movement and 4 account updates, preserves non-target/L1 fields, and rolls back on any failed assertion.
+6. The future runner captures protected after snapshots/reports/hashes, runs `validate.sql`, and has the trusted operator review/sign the result. Only after successful validation does it restart through the existing local L2-enabled launcher and collect the required manual review evidence.
 
-## Failure handling and rollback
+## SQL transaction contract
 
-- A path-safety, protected-storage, manifest, approval, preflight, backup, API-downtime, guard, row-count, validation, or required-provenance failure is fail-closed. Before commit, the transaction rolls back and the API stays stopped until the failure is understood.
-- A post-commit validation or manual-review failure requires stopping the API, restoring the verified pre-change backup from external protected storage, verifying integrity and the original protected snapshot, recording recovery evidence only externally (and in approved restricted target-DB provenance if used), then restarting through `scripts/run-api-local.sh`.
-- Never use an inverse ad-hoc update. No automated backup deletion is allowed; the protected backup and evidence remain until successful manual validation and explicit user authorization for deletion.
+`apply.sql` is intentionally a database-only, parameterized operation against the actual tables and columns already used by the application: `CurrentAccountMovements`, `Quotes`, and `CurrentAccounts`. Session-local staging contains only the externally approved target rows for that invocation.
 
-## Test and dry-run plan
+Within one transaction it must:
 
-Automated tests must use only synthetic fixtures and templates. They verify that:
+- reject unexpected expected counts, duplicate targets, or a staged scope other than 9 movements/4 customers;
+- lock/re-read the staged movement, source quote, and scoped account rows sufficiently to prevent an inconsistent qualification/update window;
+- require each movement's ID, customer, document linkage, `PR` type, and zero initial L2 value to match staging;
+- require the exact quote/branch row to retain matching customer/document/quote linkage, allowed state, and authoritative total;
+- update `BudgetAmount` only for the qualified target IDs and assert exactly 9 rows;
+- aggregate the complete movement ledger only for the four scoped customers, update only their `BudgetBalance` and `TotalBalance`, and assert exactly 4 rows; and
+- roll back on a qualification, row-count, preserved-field, or derived-balance failure.
 
-- all real-data operations require an explicit protected directory;
-- canonical-path checks reject repository-root paths, descendants, relative aliases, symlinks/junctions/reparse points, unsafe derived output paths, unavailable/inaccessible storage, and any attempt to emit real output to console or repository logs;
-- a valid synthetic fixture follows bounded qualification, transaction, balance derivation, validation, and rollback behavior;
-- invalid synthetic controls (duplicate/missing/ambiguous quote, non-PR, nonzero L2, approval/control drift, missing account, unexpected counts, provenance failure) produce no mutation; and
-- snapshot comparisons prove protected fields, non-manifest movements, non-scoped accounts, and L1 balances remain unchanged.
+It must not create tables, schemas, durable claims, audit/provenance rows, approval rows, hashes, or replay records. It must not implement backup, API lifecycle, approval signing, or evidence retention.
 
-`dry-run.ps1` uses a verified backup restored to a disposable environment only after the same protected-path gates pass. All real restore reports and output remain in the protected directory. A live operation remains separately authorized after DBA, security, application-maintainer, business-owner, and operator review of external evidence and a rollback rehearsal.
+## Validation, tests, and review
 
-## Architecture, review, and rollout
+Synthetic tests and fixtures must cover:
 
-Operational scripts stay outside Presentation, Application, Domain, and Infrastructure and introduce no application dependency. There are no proposed application architecture changes or Clean Architecture violations. If target-DB provenance is selected, it is an operational, least-privilege store only, requires DBA/security review, and is not represented as an EF migration.
+- repository/path containment and redaction failures, including canonical aliases/symlinks where supported;
+- valid synthetic nine-target/four-customer qualification and commit;
+- malformed or duplicate staging; incorrect counts; non-`PR`, nonzero-L2, missing, ambiguous, wrong-customer/document, wrong-branch, invalid-state, and total-mismatch sources;
+- rollback with no movement/account mutation on every transactional guard or row-count failure;
+- preservation of movement identity, dates, descriptions, linkage, L1 amounts, non-target movements, and non-scoped accounts; and
+- correct L2/total derivation from the full ledgers of only the four scoped customers.
 
-Implementation and live rollout are separate. Before implementation, update tasks to use only `manifest.template.json` and synthetic fixtures in version control and to require the protected-path/redaction gates above. Before any live execution, reviewers must approve the external manifest and evidence location, backup/restore readiness, transaction guards, external evidence retention, and rollback owner. This design amendment itself performs none of those actions.
+Tests must not require or simulate a permanent operational control store. They use only disposable SQL Server resources and synthetic artifacts. Review confirms actual schema names/joins before use, the bounded transaction, data-free repository inspection, the external protected-directory contract, and the explicit boundary between package tooling and the future runner.
+
+## Rollout and rollback
+
+Implementation is separate from live execution. Before a live run, the trusted operator reviews/signs protected manifest and evidence controls; the future runner verifies backup, API downtime, writer exclusion, preflight, and evidence readiness. The public `DualLineCurrentAccount` default remains disabled; restart uses the unchanged local `scripts/run-api-local.sh` opt-in.
+
+A failed preflight, runner gate, or in-transaction assertion makes the operation a no-go; the transaction rolls back and the API remains stopped until understood. For a post-commit validation or manual-review failure, the future runner stops the API, restores the verified protected pre-change backup, verifies the protected original snapshot and database state, captures rollback evidence externally, then restarts only when approved. The backup is retained externally until successful manual validation and explicit user authorization to delete it.
