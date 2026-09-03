@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External approved remediation manifest template",
+  "type": "object",
+  "required": ["approvalControl", "expectedTargetCount", "expectedCustomerCount", "targets"],
+  "properties": {
+    "approvalControl": { "type": "string", "description": "<external approval control>" },
+    "expectedTargetCount": { "type": "integer", "description": "<externally approved target count>" },
+    "expectedCustomerCount": { "type": "integer", "description": "<externally approved customer count>" },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["movementControl", "customerControl", "documentControl", "quoteControl", "approved"],
+        "properties": {
+          "movementControl": { "type": "string", "description": "<external movement control>" },
+          "customerControl": { "type": "string", "description": "<external customer control>" },
+          "documentControl": { "type": "string", "description": "<external document control>" },
+          "quoteControl": { "type": "string", "description": "<external quote control>" },
+          "approved": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

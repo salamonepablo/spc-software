@@ -1,5 +1,8 @@
 using SPC.Web.Components;
+using SPC.Web.Configuration;
 using SPC.Web.Services;
+
+DisplayCulture.Configure();
 
 var builder = WebApplication.CreateBuilder(args);
 

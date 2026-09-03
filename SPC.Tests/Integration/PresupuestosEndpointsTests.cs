@@ -2,7 +2,9 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SPC.API.Contracts.CurrentAccount;
 using SPC.API.Contracts.Quotes;
 using SPC.API.Data;
 using SPC.Shared.Models;
@@ -301,19 +303,86 @@ public class QuotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
     // ===========================================
 
     [Fact]
-    public async Task CreateQuote_UpdatesCurrentAccount_WhenDualLineEnabled()
+    public async Task CreateQuote_DoesNotUpdateCurrentAccountL2_WhenDualLineDisabled()
     {
-        // Arrange - Create a quote for a specific customer
-        // Note: Factory should have DualLineCurrentAccount enabled
-        var customerId = 2; // Use customer 2 to avoid interference with other tests
-        var request = new CreateQuoteRequest
+        // Arrange
+        const int customerId = 2;
+        var budgetBalanceBefore = await GetBudgetBalanceAsync(_factory, customerId);
+        var request = CreatePositiveQuoteRequest(customerId);
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/presupuestos", request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var quote = await response.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
+
+        // Assert
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
+        var movement = await db.CurrentAccountMovements.SingleAsync(m =>
+            m.CustomerId == customerId &&
+            m.DocumentType == DocumentType.Quote &&
+            m.DocumentNumber == quote!.QuoteNumber);
+        var account = await db.CurrentAccounts.SingleAsync(ca => ca.CustomerId == customerId);
+
+        movement.BudgetAmount.Should().Be(0);
+        account.BudgetBalance.Should().Be(budgetBalanceBefore);
+    }
+
+    [Fact]
+    public async Task CreateQuote_RecordsL2MovementAndRangeBalances_WhenDualLineEnabled()
+    {
+        // Arrange
+        const int customerId = 2;
+        using var enabledFactory = _factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) =>
+                configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Licensing:Features:DualLineCurrentAccount"] = "true"
+                })));
+        using var client = enabledFactory.CreateClient();
+        var request = CreatePositiveQuoteRequest(customerId);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/presupuestos", request);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var quote = await response.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
+        quote.Should().NotBeNull();
+        quote!.Total.Should().BeGreaterThan(0);
+        var date = DateTime.Today.ToString("yyyy-MM-dd");
+        var rangeResponse = await client.GetAsync(
+            $"/api/current-accounts/{customerId}/movements/range?dateFrom={date}&dateTo={date}");
+
+        // Assert
+        using var scope = enabledFactory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
+        var movement = await db.CurrentAccountMovements.SingleAsync(m =>
+            m.CustomerId == customerId &&
+            m.DocumentType == DocumentType.Quote &&
+            m.DocumentNumber == quote!.QuoteNumber);
+        var account = await db.CurrentAccounts.SingleAsync(ca => ca.CustomerId == customerId);
+        var range = await rangeResponse.Content.ReadFromJsonAsync<CurrentAccountMovementsResponse>();
+
+        movement.BudgetAmount.Should().Be(quote.Total);
+        account.BudgetBalance.Should().Be(quote.Total);
+        account.TotalBalance.Should().Be(quote.Total);
+        rangeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        range.Should().NotBeNull();
+        range!.Movements.Should().ContainSingle(m =>
+            m.DocumentNumber == quote.QuoteNumber && m.BudgetAmount == quote.Total);
+        range.FinalBudgetBalance.Should().Be(quote.Total);
+        range.FinalTotalBalance.Should().Be(quote.Total);
+    }
+
+    private static CreateQuoteRequest CreatePositiveQuoteRequest(int customerId)
+    {
+        return new CreateQuoteRequest
         {
             BranchId = 1,
             CustomerId = customerId,
             DiscountPercent = 0,
             Details = new List<CreateQuoteDetalleRequest>
             {
-                new CreateQuoteDetalleRequest
+                new()
                 {
                     ProductId = 1,
                     Quantity = 1,
@@ -321,24 +390,13 @@ public class QuotesEndpointsTests : IClassFixture<SPCWebApplicationFactory>
                 }
             }
         };
+    }
 
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/presupuestos", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        
-        var quote = await response.Content.ReadFromJsonAsync<QuoteCompletoResponse>();
-
-        // Assert - Check current account was updated
-        using var scope = _factory.Services.CreateScope();
+    private static async Task<decimal> GetBudgetBalanceAsync(SPCWebApplicationFactory factory, int customerId)
+    {
+        using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SPCDbContext>();
-        
-        var account = await db.CurrentAccounts
-            .FirstOrDefaultAsync(ca => ca.CustomerId == customerId);
-        
-        // If DualLineCurrentAccount is enabled, BudgetBalance should equal quote total
-        // If disabled, BudgetBalance should be 0
-        account.Should().NotBeNull();
-        account!.TotalBalance.Should().BeGreaterThanOrEqualTo(0);
+        return (await db.CurrentAccounts.SingleOrDefaultAsync(ca => ca.CustomerId == customerId))?.BudgetBalance ?? 0;
     }
 
     [Fact]

@@ -1,0 +1,4 @@
+-- SYNTHETIC TEST DATA ONLY. Never run against an operational database.
+-- Deliberately non-operational examples for qualification assertions.
+-- Cases represented by the PowerShell harness: unique quote, duplicate quote,
+-- missing quote, non-PR type, nonzero L2, missing account, and out-of-scope row.

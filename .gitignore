@@ -85,3 +85,6 @@ MIGRATION_INSTRUCTIONS_*.md
 
 # Windows null device artifact
 nul
+.env.local
+dotnet-install.sh
+.pi/
