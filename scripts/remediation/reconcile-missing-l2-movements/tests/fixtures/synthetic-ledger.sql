@@ -30,7 +30,7 @@ CREATE TABLE dbo.Quotes (
     IsVoided bit NOT NULL
 );
 
--- Four scoped synthetic customers, one intentionally non-scoped account, nine zero-L2 PR targets.
+-- Three scoped synthetic customers, two intentionally non-scoped accounts, six zero-L2 PR targets.
 INSERT dbo.CurrentAccounts VALUES
  (1, 101, 100.00, 0.00, 100.00, '2026-01-01'), (2, 102, 200.00, 0.00, 200.00, '2026-01-01'),
  (3, 103, 300.00, 0.00, 300.00, '2026-01-01'), (4, 104, 400.00, 0.00, 400.00, '2026-01-01'),
@@ -42,13 +42,12 @@ INSERT dbo.CurrentAccountMovements VALUES
  (4, '2026-01-01',102,20,1004,40.00,0.00,40.00,0.00,N'synthetic target 4'),
  (5, '2026-01-01',102,20,1005,50.00,0.00,90.00,0.00,N'synthetic target 5'),
  (6, '2026-01-01',103,20,1006,60.00,0.00,60.00,0.00,N'synthetic target 6'),
- (7, '2026-01-01',103,20,1007,70.00,0.00,130.00,0.00,N'synthetic target 7'),
- (8, '2026-01-01',104,20,1008,80.00,0.00,80.00,0.00,N'synthetic target 8'),
- (9, '2026-01-01',104,20,1009,90.00,0.00,170.00,0.00,N'synthetic target 9'),
+ (7, '2026-01-01',103,99,9003,70.00,0.00,130.00,0.00,N'synthetic non-target scoped'),
+ (8, '2026-01-01',104,20,1008,80.00,0.00,80.00,0.00,N'synthetic non-scoped zero L2'),
+ (9, '2026-01-01',104,20,1009,90.00,0.00,170.00,0.00,N'synthetic non-scoped zero L2'),
  (10,'2026-01-01',101,99,9001,11.00,12.00,71.00,12.00,N'synthetic non-target'),
  (11,'2026-01-01',105,20,9002,13.00,14.00,13.00,14.00,N'synthetic non-scoped');
 INSERT dbo.Quotes VALUES
  (201,1,1001,'2026-01-01',101,11.00,0),(202,1,1002,'2026-01-01',101,12.00,0),(203,1,1003,'2026-01-01',101,13.00,0),
- (204,1,1004,'2026-01-01',102,14.00,0),(205,1,1005,'2026-01-01',102,15.00,0),(206,1,1006,'2026-01-01',103,16.00,0),
- (207,1,1007,'2026-01-01',103,17.00,0),(208,1,1008,'2026-01-01',104,18.00,0),(209,1,1009,'2026-01-01',104,19.00,0);
+ (204,1,1004,'2026-01-01',102,14.00,0),(205,1,1005,'2026-01-01',102,15.00,0),(206,1,1006,'2026-01-01',103,16.00,0);
 -- Harness variants mutate only this disposable fixture to prove each guarded rollback path.

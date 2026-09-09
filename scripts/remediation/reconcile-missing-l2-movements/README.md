@@ -1,6 +1,6 @@
 # Reconcile Missing L2 Movements — Trusted-Operator Remediation Package
 
-> **Scope:** One-time, bounded correction of 9 missing L2 quote movement amounts across 4 customers.
+> **Scope:** One-time, bounded correction of 6 missing L2 quote movement amounts across 3 customers.
 
 ## Repository boundary
 
@@ -26,10 +26,10 @@ approval record, or durable control store is introduced by this package.
 | `RemediationSafety.ps1` | Protected-path canonicalization, manifest validation, redacted output helpers |
 | `preflight.ps1` | Validates protected paths and manifest shape; writes redacted report |
 | `preflight.sql` | SELECT-only qualification of session-local staging against application schema |
-| `apply.sql` | Bounded atomic transaction: re-qualifies, updates 9 movements, derives 4 account balances |
+| `apply.sql` | Bounded atomic transaction: re-qualifies, updates 6 movements, derives 3 account balances |
 | `validate.sql` | Read-only post-change validation, including additions/removals outside movement/account scope |
 | `validate.ps1` | Validates protected paths, manifest, snapshot presence; writes redacted report |
-| `Apply-SyntheticSqlServer.ps1` | Disposable Docker SQL Server harness with 23 behavior scenarios, each reset to an isolated fixture baseline; validates the valid post-apply state and rejects synthetic out-of-scope additions/deletions against session-local before snapshots |
+| `Apply-SyntheticSqlServer.ps1` | Disposable Docker SQL Server harness with 28 behavior scenarios, each reset to an isolated fixture baseline; validates the valid post-apply state, exact ledger-derived balances, excluded movement/account preservation, and synthetic out-of-scope mutations against session-local before snapshots |
 | `tests/` | Synthetic contract tests and fixtures (data-free, disposable only) |
 
 ## Data flow
@@ -37,8 +37,8 @@ approval record, or durable control store is introduced by this package.
 1. The trusted operator prepares the approved manifest and operational controls in protected storage.
 2. `preflight.ps1` validates protected paths and manifest shape. `preflight.sql` read-only qualifies session-local staging against `CurrentAccountMovements`, `Quotes`, and `CurrentAccounts`.
 3. The external runner (PR3 responsibility) verifies backup, API downtime, and writer exclusion before mutation. **Never run real data without a verified backup and confirmed writer/API exclusion.** This is a non-bypassable operational gate and remains PR3 scope; this PR2 package does not implement a runner or any operational controls.
-4. `apply.sql` executes one bounded transaction: re-qualifies all 9 targets, updates `BudgetAmount` to authoritative `Quotes.Total`, derives `BudgetBalance` and `TotalBalance` from the complete ledger for the 4 scoped customers, and rolls back on any guard failure.
-5. `validate.sql` independently confirms exactly 9 L2 changes, source-total match, preserved identity/linkage/L1, correct account cache derivation, and no out-of-scope mutation.
+4. `apply.sql` executes one bounded transaction: re-qualifies all 6 targets, updates `BudgetAmount` to authoritative `Quotes.Total`, derives `BudgetBalance` and `TotalBalance` from the complete ledger for the 3 scoped customers, and rolls back on any guard failure.
+5. `validate.sql` independently confirms exactly 6 L2 changes, source-total match, preserved identity/linkage/L1, correct account cache derivation, and no out-of-scope mutation.
 
 ## What this package does NOT do
 
@@ -67,7 +67,7 @@ SQL scripts target the actual application columns confirmed from:
 
 ```powershell
 # PowerShell package suite. The final command starts the disposable synthetic
-# SQL Server container and executes all 23 behavioral scenarios; it is not a token-only check.
+# SQL Server container and executes all 28 behavioral scenarios; it is not a token-only check.
 pwsh -NoProfile -File tests/preflight.tests.ps1
 pwsh -NoProfile -File tests/apply.tests.ps1
 pwsh -NoProfile -File tests/validate.tests.ps1

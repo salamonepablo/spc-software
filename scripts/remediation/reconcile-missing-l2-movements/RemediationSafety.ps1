@@ -85,7 +85,7 @@ function Format-RedactedStatus {
 function Assert-ManifestControls {
     param([Parameter(Mandatory)]$Manifest)
     if ([string]::IsNullOrWhiteSpace([string]$Manifest.approvalControl)) { throw 'ManifestApprovalInvalid' }
-    if ($Manifest.expectedTargetCount -ne 9 -or @($Manifest.targets).Count -ne 9) { throw 'ManifestTargetCountInvalid' }
+    if ($Manifest.expectedTargetCount -ne 6 -or @($Manifest.targets).Count -ne 6) { throw 'ManifestTargetCountInvalid' }
     foreach ($target in @($Manifest.targets)) {
         foreach ($propertyName in @('movementId', 'customerId', 'documentNumber', 'quoteId', 'branchId')) {
             $property = $target.PSObject.Properties[$propertyName]
@@ -96,12 +96,12 @@ function Assert-ManifestControls {
         if ($null -eq $target.PSObject.Properties['approved'] -or $target.approved -isnot [bool]) { throw 'ManifestTargetShapeInvalid' }
     }
     $customers = @($Manifest.targets | ForEach-Object customerId | Select-Object -Unique)
-    if ($Manifest.expectedCustomerCount -ne 4 -or $customers.Count -ne 4) { throw 'ManifestCustomerCountInvalid' }
+    if ($Manifest.expectedCustomerCount -ne 3 -or $customers.Count -ne 3) { throw 'ManifestCustomerCountInvalid' }
     if (@($Manifest.targets | Where-Object { -not $_.approved }).Count -ne 0) { throw 'ManifestTargetUnapproved' }
-    if (@($Manifest.targets | ForEach-Object movementId | Select-Object -Unique).Count -ne 9) { throw 'ManifestMovementNotUnique' }
-    if (@($Manifest.targets | ForEach-Object documentNumber | Select-Object -Unique).Count -ne 9) { throw 'ManifestDocumentNotUnique' }
-    if (@($Manifest.targets | ForEach-Object quoteId | Select-Object -Unique).Count -ne 9) { throw 'ManifestQuoteNotUnique' }
-    [pscustomobject]@{ TargetCount = 9; CustomerCount = 4; UniqueMovementCount = 9; UniqueDocumentCount = 9; UniqueQuoteCount = 9 }
+    if (@($Manifest.targets | ForEach-Object movementId | Select-Object -Unique).Count -ne 6) { throw 'ManifestMovementNotUnique' }
+    if (@($Manifest.targets | ForEach-Object documentNumber | Select-Object -Unique).Count -ne 6) { throw 'ManifestDocumentNotUnique' }
+    if (@($Manifest.targets | ForEach-Object quoteId | Select-Object -Unique).Count -ne 6) { throw 'ManifestQuoteNotUnique' }
+    [pscustomobject]@{ TargetCount = 6; CustomerCount = 3; UniqueMovementCount = 6; UniqueDocumentCount = 6; UniqueQuoteCount = 6 }
 }
 
 function New-PreflightSqlParameters {

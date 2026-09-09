@@ -7,7 +7,7 @@
     port exposed to external consumers, generated SA password), waits for readiness,
     creates a disposable database, loads the synthetic-ledger.sql fixture, stages
     #ApprovedTargets for each scenario, runs apply.sql, and asserts outcomes.
-    All 23 scenarios execute guard paths, commit, preservation, derived balances, and post-change validation.
+    All 28 scenarios execute guard paths, commit, preservation, derived balances, and post-change validation.
     Container and temporary files are removed in finally.
 .NOTES
     Requires Docker Desktop and uses docker exec with the container's sqlcmd client.
@@ -26,7 +26,6 @@ $script:applyPath = Join-Path $PSScriptRoot 'apply.sql'
 $script:validatePath = Join-Path $PSScriptRoot 'validate.sql'
 $script:containerName = 'synthetic-sqlserver-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
 $script:saPassword = [guid]::NewGuid().ToString('N') + 'Aa1!'
-$script:port = Get-Random -Minimum 49152 -Maximum 65535
 
 # --- Files created for individual SQL batches; removed by the outer finally. ---
 $script:tempFiles = @()
@@ -120,12 +119,11 @@ function Invoke-PostChangeValidation {
     return $r
 }
 
-# Valid 9/4 staging data for every post-apply scenario
+# Valid 6/3 staging data for every post-apply scenario
 $script:validStagingValues = @"
 (1,101,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),
 (4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),
-(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),
-(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)
+(6,103,1006,206,1,16.00)
 "@
 
 $script:applySql = Get-Content -LiteralPath $script:applyPath -Raw
@@ -158,7 +156,7 @@ function Invoke-AllScenarios {
 # apply.sql must THROW because re-qualification or cardinality fails
 # ============================================================================
 Invoke-Scenario 'MalformedStaging' {
-    $stagingSql = New-StagingTable "(1,NULL,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,NULL,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on malformed staging' }
@@ -169,29 +167,29 @@ Invoke-Scenario 'MalformedStaging' {
 # Guard 2 detects COUNT(*) <> COUNT(DISTINCT MovementId) → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'DuplicateStaging' {
-    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(1,101,1001,201,1,11.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(1,101,1001,201,1,11.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on duplicate staging' }
 }
 
 # ============================================================================
-# Scenario: TargetCount — wrong number of targets (8 instead of 9)
-# Guard 1 detects @targetCount <> 9 → THROW/ROLLBACK
+# Scenario: TargetCount — wrong number of targets (5 instead of 6)
+# Guard 1 detects @targetCount <> 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'TargetCount' {
-    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong target count' }
 }
 
 # ============================================================================
-# Scenario: CustomerCount — wrong number of distinct customers (3 instead of 4)
-# Guard 1 detects @customerCount <> 4 → THROW/ROLLBACK
+# Scenario: CustomerCount — wrong number of distinct customers (2 instead of 3)
+# Guard 1 detects @customerCount <> 3 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'CustomerCount' {
-    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,101,1008,208,1,18.00),(9,101,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,101,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong customer count' }
@@ -199,7 +197,7 @@ Invoke-Scenario 'CustomerCount' {
 
 # ============================================================================
 # Scenario: NonPr — target movement has DocumentType <> 20
-# Re-qualification (Guard 3) excludes it → count < 9 → THROW/ROLLBACK
+# Re-qualification (Guard 3) excludes it → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'NonPr' {
     Invoke-SqlBatch "USE [synthetic_test]; UPDATE CurrentAccountMovements SET DocumentType = 99 WHERE Id = 1" | Out-Null
@@ -223,10 +221,10 @@ Invoke-Scenario 'NonzeroL2' {
 
 # ============================================================================
 # Scenario: MissingQuote — QuoteId does not exist in Quotes
-# Re-qualification join finds no quote → count < 9 → THROW/ROLLBACK
+# Re-qualification join finds no quote → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'MissingQuote' {
-    $stagingSql = New-StagingTable "(1,101,1001,999,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,999,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on missing quote' }
@@ -234,11 +232,11 @@ Invoke-Scenario 'MissingQuote' {
 
 # ============================================================================
 # Scenario: AmbiguousQuote — multiple quotes match (duplicate QuoteId rows)
-# Re-qualification join produces > 9 rows → THROW/ROLLBACK
+# Re-qualification join produces > 6 rows → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'AmbiguousQuote' {
     Invoke-SqlBatch "USE [synthetic_test]; ALTER TABLE Quotes DROP CONSTRAINT PK_Quotes" | Out-Null
-    Invoke-SqlBatch "USE [synthetic_test]; INSERT INTO Quotes VALUES (201,1,9001,'2026-01-01',101,99.00,0)" | Out-Null
+    Invoke-SqlBatch "USE [synthetic_test]; INSERT INTO Quotes VALUES (201,1,1001,'2026-01-01',101,99.00,0)" | Out-Null
     $stagingSql = New-StagingTable $script:validStagingValues
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
@@ -247,10 +245,10 @@ Invoke-Scenario 'AmbiguousQuote' {
 
 # ============================================================================
 # Scenario: WrongCustomer — staged CustomerId does not match quote's CustomerId
-# Re-qualification join on CustomerId fails → count < 9 → THROW/ROLLBACK
+# Re-qualification join on CustomerId fails → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'WrongCustomer' {
-    $stagingSql = New-StagingTable "(1,102,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,102,1001,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong customer' }
@@ -258,10 +256,10 @@ Invoke-Scenario 'WrongCustomer' {
 
 # ============================================================================
 # Scenario: WrongDocument — staged DocumentNumber does not match movement
-# Re-qualification join on DocumentNumber fails → count < 9 → THROW/ROLLBACK
+# Re-qualification join on DocumentNumber fails → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'WrongDocument' {
-    $stagingSql = New-StagingTable "(1,101,9999,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,9999,201,1,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong document number' }
@@ -272,7 +270,7 @@ Invoke-Scenario 'WrongDocument' {
 # Re-qualification: quote exists but links to different movement → join fails or total mismatch
 # ============================================================================
 Invoke-Scenario 'WrongQuoteId' {
-    $stagingSql = New-StagingTable "(1,101,1001,202,1,12.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,202,1,12.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong QuoteId' }
@@ -283,20 +281,20 @@ Invoke-Scenario 'WrongQuoteId' {
 # Re-qualification must reject it before any BudgetAmount or account cache mutation.
 # ============================================================================
 Invoke-Scenario 'WrongQuoteDocumentIdentity' {
-    $stagingSql = New-StagingTable "(1,101,1001,202,1,12.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,202,1,12.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW when quote document identity does not match the movement' }
-    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 9 AND BudgetAmount <> 0"
+    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 6 AND BudgetAmount <> 0"
     if ($check.Output -match '(\d+)' -and [int]$Matches[1] -gt 0) { throw 'WrongQuoteDocumentIdentity: state mutated after rejection' }
 }
 
 # ============================================================================
 # Scenario: WrongBranchId — staged BranchId does not match quote's BranchId
-# Re-qualification join on BranchId fails → count < 9 → THROW/ROLLBACK
+# Re-qualification join on BranchId fails → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'WrongBranchId' {
-    $stagingSql = New-StagingTable "(1,101,1001,201,2,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,201,2,11.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on wrong BranchId' }
@@ -304,7 +302,7 @@ Invoke-Scenario 'WrongBranchId' {
 
 # ============================================================================
 # Scenario: InvalidQuoteState — quote is voided (IsVoided = 1)
-# Re-qualification excludes voided quotes → count < 9 → THROW/ROLLBACK
+# Re-qualification excludes voided quotes → count < 6 → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'InvalidQuoteState' {
     Invoke-SqlBatch "USE [synthetic_test]; UPDATE Quotes SET IsVoided = 1 WHERE Id = 201" | Out-Null
@@ -319,7 +317,7 @@ Invoke-Scenario 'InvalidQuoteState' {
 # Guard 4 detects mismatch → THROW/ROLLBACK
 # ============================================================================
 Invoke-Scenario 'SourceTotalMismatch' {
-    $stagingSql = New-StagingTable "(1,101,1001,201,1,99.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00),(7,103,1007,207,1,17.00),(8,104,1008,208,1,18.00),(9,104,1009,209,1,19.00)"
+    $stagingSql = New-StagingTable "(1,101,1001,201,1,99.00),(2,101,1002,202,1,12.00),(3,101,1003,203,1,13.00),(4,102,1004,204,1,14.00),(5,102,1005,205,1,15.00),(6,103,1006,206,1,16.00)"
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     $r = Invoke-SqlBatch $batch
     if ($r.Success) { throw 'Expected apply.sql to THROW on source total mismatch' }
@@ -336,12 +334,12 @@ Invoke-Scenario 'AtomicRollback' {
     $batch = "USE [synthetic_test];`n$stagingSql`n$script:applySql"
     Invoke-SqlBatch $batch | Out-Null
     # Verify no partial movement mutation: all BudgetAmount for targets must still be 0
-    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 9 AND BudgetAmount <> 0"
+    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 6 AND BudgetAmount <> 0"
     if ($check.Output -match '(\d+)' -and [int]$Matches[1] -gt 0) {
         throw 'AtomicRollback: partial movement mutation detected after guard failure'
     }
     # Verify no account balance changes
-    $checkAcct = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccounts WHERE Id IN (1,2,3,4) AND BudgetBalance <> 0"
+    $checkAcct = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccounts WHERE Id IN (1,2,3) AND BudgetBalance <> 0"
     if ($checkAcct.Output -match '(\d+)' -and [int]$Matches[1] -gt 0) {
         throw 'AtomicRollback: partial account mutation detected after guard failure'
     }
@@ -360,7 +358,7 @@ Invoke-Scenario 'SerializableTransaction' {
 }
 
 # ============================================================================
-# Scenario: Commit — valid 9/4 staging, all 9 movements and 4 accounts updated
+# Scenario: Commit — valid 6/3 staging, all 6 movements and 3 accounts updated
 # Transaction commits successfully
 # ============================================================================
 Invoke-Scenario 'Commit' {
@@ -372,16 +370,31 @@ Invoke-Scenario 'Commit' {
 # ============================================================================
 Invoke-Scenario 'FullLedger' {
     Invoke-ValidApply 'FullLedger' | Out-Null
-    # Customer 101: BudgetBalance = 11+12+13+0 = 36, BillingBalance = 10+20+30+11 = 71, TotalBalance = 36+71 = 107
-    # Customer 102: BudgetBalance = 14+15 = 29, BillingBalance = 40+50 = 90, TotalBalance = 29+90 = 119
-    # Customer 103: BudgetBalance = 16+17 = 33, BillingBalance = 60+70 = 130, TotalBalance = 33+130 = 163
-    # Customer 104: BudgetBalance = 18+19 = 37, BillingBalance = 80+90 = 170, TotalBalance = 37+170 = 207
-    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT CustomerId, BudgetBalance, TotalBalance FROM CurrentAccounts WHERE CustomerId IN (101,102,103,104) ORDER BY CustomerId"
-    # Basic verification that balances were updated (non-zero BudgetBalance for all 4)
-    $zeroCheck = Invoke-SqlBatch "USE [synthetic_test]; SELECT COUNT(*) AS Cnt FROM CurrentAccounts WHERE CustomerId IN (101,102,103,104) AND BudgetBalance = 0"
-    if ($zeroCheck.Output -match '(\d+)' -and [int]$Matches[1] -gt 0) {
-        throw 'FullLedger: expected non-zero BudgetBalance for all 4 scoped customers'
-    }
+    # Customer 101: target L2 11+12+13 plus preserved non-target L2 12 = 48; ledger L1 10+20+30+11 = 71; total = 119.
+    # Customer 102: target L2 14+15 = 29; ledger L1 40+50 = 90; total = 119.
+    # Customer 103: target L2 16 = 16; scoped non-target movement 7 contributes L1 70; ledger L1 = 60+70 = 130; total = 146.
+    $check = Invoke-SqlBatch @"
+USE [synthetic_test];
+IF EXISTS (
+    SELECT CustomerId, BudgetBalance, TotalBalance
+    FROM CurrentAccounts
+    WHERE CustomerId IN (101,102,103)
+    EXCEPT
+    SELECT CustomerId, BudgetBalance, TotalBalance
+    FROM (VALUES (101,48.00,119.00),(102,29.00,119.00),(103,16.00,146.00))
+        AS Expected(CustomerId, BudgetBalance, TotalBalance)
+) OR EXISTS (
+    SELECT CustomerId, BudgetBalance, TotalBalance
+    FROM (VALUES (101,48.00,119.00),(102,29.00,119.00),(103,16.00,146.00))
+        AS Expected(CustomerId, BudgetBalance, TotalBalance)
+    EXCEPT
+    SELECT CustomerId, BudgetBalance, TotalBalance
+    FROM CurrentAccounts
+    WHERE CustomerId IN (101,102,103)
+)
+    THROW 51000, 'FullLedger: ledger-derived balances do not match expected values', 1;
+"@
+    if (-not $check.Success) { throw "FullLedger: ledger-derived balances do not match expected values: $($check.Output)" }
 }
 
 # ============================================================================
@@ -389,23 +402,31 @@ Invoke-Scenario 'FullLedger' {
 # ============================================================================
 Invoke-Scenario 'PreservedIdentity' {
     Invoke-ValidApply 'PreservedIdentity' | Out-Null
-    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT Id, MovementDate, Description, BillingAmount FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 9 ORDER BY Id"
-    # Verify BillingAmount unchanged (10,20,30,40,50,60,70,80,90)
-    $billingCheck = Invoke-SqlBatch "USE [synthetic_test]; SELECT SUM(BillingAmount) AS TotalBilling FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 9"
-    if (-not ($billingCheck.Output -match '450')) {
-        throw 'PreservedIdentity: BillingAmount sum should be 450 for target movements'
+    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT Id, MovementDate, Description, BillingAmount FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 6 ORDER BY Id"
+    # Verify BillingAmount unchanged (10,20,30,40,50,60)
+    $billingCheck = Invoke-SqlBatch "USE [synthetic_test]; SELECT SUM(BillingAmount) AS TotalBilling FROM CurrentAccountMovements WHERE Id BETWEEN 1 AND 6"
+    if (-not ($billingCheck.Output -match '210')) {
+        throw 'PreservedIdentity: BillingAmount sum should be 210 for target movements'
     }
 }
 
 # ============================================================================
-# Scenario: NonTarget — non-target movements (Id=10, DocumentType=99) unchanged after commit
+# Scenario: NonTarget — excluded movements 7/8/9 and non-scoped customer 104 unchanged after valid commit
 # ============================================================================
 Invoke-Scenario 'NonTarget' {
     Invoke-ValidApply 'NonTarget' | Out-Null
-    $check = Invoke-SqlBatch "USE [synthetic_test]; SELECT BudgetAmount, BillingAmount FROM CurrentAccountMovements WHERE Id = 10"
-    if (-not ($check.Output -match '12' -and $check.Output -match '11')) {
-        throw 'NonTarget: movement Id=10 should have BillingAmount=11, BudgetAmount=12 unchanged'
-    }
+    $excludedMovements = Invoke-SqlBatch @"
+USE [synthetic_test];
+IF (SELECT COUNT(*) FROM CurrentAccountMovements
+    WHERE Id IN (7,8,9)
+      AND ((Id = 7 AND CustomerId = 103 AND DocumentType = 99 AND DocumentNumber = 9003 AND BillingAmount = 70.00 AND BudgetAmount = 0.00 AND MovementDate = '2026-01-01' AND Description = N'synthetic non-target scoped')
+        OR (Id = 8 AND CustomerId = 104 AND DocumentType = 20 AND DocumentNumber = 1008 AND BillingAmount = 80.00 AND BudgetAmount = 0.00 AND MovementDate = '2026-01-01' AND Description = N'synthetic non-scoped zero L2')
+        OR (Id = 9 AND CustomerId = 104 AND DocumentType = 20 AND DocumentNumber = 1009 AND BillingAmount = 90.00 AND BudgetAmount = 0.00 AND MovementDate = '2026-01-01' AND Description = N'synthetic non-scoped zero L2'))) <> 3
+    THROW 51001, 'NonTarget: excluded movements 7, 8, and 9 changed', 1;
+"@
+    if (-not $excludedMovements.Success) { throw "NonTarget: excluded movements 7, 8, and 9 changed: $($excludedMovements.Output)" }
+    $customer104 = Invoke-SqlBatch "USE [synthetic_test]; IF NOT EXISTS (SELECT 1 FROM CurrentAccounts WHERE CustomerId = 104 AND BillingBalance = 400.00 AND BudgetBalance = 0.00 AND TotalBalance = 400.00 AND LastUpdated = '2026-01-01') THROW 51002, 'NonTarget: customer 104 changed', 1;"
+    if (-not $customer104.Success) { throw "NonTarget: customer 104 changed: $($customer104.Output)" }
 }
 
 # ============================================================================
@@ -424,6 +445,10 @@ Invoke-Scenario 'NonScopedAccount' {
 # ============================================================================
 Invoke-Scenario 'PostChangeValidation' {
     Invoke-PostChangeValidation 'PostChangeValidation' | Out-Null
+}
+
+Invoke-Scenario 'NonTargetFieldValidation' {
+    Invoke-PostChangeValidation 'NonTargetFieldValidation' "UPDATE CurrentAccountMovements SET DocumentType = 98 WHERE Id = 7;" -ExpectFailure | Out-Null
 }
 
 Invoke-Scenario 'AddedNonTargetMovementValidation' {
@@ -449,8 +474,8 @@ Invoke-Scenario 'DeletedNonScopedAccountValidation' {
 # ============================================================================
 
 if ($WhatIf) {
-    Write-Host "WhatIf: would create synthetic SqlServer container '$script:containerName' on port $script:port"
-    Write-Host "Would run 23 scenarios against disposable synthetic database"
+    Write-Host "WhatIf: would create synthetic SqlServer container '$script:containerName' without publishing a host port"
+    Write-Host "Would run 28 scenarios against disposable synthetic database"
     exit 0
 }
 
@@ -467,14 +492,17 @@ try {
     }
 
     Write-Host "Starting synthetic SqlServer container: $script:containerName"
-    docker.exe run -d --name $script:containerName `
-        -p "${script:port}:1433" `
+    $dockerRunOutput = docker.exe run -d --name $script:containerName `
         -e "ACCEPT_EULA=Y" `
         -e "MSSQL_SA_PASSWORD=$script:saPassword" `
-        mcr.microsoft.com/mssql/server:2022-latest | Out-Null
+        mcr.microsoft.com/mssql/server:2022-latest 2>&1
+    $dockerRunExitCode = $LASTEXITCODE
+    if ($dockerRunExitCode -ne 0) {
+        throw "Could not start synthetic SqlServer container: $($dockerRunOutput -join "`n")"
+    }
 
-    # Wait for SQL Server readiness
-    Write-Host "Waiting for SqlServer readiness on port $script:port..."
+    # Wait for SQL Server readiness through docker exec; no host port is published.
+    Write-Host "Waiting for SqlServer readiness..."
     $ready = $false
     for ($i = 0; $i -lt 60; $i++) {
         Start-Sleep -Seconds 2
@@ -508,7 +536,7 @@ try {
         Write-Host "Some scenarios FAILED"
         exit 1
     }
-    Write-Host "All 23 scenarios PASSED"
+    Write-Host "All 28 scenarios PASSED"
     exit 0
 }
 finally {

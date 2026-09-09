@@ -1,7 +1,7 @@
 /* SELECT-only preflight qualification against the confirmed application schema.
    An authorized client binds externally validated targets in #ApprovedTargets
    with columns: MovementId, CustomerId, DocumentNumber, QuoteId, BranchId, ExpectedTotal.
-   Expected cardinality: 9 distinct movements, 4 distinct customers.
+   Expected cardinality: 6 distinct movements, 3 distinct customers.
    Each target must link to exactly one authoritative, non-voided PR quote. */
 
 -- Step 1: Verify target cardinality before database qualification
@@ -14,8 +14,8 @@ SELECT @TargetCount = COUNT(*),
        @DistinctCustomers = COUNT(DISTINCT CustomerId)
 FROM #ApprovedTargets;
 
--- Cardinality guard: exactly 9 distinct movements and 4 distinct customers
-IF @TargetCount <> 9 OR @DistinctMovements <> 9 OR @DistinctCustomers <> 4
+-- Cardinality guard: exactly 6 distinct movements and 3 distinct customers
+IF @TargetCount <> 6 OR @DistinctMovements <> 6 OR @DistinctCustomers <> 3
 BEGIN
     SELECT 'CardinalityMismatch' AS QualificationResult,
            @TargetCount AS TargetCount,

@@ -10,10 +10,10 @@ if (-not (Test-Path -LiteralPath $fixture)) { throw 'RED: missing synthetic fixt
 if (-not (Test-Path -LiteralPath $apply)) { throw 'RED: missing apply.sql for disposable behavior tests' }
 if (-not (Test-Path -LiteralPath $harness)) { throw 'RED: missing disposable SQL Server harness' }
 $harnessText = Get-Content -LiteralPath $harness -Raw
-foreach ($scenario in 'MalformedStaging','DuplicateStaging','TargetCount','CustomerCount','NonPr','NonzeroL2','MissingQuote','AmbiguousQuote','WrongCustomer','WrongDocument','WrongQuoteId','WrongQuoteDocumentIdentity','WrongBranchId','InvalidQuoteState','SourceTotalMismatch','AtomicRollback','SerializableTransaction','Commit','FullLedger','PreservedIdentity','NonTarget','NonScopedAccount','PostChangeValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
+foreach ($scenario in 'MalformedStaging','DuplicateStaging','TargetCount','CustomerCount','NonPr','NonzeroL2','MissingQuote','AmbiguousQuote','WrongCustomer','WrongDocument','WrongQuoteId','WrongQuoteDocumentIdentity','WrongBranchId','InvalidQuoteState','SourceTotalMismatch','AtomicRollback','SerializableTransaction','Commit','FullLedger','PreservedIdentity','NonTarget','NonScopedAccount','PostChangeValidation','NonTargetFieldValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
     if (-not $harnessText.Contains($scenario)) { throw "RED: SQL behavior scenario missing $scenario" }
 }
-foreach ($required in 'synthetic','finally','Remove-Item','SqlServer','Reset-SyntheticFixture','Invoke-Scenario') {
+foreach ($required in 'synthetic','finally','Remove-Item','SqlServer','Reset-SyntheticFixture','Invoke-Scenario','# Valid 6/3 staging data') {
     if (-not $harnessText.Contains($required)) { throw "RED: SQL harness safety contract missing $required" }
 }
 if ($harnessText -notmatch "function Invoke-Scenario \{[\s\S]*?Reset-SyntheticFixture") {
@@ -25,7 +25,7 @@ if ($harnessText -notmatch "function Invoke-Scenario \{[\s\S]*?Reset-SyntheticFi
 if ($harnessText -notmatch 'function Invoke-ValidApply \{[\s\S]*?New-StagingTable \$script:validStagingValues[\s\S]*?\$batch = "USE \[synthetic_test\];`n\$stagingSql`n\$script:applySql"[\s\S]*?\$r = Invoke-SqlBatch \$batch[\s\S]*?if \(-not \$r\.Success\)') {
     throw 'RED: Invoke-ValidApply must stage, run, and confirm the valid apply.sql batch'
 }
-foreach ($scenario in 'MalformedStaging','DuplicateStaging','TargetCount','CustomerCount','NonPr','NonzeroL2','MissingQuote','AmbiguousQuote','WrongCustomer','WrongDocument','WrongQuoteId','WrongQuoteDocumentIdentity','WrongBranchId','InvalidQuoteState','SourceTotalMismatch','AtomicRollback','SerializableTransaction','Commit','FullLedger','PreservedIdentity','NonTarget','NonScopedAccount','PostChangeValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
+foreach ($scenario in 'MalformedStaging','DuplicateStaging','TargetCount','CustomerCount','NonPr','NonzeroL2','MissingQuote','AmbiguousQuote','WrongCustomer','WrongDocument','WrongQuoteId','WrongQuoteDocumentIdentity','WrongBranchId','InvalidQuoteState','SourceTotalMismatch','AtomicRollback','SerializableTransaction','Commit','FullLedger','PreservedIdentity','NonTarget','NonScopedAccount','PostChangeValidation','NonTargetFieldValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
     $scenarioStart = $harnessText.IndexOf("Invoke-Scenario '$scenario' {")
     if ($scenarioStart -lt 0) { throw "RED: scenario block missing $scenario" }
     $nextScenarioStart = $harnessText.IndexOf("Invoke-Scenario '", $scenarioStart + 1)
@@ -49,7 +49,7 @@ foreach ($scenario in 'Commit','FullLedger','PreservedIdentity','NonTarget','Non
 foreach ($required in '$script:validateSql','New-BeforeMovementSnapshot','New-BeforeAccountSnapshot','Invoke-PostChangeValidation','#BeforeMovementSnapshot','#BeforeAccountSnapshot','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
     if (-not $harnessText.Contains($required)) { throw "RED: SQL behavior harness missing executable validation contract $required" }
 }
-foreach ($scenario in 'PostChangeValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
+foreach ($scenario in 'PostChangeValidation','NonTargetFieldValidation','AddedNonTargetMovementValidation','DeletedNonTargetMovementValidation','AddedNonScopedAccountValidation','DeletedNonScopedAccountValidation') {
     $scenarioStart = $harnessText.IndexOf("Invoke-Scenario '$scenario' {")
     $nextScenarioStart = $harnessText.IndexOf("Invoke-Scenario '", $scenarioStart + 1)
     if ($nextScenarioStart -lt 0) { $nextScenarioStart = $harnessText.Length }
@@ -59,9 +59,40 @@ foreach ($scenario in 'PostChangeValidation','AddedNonTargetMovementValidation',
     }
 }
 
+$expectedScenarioCount = 28
+$actualScenarioCount = ([regex]::Matches($harnessText, "(?m)^\s*Invoke-Scenario '")).Count
+if ($actualScenarioCount -ne $expectedScenarioCount) {
+    throw "RED: harness scenario count is $actualScenarioCount, expected $expectedScenarioCount"
+}
+foreach ($required in "All $expectedScenarioCount scenarios execute", "Would run $expectedScenarioCount scenarios", "All $expectedScenarioCount scenarios PASSED") {
+    if (-not $harnessText.Contains($required)) { throw "RED: harness scenario summary missing $required" }
+}
+
 $readme = Get-Content -LiteralPath (Join-Path $package 'README.md') -Raw
-foreach ($required in 'Apply-SyntheticSqlServer.ps1','23 behavior scenarios','Never run real data without a verified backup and confirmed writer/API exclusion','PR3 scope') {
+foreach ($required in 'Apply-SyntheticSqlServer.ps1',"$expectedScenarioCount behavior scenarios",'Never run real data without a verified backup and confirmed writer/API exclusion','PR3 scope') {
     if (-not $readme.Contains($required)) { throw "RED: README contract missing $required" }
+}
+
+# The docker-exec harness must not publish a host port, and docker run failure must stop before readiness polling.
+if ($harnessText -match '(?m)^\s*-p\s+') { throw 'RED: docker-exec harness must not publish a host port' }
+$dockerRunIndex = $harnessText.IndexOf('docker.exe run -d')
+$dockerRunExitCheckIndex = $harnessText.IndexOf('$dockerRunExitCode', $dockerRunIndex)
+$readinessIndex = $harnessText.IndexOf('# Wait for SQL Server readiness')
+if ($dockerRunExitCheckIndex -lt $dockerRunIndex -or $dockerRunExitCheckIndex -ge $readinessIndex) {
+    throw 'RED: docker run failure must be checked before readiness polling'
+}
+
+# FullLedger must assert the exact derived balances, including non-target movement 7 in customer 103's ledger.
+foreach ($required in 'CustomerId IN (101,102,103)','(101,48.00,119.00)','(102,29.00,119.00)','(103,16.00,146.00)','FullLedger: ledger-derived balances do not match expected values') {
+    if (-not $harnessText.Contains($required)) { throw "RED: FullLedger exact-balance contract missing $required" }
+}
+
+# The valid six-target success path must prove excluded movements and customer 104 are unchanged.
+$nonTargetScenarioStart = $harnessText.IndexOf("Invoke-Scenario 'NonTarget' {")
+$nonTargetScenarioEnd = $harnessText.IndexOf("Invoke-Scenario '", $nonTargetScenarioStart + 1)
+$nonTargetScenario = $harnessText.Substring($nonTargetScenarioStart, $nonTargetScenarioEnd - $nonTargetScenarioStart)
+foreach ($required in 'Id IN (7,8,9)','CustomerId = 104','NonTarget: excluded movements 7, 8, and 9 changed','NonTarget: customer 104 changed') {
+    if (-not $nonTargetScenario.Contains($required)) { throw "RED: valid success-path preservation assertion missing $required" }
 }
 
 # The harness uses docker exec/sqlcmd; it must not claim a SqlClient dependency or retain an

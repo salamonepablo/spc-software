@@ -7,12 +7,12 @@ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
 BEGIN TRANSACTION
 
 -- Fixed scope declarations (single amendment point).
-DECLARE @RequiredTargetCount int = 9;
-DECLARE @RequiredCustomerCount int = 4;
+DECLARE @RequiredTargetCount int = 6;
+DECLARE @RequiredCustomerCount int = 3;
 DECLARE @RequiredDocumentType int = 20;   -- SPC.Shared.Models.DocumentType.Quote = 20 (PR)
 DECLARE @RequiredInitialBudgetAmount decimal(18,2) = 0;
 
--- Guard 1: Cardinality — exactly 9 targets, 9 distinct movements, 4 distinct customers
+-- Guard 1: Cardinality — exactly 6 targets, 6 distinct movements, 3 distinct customers
 DECLARE @targetCount int, @movementCount int, @customerCount int
 SELECT @targetCount = COUNT(*),
        @movementCount = COUNT(DISTINCT MovementId),
@@ -99,7 +99,7 @@ BEGIN
     THROW 50001, 'Movement update row count mismatch: does not match required target count', 1;
 END
 
--- Step 6: Derive and update account balances for the 4 scoped customers.
+-- Step 6: Derive and update account balances for the 3 scoped customers.
 -- BillingBalance remains untouched; SERIALIZABLE isolation protects this complete-ledger aggregation from concurrent writes.
 UPDATE a SET BudgetBalance = agg.BudgetBalance, TotalBalance = agg.TotalBalance
 FROM CurrentAccounts AS a WITH (UPDLOCK, HOLDLOCK)

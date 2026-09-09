@@ -6,10 +6,10 @@
    No mutation is performed. All checks are SELECT-based with THROW on failure. */
 
 -- Fixed scope declarations (single amendment point).
-DECLARE @RequiredTargetCount int = 9;
-DECLARE @RequiredCustomerCount int = 4;
+DECLARE @ValidationRequiredTargetCount int = 6;
+DECLARE @ValidationRequiredCustomerCount int = 3;
 
--- Validation 1: Exactly 9 L2 changes.
+-- Validation 1: Exactly 6 L2 changes.
 DECLARE @changedCount int;
 SELECT @changedCount = COUNT(*)
 FROM #BeforeMovementSnapshot AS b
@@ -18,7 +18,7 @@ INNER JOIN #ApprovedTargets AS t ON t.MovementId = b.Id
 WHERE b.BudgetAmount = 0
   AND m.BudgetAmount = t.ExpectedTotal;
 
-IF @changedCount <> @RequiredTargetCount
+IF @changedCount <> @ValidationRequiredTargetCount
     THROW 50002, 'Validation failed: expected L2 BudgetAmount change count does not match required target count', 1;
 
 -- Validation 2: Each changed value equals the authoritative quote Total and document identity.
@@ -37,7 +37,7 @@ INNER JOIN Quotes AS q
 WHERE m.BudgetAmount = q.Total
   AND q.IsVoided = 0;
 
-IF @sourceMatchCount <> @RequiredTargetCount
+IF @sourceMatchCount <> @ValidationRequiredTargetCount
     THROW 50002, 'Validation failed: not all BudgetAmount values match authoritative Quotes Total', 1;
 
 -- Validation 3: Preserved identity, linkage, L1, and non-target fields.
@@ -53,10 +53,10 @@ WHERE m.CustomerId = b.CustomerId
   AND m.MovementDate = b.MovementDate
   AND (m.Description = b.Description OR (m.Description IS NULL AND b.Description IS NULL));
 
-IF @preservedCount <> @RequiredTargetCount
+IF @preservedCount <> @ValidationRequiredTargetCount
     THROW 50002, 'Validation failed: identity linkage L1 or non-target fields were not preserved', 1;
 
--- Validation 4: Exactly 4 account cache changes derived from full ledgers.
+-- Validation 4: Exactly 3 account cache changes derived from full ledgers.
 DECLARE @validAccountCount int;
 SELECT @validAccountCount = COUNT(*)
 FROM #BeforeAccountSnapshot AS b
@@ -73,7 +73,7 @@ WHERE a.BudgetBalance = agg.LedgerBudget
   AND a.TotalBalance = agg.LedgerTotal
   AND a.BillingBalance = b.BillingBalance;
 
-IF @validAccountCount <> @RequiredCustomerCount
+IF @validAccountCount <> @ValidationRequiredCustomerCount
     THROW 50002, 'Validation failed: account cache change count does not match required customer count', 1;
 
 -- Validation 5a: Non-scoped accounts must be completely unchanged.
@@ -98,7 +98,12 @@ WHERE b.Id NOT IN (SELECT MovementId FROM #ApprovedTargets)
   AND (m.BudgetAmount <> b.BudgetAmount
        OR m.BillingAmount <> b.BillingAmount
        OR m.CustomerId <> b.CustomerId
-       OR m.DocumentNumber <> b.DocumentNumber);
+       OR m.DocumentType <> b.DocumentType
+       OR m.DocumentNumber <> b.DocumentNumber
+       OR m.MovementDate <> b.MovementDate
+       OR m.Description <> b.Description
+       OR (m.Description IS NULL AND b.Description IS NOT NULL)
+       OR (m.Description IS NOT NULL AND b.Description IS NULL));
 
 IF @nonTargetChanged > 0
     THROW 50002, 'Validation failed: non-target movement was modified', 1;
@@ -139,7 +144,7 @@ SELECT @movementCardinality = COUNT(DISTINCT MovementId),
        @customerCardinality = COUNT(DISTINCT CustomerId)
 FROM #ApprovedTargets;
 
-IF @movementCardinality <> @RequiredTargetCount OR @customerCardinality <> @RequiredCustomerCount
+IF @movementCardinality <> @ValidationRequiredTargetCount OR @customerCardinality <> @ValidationRequiredCustomerCount
     THROW 50002, 'Validation failed: staging cardinality mismatch', 1;
 
 SELECT 'L2ChangeCount' AS ValidationStep, 'Passed' AS Result, @changedCount AS Value

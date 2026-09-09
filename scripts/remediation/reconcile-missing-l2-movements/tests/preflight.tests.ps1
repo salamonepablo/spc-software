@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $package = Join-Path $PSScriptRoot '..'
 $preflightSqlPath = Join-Path $package 'preflight.sql'
 $preflightSql = Get-Content -LiteralPath $preflightSqlPath -Raw
-foreach ($token in '#ApprovedTargets','MovementId','CustomerId','DocumentNumber','QuoteId','BranchId','ExpectedTotal','CurrentAccountMovements','CurrentAccounts','Quotes','q.QuoteNumber = t.DocumentNumber','DocumentType = 20','BudgetAmount = 0','IsVoided = 0','COUNT(DISTINCT','9','4') {
+foreach ($token in '#ApprovedTargets','MovementId','CustomerId','DocumentNumber','QuoteId','BranchId','ExpectedTotal','CurrentAccountMovements','CurrentAccounts','Quotes','q.QuoteNumber = t.DocumentNumber','DocumentType = 20','BudgetAmount = 0','IsVoided = 0','COUNT(DISTINCT','@TargetCount <> 6','@DistinctMovements <> 6','@DistinctCustomers <> 3') {
     if (-not $preflightSql.Contains($token)) { throw "RED: preflight contract missing $token" }
 }
 if ($preflightSql -match '\b(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b') { throw 'RED: preflight must be read-only' }
@@ -15,7 +15,7 @@ if ($preflightSql -match '\b(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b') {
 function Assert-InvalidManifest([object]$Manifest, [string]$Category) {
     try { Assert-ManifestControls -Manifest $Manifest | Out-Null; throw "Expected $Category" } catch { if ($_.Exception.Message -ne $Category) { throw } }
 }
-function New-SyntheticManifest([int]$Targets = 9, [int]$Customers = 4) {
+function New-SyntheticManifest([int]$Targets = 6, [int]$Customers = 3) {
     $rows = 1..$Targets | ForEach-Object { [pscustomobject]@{ movementId=$_; customerId=(($_ - 1) % $Customers) + 1; documentNumber=$_; quoteId=$_; branchId=1; expectedTotal=($_ * 1.0); approved=$true } }
     [pscustomobject]@{ approvalControl='synthetic-approved'; expectedTargetCount=$Targets; expectedCustomerCount=$Customers; targets=@($rows) }
 }
@@ -24,7 +24,7 @@ $malformed = New-SyntheticManifest; $malformed.approvalControl = ''
 Assert-InvalidManifest $malformed 'ManifestApprovalInvalid'
 $valid = New-SyntheticManifest
 $result = Assert-ManifestControls -Manifest $valid
-if ($result.TargetCount -ne 9 -or $result.CustomerCount -ne 4 -or $result.UniqueQuoteCount -ne 9) { throw 'Valid synthetic controls did not qualify.' }
+if ($result.TargetCount -ne 6 -or $result.CustomerCount -ne 3 -or $result.UniqueQuoteCount -ne 6) { throw 'Valid synthetic controls did not qualify.' }
 $duplicate = New-SyntheticManifest; $duplicate.targets[1].quoteId = $duplicate.targets[0].quoteId
 Assert-InvalidManifest $duplicate 'ManifestQuoteNotUnique'
 $duplicateMovement = New-SyntheticManifest; $duplicateMovement.targets[1].movementId = $duplicateMovement.targets[0].movementId
@@ -35,9 +35,9 @@ $unapproved = New-SyntheticManifest; $unapproved.targets[0].approved = $false
 Assert-InvalidManifest $unapproved 'ManifestTargetUnapproved'
 $malformedTarget = New-SyntheticManifest; $malformedTarget.targets[0].movementId = 0
 Assert-InvalidManifest $malformedTarget 'ManifestTargetShapeInvalid'
-$countDrift = New-SyntheticManifest -Targets 8
+$countDrift = New-SyntheticManifest -Targets 5
 Assert-InvalidManifest $countDrift 'ManifestTargetCountInvalid'
-$customerDrift = New-SyntheticManifest -Customers 3
+$customerDrift = New-SyntheticManifest -Customers 2
 Assert-InvalidManifest $customerDrift 'ManifestCustomerCountInvalid'
 $invalidTotal = New-SyntheticManifest; $invalidTotal.targets[0].expectedTotal = 0
 Assert-InvalidManifest $invalidTotal 'ManifestExpectedTotalInvalid'
