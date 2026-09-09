@@ -1,9 +1,31 @@
 # Current Session Context
 
-**Last Updated:** 2026-06-16
+**Last Updated:** 2026-09
 **Branch:** main
 **Version:** 1.0.0
 **Tests:** 306 passing (`dotnet test SPC.Tests/SPC.Tests.csproj -c Release --no-restore`, 2026-06-16).
+
+---
+
+## Session Summary (2026-09)
+
+Completed local L2 closure for current-account quote movements.
+
+### Completed
+- Cause confirmed: six PR movements lacked L2 values; three zero-total candidates were excluded.
+- Direct local correction covered six movements across three customers.
+- Synthetic 28-scenario validation and direct local discovery, preflight, apply, and validation passed.
+- User visually accepted all six quotes in Current Account.
+- `sql-spc` now uses a durable local volume with loopback access; rollback remains retained.
+- PR2 generic package closure commits were published; paused PR3 work was preserved outside the committed closure.
+
+### Validation
+- Synthetic 28-scenario validation passed.
+- Direct local discovery, preflight, apply, and post-apply validation passed.
+- User visual acceptance confirmed six Current Account quotes.
+
+### Next / Follow-up
+- R4-001 remains a separate production follow-up and does not block this local closure.
 
 ---
 
