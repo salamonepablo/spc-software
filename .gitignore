@@ -85,6 +85,10 @@ MIGRATION_INSTRUCTIONS_*.md
 
 # Windows null device artifact
 nul
+
+# Local development and synchronization artifacts
 .env.local
 dotnet-install.sh
 .pi/
+sync-spc.ps1
+sync-log.txt
