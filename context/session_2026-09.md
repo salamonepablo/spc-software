@@ -42,5 +42,7 @@
   - `pi list` resolves both updated private packages.
   - Package-local `gentle-ai --version` reports `2.7.0`; integrity metadata is present.
   - The npm installer-script notice is informational: the postinstall completed and the binary is installed; no approval action was needed.
+  - Removed retired `pi-subagents-j0k3r` via `pi remove npm:pi-subagents-j0k3r`; `pi list` no longer reports it.
+  - Preserved `~/.pi/agent/subagents.json` model-profile customizations unchanged; the configuration remains valid JSON.
 - Next actions:
   - Restart Pi to load the updated extensions in a fresh interactive process.
