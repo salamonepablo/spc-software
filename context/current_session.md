@@ -29,6 +29,25 @@ Completed local L2 closure for current-account quote movements.
 
 ---
 
+## Tooling Update (2026-09-10)
+
+### Completed
+- Restored the stable Pi tooling baseline from backup `/home/pablo/pi-tooling-backups/20260909T205201Z`.
+- Confirmed Pi was already updated to `0.85.1`.
+- Updated private Pi packages: `gentle-pi` `0.14.0` -> `2.5.0` and `gentle-engram` `0.1.10` -> `0.1.12`.
+- Confirmed the bundled package-local `gentle-ai` binary at version `2.7.0` and its installer integrity metadata.
+
+### Validation
+- `pi list` resolves both updated private packages.
+- `pi --version` and global npm inventory report `0.85.1`.
+- `gentle-ai --version` reports `2.7.0`.
+- The installer-script notice remains informational; the package-local binary was installed successfully, so no script approval is required.
+
+### Follow-up
+- Restart Pi before using the new extensions in an interactive session; the current process cannot reload them safely.
+
+---
+
 ## Session Summary (2026-06-16)
 
 Inspected failed `/sdd-init` state and restored the valid OpenSpec config baseline.
