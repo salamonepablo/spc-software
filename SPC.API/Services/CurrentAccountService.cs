@@ -63,8 +63,11 @@ public class CurrentAccountService : ICurrentAccountService
         long documentNumber,
         decimal billingAmount,
         decimal budgetAmount,
-        string? description = null)
+        string? description = null,
+        DateTime? movementDate = null)
     {
+        var effectiveMovementDate = movementDate ?? DateTime.Now;
+
         // Get or create the customer's current account
         var account = await GetOrCreateAccountAsync(customerId);
 
@@ -88,7 +91,7 @@ public class CurrentAccountService : ICurrentAccountService
         // Record the movement for history
         var movement = new CurrentAccountMovement
         {
-            MovementDate = DateTime.Now,
+            MovementDate = effectiveMovementDate,
             CustomerId = customerId,
             DocumentType = documentType,
             DocumentNumber = documentNumber,

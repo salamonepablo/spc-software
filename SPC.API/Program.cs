@@ -50,6 +50,7 @@ builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
 builder.Services.AddScoped<IDocumentTypeResolver, DocumentTypeResolver>();
 builder.Services.AddScoped<IDocumentTypeCatalogVerifier, DocumentTypeCatalogVerifier>();
 builder.Services.AddScoped<IPaymentQueryService, PaymentQueryService>();
+    builder.Services.AddScoped<IPaymentCommandService, PaymentCommandService>();
 builder.Services.AddScoped<IAuxiliaryTablesService, AuxiliaryTablesService>();
 builder.Services.Configure<CurrentAccountGuardrailOptions>(
     builder.Configuration.GetSection(CurrentAccountGuardrailOptions.SectionName));

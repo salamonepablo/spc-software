@@ -36,6 +36,12 @@ public class Payment
     /// <summary>Corresponde a (descripcion opcional)</summary>
     [StringLength(200)]
     public string? AppliesToDescription { get; set; }
+
+        [StringLength(128)]
+        public string? IdempotencyKey { get; set; }
+
+        [StringLength(64)]
+        public string? RequestFingerprint { get; set; }
     
     // Navegacion
     public List<PaymentDetail> Details { get; set; } = new();

@@ -31,4 +31,7 @@ public interface IAuxiliaryTablesService
 
     /// <summary>Returns all active document types, ordered by code.</summary>
     Task<List<DocumentTypeMaster>> GetDocumentTypesAsync();
+
+    /// <summary>Returns all active customer payment methods.</summary>
+    Task<List<PaymentMethod>> GetPaymentMethodsAsync();
 }

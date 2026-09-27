@@ -323,7 +323,20 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<List<WarehouseDto>> GetWarehousesAsync()
+    public async Task<List<PaymentMethodDto>> GetPaymentMethodsAsync()
+        {
+            try
+            {
+                return await _http.GetFromJsonAsync<List<PaymentMethodDto>>("/api/payment-methods") ?? new List<PaymentMethodDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching payment methods");
+                return new List<PaymentMethodDto>();
+            }
+        }
+
+        public async Task<List<WarehouseDto>> GetWarehousesAsync()
     {
         try
         {
@@ -793,11 +806,13 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null)
+    public async Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null, int? branchId = null)
     {
         try
         {
-            var route = customerId.HasValue
+            var route = branchId.HasValue
+                    ? $"/api/payments/{paymentNumber}?branchId={branchId.Value}"
+                    : customerId.HasValue
                 ? $"/api/payments/{paymentNumber}?customerId={customerId.Value}"
                 : $"/api/payments/{paymentNumber}";
 
@@ -814,7 +829,37 @@ public class ApiService : IApiService
         }
     }
 
-    public async Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsByRangeAsync(
+    public async Task<PaymentDetailDto?> CreatePaymentAsync(CreatePaymentDto payment, string idempotencyKey)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, "/api/payments") { Content = JsonContent.Create(payment) };
+                request.Headers.Add("Idempotency-Key", idempotencyKey);
+                var response = await _http.SendAsync(request);
+                return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<PaymentDetailDto>() : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating payment");
+                return null;
+            }
+        }
+
+        public async Task<PaymentDetailDto?> VoidPaymentAsync(int paymentId, string? reason)
+        {
+            try
+            {
+                var response = await _http.PostAsJsonAsync($"/api/payments/{paymentId}/anular", new { Reason = reason });
+                return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<PaymentDetailDto>() : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error voiding payment {PaymentId}", paymentId);
+                return null;
+            }
+        }
+
+        public async Task<CurrentAccountMovementsDto?> GetCurrentAccountMovementsByRangeAsync(
         int customerId,
         DateTime dateFrom,
         DateTime dateTo,

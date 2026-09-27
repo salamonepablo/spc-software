@@ -46,3 +46,13 @@
   - Preserved `~/.pi/agent/subagents.json` model-profile customizations unchanged; the configuration remains valid JSON.
 - Next actions:
   - Restart Pi to load the updated extensions in a fresh interactive process.
+
+## 2026-09 - Payments Circuit
+
+- Date: 2026-09
+- Scope: Recorded completion evidence for the customer Payments circuit and sidebar access.
+- Files changed: Payments circuit files and `SPC.Web/Components/Layout/NavMenu.razor`; this log.
+- Architectural impact: Payments workflows span API, persistence, and Web UI; no additional architectural change was made in this P2 cleanup.
+- Tests added/updated: No tests added in P2. Existing `VoidPayment_IsIdempotent_WhenAlreadyVoided` passed 1/1; prior suite had 316 passes and 2 LocalDB failures under WSL.
+- Validation: UI L1 #6986 and L2 #6987 were exercised in disposable SPC TEST; #6987 was voided with one reversal and balances restored. Receipt print/reprint was tested. Current Web build passed with existing CS8601 warning at `SPC.Web/Components/Pages/Payments/Create.razor:92`.
+- Next actions: No push; local commit is next.

@@ -27,6 +27,12 @@ Completed local L2 closure for current-account quote movements.
 ### Next / Follow-up
 - R4-001 remains a separate production follow-up and does not block this local closure.
 
+### Payments Circuit
+- UI L1 #6986 and L2 #6987 were exercised in disposable SPC TEST; #6987 was voided with one reversal and account balances restored. Receipt print/reprint was tested.
+- Existing `VoidPayment_IsIdempotent_WhenAlreadyVoided` passed 1/1. Earlier full suite: 316 passed; 2 LocalDB failures under WSL.
+- Current Web build passed with existing CS8601 warning at `SPC.Web/Components/Pages/Payments/Create.razor:92`.
+- No push; local commit is next.
+
 ---
 
 ## Tooling Update (2026-09-10)

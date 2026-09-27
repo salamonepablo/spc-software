@@ -280,6 +280,17 @@
                 @if (!string.IsNullOrEmpty(mensajeError))
                 {
                     <div class="alert alert-danger mt-3">@mensajeError</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(paymentPreloadUrl))
+                    {
+                        <div class="alert alert-success mt-3">
+                            Factura guardada correctamente. ¿Querés registrar el cobro ahora?
+                            <div class="mt-2 d-flex gap-2">
+                                <button class="btn btn-success btn-sm" @onclick="RegisterPayment">Registrar cobro / pago</button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="GoToInvoices">No, volver a facturas</button>
+                            </div>
+                        </div>
                 }
             </div>
         </div>
@@ -296,6 +307,7 @@
     private bool loading = true;
     private bool guardando = false;
     private string mensajeError = "";
+        private string? paymentPreloadUrl;
     
     private const decimal ivaPorcentaje = 21m;
     private const decimal iibbDefaultPorcentaje = 3m;
@@ -491,6 +503,12 @@
             var result = await Api.CreateInvoiceAsync(factura);
             
             if (result != null)
+                {
+                    paymentPreloadUrl = $"/payments/new?customerId={result.CustomerId}&branchId={factura.BranchId}&appliesTo=Billing&amount={result.Total}&notes={Uri.EscapeDataString($"Factura {result.InvoiceNumber}")}";
+                    return;
+                }
+
+                if (result != null)
             {
                 Navigation.NavigateTo("/invoices");
             }
@@ -509,7 +527,15 @@
         }
     }
 
-    private void Cancelar()
+    private void RegisterPayment()
+        {
+            if (!string.IsNullOrWhiteSpace(paymentPreloadUrl))
+                Navigation.NavigateTo(paymentPreloadUrl);
+        }
+
+        private void GoToInvoices() => Navigation.NavigateTo("/invoices");
+
+        private void Cancelar()
     {
         Navigation.NavigateTo("/invoices");
     }

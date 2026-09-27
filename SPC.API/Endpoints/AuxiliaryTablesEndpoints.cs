@@ -84,7 +84,23 @@ public static class AuxiliaryTablesEndpoints
         .WithName("GetBranches")
         .WithDescription("Returns all active branches");
 
-        // ----- Document Types -----
+        // ----- Payment Methods -----
+            app.MapGet("/api/payment-methods", async (IAuxiliaryTablesService service) =>
+            {
+                var methods = await service.GetPaymentMethodsAsync();
+                return Results.Ok(methods.Select(method => new
+                {
+                    method.Id,
+                    method.Code,
+                    method.Description,
+                    method.RequiresDetail
+                }));
+            })
+            .WithTags("Auxiliary Tables")
+            .WithName("GetPaymentMethods")
+            .WithDescription("Returns all active payment methods");
+
+            // ----- Document Types -----
         app.MapGet("/api/documenttypes", async (IAuxiliaryTablesService service) =>
         {
             var documentTypes = await service.GetDocumentTypesAsync();

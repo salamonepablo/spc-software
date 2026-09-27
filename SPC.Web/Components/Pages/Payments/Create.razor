@@ -1,0 +1,136 @@
+@page "/payments/new"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nuevo pago - SPC</PageTitle>
+
+<div class="container-fluid">
+    <h3>Nuevo pago de cliente</h3>
+    <EditForm Model="payment" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label" for="customer">Cliente</label><TypeaheadInput TItem="CustomerDto" Placeholder="Buscar por código o nombre..." SearchAsync="Api.SearchCustomersAsync" DisplaySelector="FormatCustomerDisplay" OnSelected="OnCustomerSelected" SelectedText="@(selectedCustomer is null ? "" : FormatCustomerDisplay(selectedCustomer))" InputClass="form-control" /></div>
+            <div class="col-md-3"><label class="form-label" for="branch">Sucursal</label><InputSelect id="branch" class="form-select" @bind-Value="payment.BranchId"><option value="0">Seleccione</option>@foreach (var branch in branches) { <option value="@branch.Id">@branch.Name</option> }</InputSelect></div>
+            <div class="col-md-3"><label class="form-label" for="date">Fecha</label><InputDate id="date" class="form-control" @bind-Value="payment.PaymentDate" /></div>
+            <div class="col-md-3"><label class="form-label" for="line">Línea seleccionada</label><InputSelect id="line" class="form-select" @bind-Value="payment.AppliesTo"><option value="Billing">L1 Billing</option><option value="Budget">L2 Budget</option></InputSelect></div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary mt-2" @onclick="LoadBalanceAsync">Actualizar saldos</button>
+        @if (account != null)
+        {
+            <div class="alert alert-light mt-3 mb-0"><strong>Saldos actuales:</strong> L1 @account.BillingBalance.ToString("C2") · L2 @account.BudgetBalance.ToString("C2") · Total @account.TotalBalance.ToString("C2")<br />
+            <strong>Total a pagar:</strong> @Total.ToString("C2") · <strong>Saldo resultante (@payment.AppliesTo):</strong> @ResultingBalance.ToString("C2")</div>
+        }
+        <h5 class="mt-3">Formas de pago</h5>
+        @foreach (var row in details.Select((value, index) => new { value, index }))
+        {
+            <div class="row g-2 mb-2" @key="row.value">
+                <div class="col-md-4"><label class="visually-hidden" for="method-@row.index">Forma de pago</label><InputSelect id="@($"method-{row.index}")" class="form-select" @bind-Value="row.value.PaymentMethodId"><option value="0">Seleccione método</option>@foreach (var method in methods) { <option value="@method.Id">@method.Code - @method.Description</option> }</InputSelect></div>
+                <div class="col-md-3"><label class="visually-hidden" for="amount-@row.index">Importe</label><InputNumber id="@($"amount-{row.index}")" class="form-control" @bind-Value="row.value.Amount" /></div>
+                <div class="col-md-4"><label class="visually-hidden" for="reference-@row.index">Referencia</label><InputText id="@($"reference-{row.index}")" class="form-control" @bind-Value="row.value.Notes" /></div>
+                <div class="col-md-1"><button type="button" class="btn btn-outline-danger" @onclick="() => RemoveDetail(row.value)" disabled="@(details.Count == 1)">Quitar</button></div>
+            </div>
+        }
+        <button type="button" class="btn btn-outline-primary" @onclick="AddDetail">Agregar método</button>
+        <div class="mt-3"><label class="form-label" for="notes">Observaciones</label><InputText id="notes" class="form-control" @bind-Value="payment.Notes" /></div>
+        @if (!string.IsNullOrWhiteSpace(error)) { <div class="alert alert-danger mt-3">@error</div> }
+        <button class="btn btn-primary mt-3" type="submit" disabled="@saving">Guardar pago</button>
+    </EditForm>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "customerId")]
+        public int? PreloadCustomerId { get; set; }
+
+        [SupplyParameterFromQuery(Name = "branchId")]
+        public int? PreloadBranchId { get; set; }
+
+        [SupplyParameterFromQuery(Name = "appliesTo")]
+        public string? PreloadAppliesTo { get; set; }
+
+        [SupplyParameterFromQuery(Name = "amount")]
+        public decimal? PreloadAmount { get; set; }
+
+        [SupplyParameterFromQuery(Name = "notes")]
+        public string? PreloadNotes { get; set; }
+
+        private readonly CreatePaymentDto payment = new();
+    private readonly List<CreatePaymentDetailDto> details = [new()];
+    private List<SucursalDto> branches = new();
+    private List<PaymentMethodDto> methods = new();
+    private CustomerDto? selectedCustomer;
+    private CurrentAccountDto? account;
+    private string? error;
+    private string idempotencyKey = Guid.NewGuid().ToString("N");
+    private bool saving;
+    private decimal Total => details.Sum(detail => detail.Amount);
+    private decimal ResultingBalance => account == null ? 0 : (payment.AppliesTo == "Budget" ? account.BudgetBalance : account.BillingBalance) - Total;
+
+    protected override async Task OnInitializedAsync()
+    {
+        branches = await Api.GetBranchesAsync();
+        methods = await Api.GetPaymentMethodsAsync();
+            ApplyDocumentPreload();
+            if (payment.CustomerId > 0)
+            {
+                selectedCustomer = await Api.GetCustomerAsync(payment.CustomerId);
+                await LoadBalanceAsync();
+            }
+    }
+
+    private void ApplyDocumentPreload()
+        {
+            if (PreloadCustomerId.HasValue)
+                payment.CustomerId = PreloadCustomerId.Value;
+            if (PreloadBranchId.HasValue)
+                payment.BranchId = PreloadBranchId.Value;
+            if (string.Equals(PreloadAppliesTo, "Billing", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(PreloadAppliesTo, "Budget", StringComparison.OrdinalIgnoreCase))
+                payment.AppliesTo = PreloadAppliesTo;
+            if (!string.IsNullOrWhiteSpace(PreloadNotes))
+                payment.Notes = PreloadNotes;
+            if (PreloadAmount is > 0)
+            {
+                details[0].Amount = PreloadAmount.Value;
+                details[0].PaymentMethodId = methods.FirstOrDefault(method => method.Code == "EF")?.Id
+                    ?? methods.FirstOrDefault()?.Id ?? 0;
+            }
+        }
+
+        private void AddDetail() => details.Add(new CreatePaymentDetailDto());
+    private void RemoveDetail(CreatePaymentDetailDto detail) => details.Remove(detail);
+
+    private async Task OnCustomerSelected(CustomerDto customer)
+    {
+        selectedCustomer = customer;
+        payment.CustomerId = customer.Id;
+        await LoadBalanceAsync();
+    }
+
+    private static string FormatCustomerDisplay(CustomerDto customer)
+    {
+        var name = string.IsNullOrWhiteSpace(customer.TradeName)
+            ? customer.CompanyName
+            : $"{customer.CompanyName} ({customer.TradeName})";
+        return $"{customer.Id} - {name}";
+    }
+
+    private async Task LoadBalanceAsync() => account = payment.CustomerId > 0 ? await Api.GetCurrentAccountAsync(payment.CustomerId) : null;
+
+    private async Task SaveAsync()
+    {
+        error = null;
+        if (payment.CustomerId <= 0 || payment.BranchId <= 0 || details.Any(detail => detail.PaymentMethodId <= 0 || detail.Amount <= 0))
+        { error = "Seleccioná cliente, sucursal y métodos activos con importes positivos."; return; }
+        saving = true;
+        payment.Details = details;
+        var result = await Api.CreatePaymentAsync(payment, idempotencyKey);
+        saving = false;
+        if (result == null) { error = "No se pudo registrar el pago. Revisá los datos."; return; }
+        idempotencyKey = Guid.NewGuid().ToString("N");
+        Navigation.NavigateTo($"/payments/{result.PaymentNumber}?branchId={result.BranchId}&customerId={result.CustomerId}");
+    }
+}

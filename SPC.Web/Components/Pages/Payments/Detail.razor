@@ -11,7 +11,19 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="mb-0">Payment @PaymentNumber</h3>
-        <button class="btn btn-outline-secondary" @onclick="GoBack">Volver</button>
+        <div class="d-flex align-items-center gap-2">
+            <label class="visually-hidden" for="receipt-presentation">Formato del recibo</label>
+            <select id="receipt-presentation" class="form-select" @bind="receiptPresentation">
+                <option value="Official">Official</option>
+                <option value="X">X</option>
+            </select>
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">Imprimir recibo</button>
+            @if (payment is { IsVoided: false })
+                {
+                    <button class="btn btn-danger" @onclick="ShowVoidConfirmation">Anular pago</button>
+                }
+                <button class="btn btn-outline-secondary" @onclick="GoBack">Volver</button>
+        </div>
     </div>
 
     @if (loading)
@@ -37,7 +49,9 @@
                     <div class="col-md-6 text-md-end">
                         <p class="mb-1"><strong>Fecha:</strong> @payment.PaymentDate.ToString("dd/MM/yyyy")</p>
                         <p class="mb-1"><strong>Linea:</strong> @payment.AppliesTo</p>
+                        <p class="mb-1"><strong>Formato del recibo:</strong> @receiptPresentation</p>
                         <p class="mb-1"><strong>Total:</strong> <span class="text-nowrap">@payment.TotalAmount.ToString("C2")</span></p>
+                        <p class="mb-1"><strong>Importe en letras:</strong> @AmountInWords(payment.TotalAmount)</p>
                         @if (payment.IsVoided)
                         {
                             <span class="badge bg-danger">IsVoided</span>
@@ -90,15 +104,47 @@
     }
 </div>
 
-@code {
+<div class="container-fluid">
+    @if (showVoidConfirmation)
+        {
+            <div class="card border-danger mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Confirmar anulación</h5>
+                    <p>Esta acción revertirá el movimiento de cuenta corriente del pago.</p>
+                    <label class="form-label" for="void-reason">Motivo (opcional)</label>
+                    <InputText id="void-reason" class="form-control" @bind-Value="voidReason" />
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-danger" @onclick="VoidPaymentAsync" disabled="@voiding">@(voiding ? "Anulando..." : "Confirmar anulación")</button>
+                        <button class="btn btn-outline-secondary" @onclick="CancelVoid" disabled="@voiding">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(statusMessage))
+        {
+            <div class="alert @(voidError ? "alert-danger" : "alert-success") mt-3">@statusMessage</div>
+        }
+    </div>
+
+    @code {
     [Parameter]
     public long PaymentNumber { get; set; }
 
     [SupplyParameterFromQuery(Name = "customerId")]
     public int? CustomerId { get; set; }
 
+        [SupplyParameterFromQuery(Name = "branchId")]
+        public int? BranchId { get; set; }
+
     private PaymentDetailDto? payment;
+    private string receiptPresentation = "Official";
     private bool loading = true;
+        private bool showVoidConfirmation;
+        private bool voiding;
+        private bool voidError;
+        private string? voidReason;
+        private string? statusMessage;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -106,7 +152,8 @@
 
         try
         {
-            payment = await Api.GetPaymentByNumberAsync(PaymentNumber, CustomerId);
+            payment = await Api.GetPaymentByNumberAsync(PaymentNumber, CustomerId, BranchId);
+            receiptPresentation = payment?.AppliesTo == "Budget" ? "X" : "Official";
         }
         finally
         {
@@ -114,7 +161,57 @@
         }
     }
 
-    private void GoBack()
+    private void ShowVoidConfirmation()
+        {
+            statusMessage = null;
+            voidReason = null;
+            showVoidConfirmation = true;
+        }
+
+        private void CancelVoid() => showVoidConfirmation = false;
+
+        private async Task VoidPaymentAsync()
+        {
+            if (payment == null)
+                return;
+
+            voiding = true;
+            statusMessage = null;
+            var result = await Api.VoidPaymentAsync(payment.Id, voidReason);
+            voiding = false;
+
+            if (result == null)
+            {
+                voidError = true;
+                statusMessage = "No se pudo anular el pago.";
+                return;
+            }
+
+            payment = result;
+            showVoidConfirmation = false;
+            voidError = false;
+            statusMessage = "El pago fue anulado correctamente.";
+        }
+
+        private static string AmountInWords(decimal amount)
+        {
+            var pesos = (long)Math.Truncate(amount);
+            var centavos = (int)Math.Round((amount - pesos) * 100, MidpointRounding.AwayFromZero);
+            return $"{NumberToWords(pesos)} pesos con {centavos:D2}/100";
+        }
+
+        private static string NumberToWords(long number)
+        {
+            string[] units = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"];
+            string[] tens = ["", "", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"];
+            if (number < 20) return units[(int)number];
+            if (number < 100) return number == 20 ? "veinte" : tens[(int)(number / 10)] + (number % 10 == 0 ? "" : " y " + units[(int)(number % 10)]);
+            if (number < 1000) return (number / 100 == 1 ? "ciento" : units[(int)(number / 100)] + "cientos") + (number % 100 == 0 ? "" : " " + NumberToWords(number % 100));
+            if (number < 1_000_000) return NumberToWords(number / 1000) + " mil" + (number % 1000 == 0 ? "" : " " + NumberToWords(number % 1000));
+            return number.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-AR"));
+        }
+
+        private void GoBack()
     {
         Navigation.NavigateTo("/current-account");
     }

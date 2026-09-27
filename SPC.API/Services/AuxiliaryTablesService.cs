@@ -70,6 +70,14 @@ public class AuxiliaryTablesService : IAuxiliaryTablesService
             .ToListAsync();
     }
 
+    public async Task<List<PaymentMethod>> GetPaymentMethodsAsync()
+    {
+        return await _db.PaymentMethods
+            .Where(method => method.IsActive)
+            .OrderBy(method => method.Code)
+            .ToListAsync();
+    }
+
     public async Task<List<DocumentTypeMaster>> GetDocumentTypesAsync()
     {
         return await _db.DocumentTypes

@@ -18,6 +18,7 @@ public interface ICurrentAccountService
     /// <param name="billingAmount">Amount to add/subtract from Billing balance (L1)</param>
     /// <param name="budgetAmount">Amount to add/subtract from Budget balance (L2)</param>
     /// <param name="description">Optional description for the movement</param>
+    /// <param name="movementDate">Optional movement date; defaults to the server clock</param>
     /// <returns>The updated CurrentAccount</returns>
     Task<SPC.Shared.Models.CurrentAccount> RecordMovementAsync(
         int customerId,
@@ -25,7 +26,8 @@ public interface ICurrentAccountService
         long documentNumber,
         decimal billingAmount,
         decimal budgetAmount,
-        string? description = null);
+        string? description = null,
+        DateTime? movementDate = null);
 
     /// <summary>
     /// Gets the current account for a customer, creating it if it doesn't exist.

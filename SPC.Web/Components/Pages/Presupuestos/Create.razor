@@ -258,7 +258,15 @@
 
                 @if (!string.IsNullOrEmpty(successMessage))
                 {
-                    <div class="alert alert-success mt-3">@successMessage</div>
+                    <div class="alert alert-success mt-3">
+                            @successMessage
+                            @if (!string.IsNullOrWhiteSpace(paymentPreloadUrl))
+                            {
+                                <div class="mt-2">
+                                    <button class="btn btn-success btn-sm" @onclick="RegisterPayment">Registrar cobro / pago</button>
+                                </div>
+                            }
+                        </div>
                 }
             </div>
         </div>
@@ -277,6 +285,7 @@
     private string mensajeError = "";
     private string successMessage = "";
     private bool shouldFocusCliente = false;
+        private string? paymentPreloadUrl;
 
     // Element references for keyboard navigation
     private TypeaheadInput<CustomerDto>? clienteTypeahead;
@@ -447,6 +456,7 @@
             if (result != null)
             {
                 successMessage = $"Presupuesto #{result.QuoteNumber} guardado con exito.";
+                    paymentPreloadUrl = $"/payments/new?customerId={result.CustomerId}&branchId={result.BranchId}&appliesTo=Budget&amount={result.Total}&notes={Uri.EscapeDataString($"Presupuesto {result.QuoteNumber}")}";
                 ResetForm();
                 shouldFocusCliente = true;
             }
@@ -465,7 +475,13 @@
         }
     }
 
-    private void Cancelar()
+    private void RegisterPayment()
+        {
+            if (!string.IsNullOrWhiteSpace(paymentPreloadUrl))
+                Navigation.NavigateTo(paymentPreloadUrl);
+        }
+
+        private void Cancelar()
     {
         Navigation.NavigateTo("/quotes");
     }

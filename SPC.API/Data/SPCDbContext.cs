@@ -44,6 +44,7 @@ public class SPCDbContext : DbContext
     // Pagos
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<PaymentDetail> PaymentDetails => Set<PaymentDetail>();
+        public DbSet<BranchPaymentSequence> BranchPaymentSequences => Set<BranchPaymentSequence>();
     
     // Cuenta Corriente
     public DbSet<CurrentAccount> CurrentAccounts => Set<CurrentAccount>();
@@ -186,9 +187,21 @@ public class SPCDbContext : DbContext
         modelBuilder.Entity<Payment>(entity =>
         {
             entity.Property(p => p.TotalAmount).HasPrecision(18, 2);
+                entity.Property(p => p.IdempotencyKey).HasMaxLength(128);
+                entity.Property(p => p.RequestFingerprint).HasMaxLength(64);
         });
 
-        modelBuilder.Entity<PaymentDetail>(entity =>
+        modelBuilder.Entity<BranchPaymentSequence>(entity =>
+            {
+                entity.HasKey(sequence => sequence.BranchId);
+                entity.Property(sequence => sequence.NextPaymentNumber).IsRequired();
+                entity.HasOne(sequence => sequence.Branch)
+                    .WithOne()
+                    .HasForeignKey<BranchPaymentSequence>(sequence => sequence.BranchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PaymentDetail>(entity =>
         {
             entity.Property(d => d.Amount).HasPrecision(18, 2);
         });
@@ -263,6 +276,11 @@ public class SPCDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<Payment>()
+                .HasIndex(p => new { p.BranchId, p.IdempotencyKey })
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+            modelBuilder.Entity<Payment>()
             .HasIndex(p => new { p.BranchId, p.PaymentNumber })
             .IsUnique();
 

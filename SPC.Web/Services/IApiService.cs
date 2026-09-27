@@ -34,6 +34,7 @@ public interface IApiService
     Task<List<CategoryDto>> GetCategorysAsync();
     Task<List<UnitOfMeasureDto>> GetUnidadesMedidaAsync();
     Task<List<WarehouseDto>> GetWarehousesAsync();
+        Task<List<PaymentMethodDto>> GetPaymentMethodsAsync();
     
     // Stock
     Task<List<StockResumenDto>> GetStockResumenAsync();
@@ -84,7 +85,9 @@ public interface IApiService
         int? line = null);
 
     // Payments
-    Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null);
+    Task<PaymentDetailDto?> GetPaymentByNumberAsync(long paymentNumber, int? customerId = null, int? branchId = null);
+        Task<PaymentDetailDto?> CreatePaymentAsync(CreatePaymentDto payment, string idempotencyKey);
+        Task<PaymentDetailDto?> VoidPaymentAsync(int paymentId, string? reason);
 
     // Credit/Debit Notes
     Task<CreditNoteDetailDto?> GetCreditNoteByNumberAsync(long creditNoteNumber, int? customerId = null, string? voucherType = null, int? pointOfSale = null);
