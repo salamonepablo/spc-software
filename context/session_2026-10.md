@@ -3,9 +3,9 @@
 ## Remitos publication record — 2026-10-02
 
 - Feature commit `b0e17b8da79916882bee9cdd51e402febac67fca` was published on `main`; after fetch, local `main` and `origin/main` were aligned (0 ahead/0 behind).
-- `feature/remitos-comunes` and `safe-ddeletedreconcile-l2-preflight` were confirmed exclusive ancestors of `main` and safely deleted. No new branches were created.
+- `feature/remitos-comunes` and `reconcile-l2-preflight` were confirmed ancestors of `main` with zero exclusive commits and safely deleted. No new branches were created.
 - Documentation-only continuation; do not infer a future documentation commit is published. No application, source, or database changes.
-- Retained test records (product code 110 / ID 548, product code 75 / ID 201, warehouse 1 / salesperson 3); no cleanup. API 5233, Web 5065, and headed browser remain open. Protected backup `/home/pablo/spc-backups/spc-remitos-handoff-20261002T21461047` was byte-identical for prior files.
+- Retained test records (product code 110 / ID 5 / quantity 48.00, product code 75 / ID 20 / quantity 100.00, warehouse 1 / salesperson 3); no cleanup. API 5233, Web 5065, and headed browser remain open. Protected backup `/home/pablo/spc-backups/spc-remitos-handoff-20261002T214610` was byte-identical for prior files.
 - Preserved untracked `.playwright-cli/`, `SPC.API/bin\\Debug/`, `context/SPC_SCOPE_AND_CONTINUITY.md`, and `odd/tasks/payment-circuit-local-commit.md` as excluded. LocalDB/WSL failures and importer baseline remain environmental follow-ups, not new blockers. Next client requests: analysis only, no implementation; plan a small handoff analysis only, with no proposed feature artifacts.
 
 ## Remitos R5 closure — 2026-10-02
