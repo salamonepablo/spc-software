@@ -95,6 +95,7 @@ public record AnularInvoiceRequest
 public record InvoiceResponse
 {
     public int Id { get; init; }
+    public int BranchId { get; init; }
     public string InvoiceType { get; init; } = "";
     public int PointOfSale { get; init; }
     public long InvoiceNumber { get; init; }

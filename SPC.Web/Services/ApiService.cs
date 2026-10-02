@@ -412,6 +412,58 @@ public class ApiService : IApiService
 
     #endregion
 
+    #region Delivery notes
+
+    public async Task<DeliveryNoteSearchResultDto?> SearchDeliveryNotesAsync(DeliveryNoteSearchRequestDto request)
+    {
+        var query = new List<string> { $"page={request.Page}", $"pageSize={request.PageSize}" };
+        if (request.BranchId.HasValue) query.Add($"branchId={request.BranchId.Value}");
+        if (request.CustomerId.HasValue) query.Add($"customerId={request.CustomerId.Value}");
+        if (request.InvoiceId.HasValue) query.Add($"invoiceId={request.InvoiceId.Value}");
+        if (request.FromDate.HasValue) query.Add($"fromDate={Uri.EscapeDataString(request.FromDate.Value.ToString("O"))}");
+        if (request.ToDate.HasValue) query.Add($"toDate={Uri.EscapeDataString(request.ToDate.Value.ToString("O"))}");
+        if (!string.IsNullOrWhiteSpace(request.Search)) query.Add($"search={Uri.EscapeDataString(request.Search)}");
+        try { return await _http.GetFromJsonAsync<DeliveryNoteSearchResultDto>($"/api/delivery-notes/?{string.Join("&", query)}"); }
+        catch (Exception ex) { _logger.LogError(ex, "Error searching delivery notes"); return null; }
+    }
+
+    public async Task<DeliveryNoteDto?> GetDeliveryNoteAsync(int id)
+    {
+        try { return await _http.GetFromJsonAsync<DeliveryNoteDto>($"/api/delivery-notes/{id}"); }
+        catch (Exception ex) { _logger.LogError(ex, "Error fetching delivery note {Id}", id); return null; }
+    }
+
+    public async Task<DeliveryNoteNextNumberDto?> GetNextDeliveryNoteNumberAsync(int branchId)
+    {
+        try { return await _http.GetFromJsonAsync<DeliveryNoteNextNumberDto>($"/api/delivery-notes/next-number?branchId={branchId}"); }
+        catch (Exception ex) { _logger.LogError(ex, "Error fetching advisory delivery note number for branch {BranchId}", branchId); return null; }
+    }
+
+    public async Task<DeliveryNoteDto?> CreateDeliveryNoteAsync(CreateDeliveryNoteDto request, string idempotencyKey)
+    {
+        try
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, "/api/delivery-notes/") { Content = JsonContent.Create(request) };
+            message.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
+            using var response = await _http.SendAsync(message);
+            if (!response.IsSuccessStatusCode) { _logger.LogWarning("Failed to create delivery note. Status: {Status}", response.StatusCode); return null; }
+            return await response.Content.ReadFromJsonAsync<DeliveryNoteDto>();
+        }
+        catch (Exception ex) { _logger.LogError(ex, "Error creating delivery note"); return null; }
+    }
+
+    public string GetDeliveryNotePdfUrl(int id, bool download = false)
+    {
+        var baseAddress = _http.BaseAddress
+            ?? throw new InvalidOperationException("Cannot build a delivery note PDF URL because HttpClient.BaseAddress is not configured.");
+        var path = download
+            ? $"/api/delivery-notes/{id}/pdf/download"
+            : $"/api/delivery-notes/{id}/pdf";
+        return new Uri(baseAddress, path).AbsoluteUri;
+    }
+
+    #endregion
+
     #region Invoices
 
     public async Task<List<InvoiceDto>> GetInvoicesAsync(int skip = 0, int take = 50)

@@ -1,11 +1,58 @@
 # Current Session Context
 
-**Last Updated:** 2026-09
-**Branch:** main
+**Last Updated:** 2026-10-02
+**Branch:** feature/remitos-comunes (parent owns integration to main)
 **Version:** 1.0.0
-**Tests:** 306 passing (`dotnet test SPC.Tests/SPC.Tests.csproj -c Release --no-restore`, 2026-06-16).
+**Tests:** R5 functional validation complete; focused tests 27 passed, 5 SQL-skipped; full suite 333 passed, 5 skipped, 2 pre-existing LocalDB/WSL failures. Final incremental API/Web builds: 0 errors; API has 2 NU1903 warnings. `git diff --check` passed. Commit/publication pending; no hash claimed.
+
+## Latest closure — Remitos R5 (2026-10-02)
+
+- Verified explicit local SQL Server `SPC TEST` identity (`09b5ac392dbd`, loopback 1433, ONLINE/read-write; seven migrations). SQL idempotency, conflict isolation, concurrent numbering, injected rollback, and UI stock-on evidence are recorded in `odd/tasks/remitos-comunes.md`.
+- Headed UI validated saved list/detail, 3-copy PDF, stock adjustment, and the existing linked-note Payments handoff (no amount and no save). API 5233 and Web 5065 were left running. Existing invoice immutability/no-double-decrement evidence remains; no new linked note or payment was created.
+- First SQL test run: 4 passed/1 failed due to harness losing password from opened `ConnectionString`; reused original options, corrected isolated rollback test passed 1/1. Concurrent attempt rejected with zero effects; automatic retry is not guaranteed.
+- Verification: focused 27 passed/5 SQL-skipped; full suite 333 passed/5 skipped/2 known LocalDB/WSL failures; incremental API build 0 errors/2 NU1903 warnings; Web build 0 errors/0 warnings; `git diff --check` passed. Importer baseline (203 clean vs 199 working errors) not rerun/repaired.
+- Parent owns explicit-path Remitos commit, safe main integration/publication, and safe deletion of merged branches; no new branches. No application changes in this documentation-only continuation. Preserved protected `SPC.API/bin\\Debug/`, old `odd/`, continuity notes and Playwright artifacts. Durable recovery backup: `/home/pablo/spc-backups/spc-remitos-handoff-20261002T214610`.
 
 ---
+
+
+---
+
+## Current Feature — Common Delivery Notes (2026-09-28)
+
+### Scope and constraints
+Implemented R1–R4 of the common Remitos MVP: safe status semantics, atomic creation from standalone and L1 invoice flows, no-tracking consultation, three-copy PDF, Web entry/detail/list, and a Payments handoff. Temporary remitos and consignments remain excluded. No production or VB6 edits, commit, or push. Preserved unrelated working-tree changes; only the newly authorized `odd/tasks/remitos-comunes.md` was added/updated under `odd/`.
+
+### Files changed by feature area
+- API: forward migration `SPC.API/Migrations/20260928120000_CorrectDeliveryNoteStatusColumnNames.cs`; delivery-note command/query/PDF/font services, endpoints, contracts, DI/package configuration; additive `BranchId` in invoice response/projection.
+- Importer: `SPC.Migration/DeliveryNoteImportMapper.cs` and `ImportFromCsv.cs` status mapping.
+- PDF assets: embedded Carlito regular/bold font and SIL OFL license under `SPC.API/Assets/Fonts/`.
+- Web: `IApiService`/`ApiService`, delivery-note DTOs, `NavMenu.razor`, invoice entry action, and Remitos Index/Create/Detail pages.
+- Tests: status semantics/import mapping, command/idempotency/stock, query/PDF, invoice BranchId mapping, and absolute API PDF URL coverage. Detailed task record: `odd/tasks/remitos-comunes.md`.
+
+### Architectural impact
+Branch-scoped numbering and idempotent, transactional delivery-note persistence. Invoice-linked notes copy saved invoice lines and do not adjust stock a second time. PDF output reads persisted data only; its font is embedded for Linux portability. Existing Payments is reused via query parameters and is not auto-submitted. The invoice API contract gains `BranchId` additively.
+
+### Validation
+- Focused R1–R4 unit tests passed 24/24 in the independent final run.
+- API Release build: 0 errors, 28 warnings. Web Release build: 0 errors, 1 warning. `git diff --check` passed.
+- Existing NU1903 advisories remain (`Microsoft.OpenApi` 2.4.1 / GHSA-v5pm-xwqc-g5wc; `SQLitePCLRaw.lib.e_sqlite3` 2.1.11 / GHSA-2m69-gcr7-jv3q). PDFsharp CS0618 and existing `Payments/Create.razor` CS8601 warnings remain.
+- `SPC.Migration` is an existing/baseline build failure: clean HEAD archive had 203 errors, working tree had 199; no broad repair attempted.
+
+### R5 — Local TEST integration (historical checkpoint, superseded by 2026-10-02 closure)
+- Verified WSL2 Ubuntu Docker Desktop integration: Docker client/server 29.7.2; `sql-spc` publishes only `127.0.0.1:1433`, volume `spc-sql-data`. Read-only SQL identity check confirmed server `09b5ac392dbd`, database `SPC TEST`, ONLINE/read-write. No Desktop UI change or reinstall was needed. The safe launcher is process-level explicit configuration; `scripts/run-api-local.sh` hardcodes `Database=SPC` and was not used.
+- Reviewed the five applied migration IDs and schema preconditions before any migration. API startup on explicit TEST config applied only `20260928120000_CorrectDeliveryNoteStatusColumnNames` and `20260928130000_AddDeliveryNoteIdempotencyAndBranchSequence`; post-start history has seven IDs and expected sequence/idempotency columns/index. API returned HTTP 200.
+- Web runs on 5065, API on 5233, API `BaseUrl` points to localhost:5233. Headed Playwright session `spc-remitos` remains open on Remito detail ID 9651; another tab remains open on standalone Remito PDF ID 9650.
+- UI created TEST-only marked standalone Remito ID 9650/number 296012 with stock adjustment off and linked Remito ID 9651/number 26445114 from L1 invoice A 0002-00010490. Changed Remito branch to 5 from invoice branch number 2; proposal refreshed. List search/detail confirmed both records. Reopened invoice modal showed original invoice number/branch/lines/total unchanged.
+- Standalone saved-data PDF opened and downloaded through visible UI. Chromium showed 3 pages: ORIGINAL, DUPLICADO, TRIPLICADO. Download: `/tmp/spc-remitos-playwright/remito-296012.pdf`; third-copy screenshot: `/tmp/spc-remitos-playwright/remito-9650-third-page.png`.
+- Read-only SQL before/after linked note confirmed product code 75 remained 100.00 in warehouse 1 and product code 110 had no stock row; no double decrement. Payments handoff displayed original invoice customer, internal `branchId=1` (invoice branch number 2), `appliesTo=Billing`, invoice/remito reference, no amount query parameter; form amount remained 0 and no payment was submitted.
+- No production/VB6 touched, no Payments created, no source/test changes, no test/build suite rerun, no commit/push. Only observed browser console error was a nonblocking `favicon.ico` 404. No test record cleanup performed.
+
+### Historical R5 checkpoint — remaining checks at 2026-09-28 (superseded)
+- SQL Server-backed concurrent branch-number conflict, idempotent retry, and failed-transaction rollback remain unverified; no SQL test harness was run.
+- Standalone stock-adjustment-on runtime behavior intentionally not exercised to avoid modifying stock in the TEST copy; only opt-out path was verified.
+- `SPC.Migration` baseline failure is unchanged (clean HEAD 203 errors; working tree 199); no evidence showed it was needed for R5, and no repair was attempted.
+- API/Web and headed browser are intentionally left running per request.
 
 ## Session Summary (2026-09)
 
@@ -257,3 +304,12 @@ Completed **document-type-inference-fix** - Fixed inference logic for historical
 dotnet build SPC.slnx -c Release
 dotnet test SPC.Tests/SPC.Tests.csproj -c Release
 ```
+
+
+## Scope split and continuation — 2026-10-02
+
+This is the active SPC 2.0 checkout: /home/pablo/Programmes/spc-software, feature/remitos-comunes, HEAD 2e3833b. Legacy VB6/Access reference and maintenance live under C:\Trabajos Activos (SPC-Core, SPC-Minimal, SPC-Retail). Keep Legacy session logs separate. Generate/review .NET Pi prompts here, under context/Prompts when saved. Read context/SPC_SCOPE_AND_CONTINUITY.md for the full inventory.
+
+Engram #323 confirms the last recorded TEST warehouse finding. User-provided Pi handoff reports a later temporary association of warehouse 1 to Gabriel Peralta (salesperson 3) and 50 fictitious units of product code 110. These later values were not measured today; stock adjustment from the UI remains pending. Verify explicit SPC TEST identity and current quantities before resuming R5. Retry/idempotency, concurrency/duplicate and rollback validation remain open. No source/data changes, builds/tests, commit or push in this organization task.
+
+Historical organization checkpoint (2026-10-02, superseded by the R5 closure above): user clarified all new .NET work with Pi must ultimately be on main. At that checkpoint, no branch switch/commit/merge/push had occurred and R5 evidence was still pending. Latest authorized scope now permits Remitos-only explicit-path commit, safe main integration/publication, and safe deletion of merged local branches; parent owns those actions.

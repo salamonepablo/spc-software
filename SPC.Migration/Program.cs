@@ -1256,7 +1256,7 @@ class Program
         
         using var cmdH = new OleDbCommand(@"
             SELECT IdSucursal, NroRemito, FechaRemito, CodCliente, CodVendedor,
-                   UnidadNegocio, NroFactura, TipoFactura, AclaracionRemito
+                   UnidadNegocio, NroFactura, TipoFactura, AclaracionRemito, Facturado, Anulado
             FROM RemitoC
             ORDER BY IdSucursal, NroRemito", access);
         using var readerH = cmdH.ExecuteReader();
@@ -1302,9 +1302,11 @@ class Program
                 UnidadNegocio = GetString(readerH, 5),
                 InvoiceId = facturaId,
                 TipoFactura = tipoInvoice,
-                Facturado = facturaId.HasValue,
-                Aclaracion = GetString(readerH, 8),
-                Anulado = false
+                IsInvoiced = DeliveryNoteImportMapper.MapStatus(
+                    GetString(readerH, 9), GetString(readerH, 10), facturaId.HasValue).IsInvoiced,
+                IsVoided = DeliveryNoteImportMapper.MapStatus(
+                    GetString(readerH, 9), GetString(readerH, 10), facturaId.HasValue).IsVoided,
+                Aclaracion = GetString(readerH, 8)
             };
             
             var uniqueKey = (branchId, nroDeliveryNote);

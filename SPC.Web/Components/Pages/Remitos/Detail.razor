@@ -1,0 +1,28 @@
+@page "/delivery-notes/{Id:int}"
+@page "/remitos/{Id:int}"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Detalle de remito - SPC</PageTitle>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3"><h3>Remito @note?.DeliveryNoteNumber</h3><a class="btn btn-outline-secondary" href="/delivery-notes">Volver</a></div>
+    @if (note == null) { <div class="alert alert-info">@(loading ? "Cargando remito..." : "No se encontró el remito.")</div> }
+    else {
+        <div class="mb-3 d-flex gap-2"><a class="btn btn-outline-primary" target="_blank" href="@Api.GetDeliveryNotePdfUrl(note.Id)">Ver / reimprimir PDF</a><a class="btn btn-primary" href="@Api.GetDeliveryNotePdfUrl(note.Id, true)">Descargar PDF</a>
+        @if (note.InvoiceId.HasValue) { <a class="btn btn-outline-success" href="@PaymentUrl()">Registrar pago</a> }</div>
+        <div class="card mb-3"><div class="card-header">Datos guardados</div><div class="card-body row"><div class="col-md-6"><p><b>Sucursal:</b> @note.BranchName</p><p><b>Fecha:</b> @note.DeliveryNoteDate.ToString("dd/MM/yyyy")</p><p><b>Cliente:</b> @note.CustomerName</p><p><b>CUIT:</b> @(note.CustomerTaxId ?? "-")</p><p><b>Vendedor:</b> @(note.SalesRepName ?? "-")</p></div><div class="col-md-6"><p><b>Factura:</b> @(note.InvoiceNumber.HasValue ? $"{note.InvoiceType} {note.OriginalInvoicePointOfSale:D4}-{note.InvoiceNumber:D8}" : "-")</p><p><b>Dirección:</b> @(note.DeliveryAddress ?? "-")</p><p><b>Ciudad:</b> @(note.DeliveryCity ?? "-")</p><p><b>Unidad de negocio:</b> @(note.BusinessUnit ?? "-")</p><p><b>Aclaraciones:</b> @(note.Clarification ?? "-")</p><p><b>Notas:</b> @(note.Notes ?? "-")</p></div></div></div>
+        <table class="table table-striped"><thead><tr><th>Artículo</th><th class="text-end">Cantidad</th></tr></thead><tbody>@foreach (var line in note.Details) { <tr><td>@line.ProductCode — @line.ProductDescription</td><td class="text-end">@line.Quantity</td></tr> }</tbody></table>
+    }
+</div>
+@code {
+    [Parameter] public int Id { get; set; }
+    private DeliveryNoteDto? note; private bool loading = true;
+    protected override async Task OnParametersSetAsync() { note = await Api.GetDeliveryNoteAsync(Id); loading = false; }
+    private string PaymentUrl() {
+        var reference = $"Factura {note!.InvoiceType} {note.OriginalInvoicePointOfSale:D4}-{note.InvoiceNumber:D8} / Remito {note.DeliveryNoteNumber}";
+        return $"/payments/new?customerId={note.CustomerId}&branchId={note.OriginalInvoiceBranchId}&appliesTo=Billing&notes={Uri.EscapeDataString(reference)}";
+    }
+}

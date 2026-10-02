@@ -9,6 +9,12 @@ namespace SPC.Shared.Models;
 public class DeliveryNote
 {
     public int Id { get; set; }
+
+    [StringLength(128)]
+    public string? IdempotencyKey { get; set; }
+
+    [StringLength(64)]
+    public string? RequestFingerprint { get; set; }
     
     public int BranchId { get; set; }
     public Branch? Branch { get; set; }

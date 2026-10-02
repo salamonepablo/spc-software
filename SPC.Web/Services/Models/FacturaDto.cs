@@ -6,6 +6,7 @@
 public class InvoiceDto
 {
     public int Id { get; set; }
+    public int BranchId { get; set; }
     public string InvoiceType { get; set; } = "";
     public int PointOfSale { get; set; }
     public long InvoiceNumber { get; set; }

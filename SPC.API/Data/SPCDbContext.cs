@@ -37,6 +37,7 @@ public class SPCDbContext : DbContext
     
     // DeliveryNotes
     public DbSet<DeliveryNote> DeliveryNotes => Set<DeliveryNote>();
+    public DbSet<BranchDeliveryNoteSequence> BranchDeliveryNoteSequences => Set<BranchDeliveryNoteSequence>();
     public DbSet<DeliveryNoteDetail> DeliveryNoteDetails => Set<DeliveryNoteDetail>();
     public DbSet<CasualDeliveryNote> CasualDeliveryNotes => Set<CasualDeliveryNote>();
     public DbSet<CasualDeliveryNoteDetail> CasualDeliveryNoteDetails => Set<CasualDeliveryNoteDetail>();
@@ -181,6 +182,22 @@ public class SPCDbContext : DbContext
             entity.Property(d => d.DiscountPercent).HasPrecision(5, 2);
             entity.Property(d => d.DiscountAmount).HasPrecision(18, 2);
             entity.Property(d => d.Subtotal).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<DeliveryNote>(entity =>
+        {
+            entity.Property(note => note.IdempotencyKey).HasMaxLength(128);
+            entity.Property(note => note.RequestFingerprint).HasMaxLength(64);
+            entity.HasIndex(note => new { note.BranchId, note.IdempotencyKey }).IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+        });
+
+        modelBuilder.Entity<BranchDeliveryNoteSequence>(entity =>
+        {
+            entity.HasKey(sequence => sequence.BranchId);
+            entity.HasOne(sequence => sequence.Branch).WithOne()
+                .HasForeignKey<BranchDeliveryNoteSequence>(sequence => sequence.BranchId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Payments

@@ -10,6 +10,7 @@ using SPC.API.Services;
 using SPC.API.Services.CurrentAccount;
 using SPC.Shared.Licensing;
 
+DeliveryNoteFontResolver.Register();
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure JSON to ignore circular references
@@ -50,6 +51,9 @@ builder.Services.AddScoped<ICurrentAccountService, CurrentAccountService>();
 builder.Services.AddScoped<IDocumentTypeResolver, DocumentTypeResolver>();
 builder.Services.AddScoped<IDocumentTypeCatalogVerifier, DocumentTypeCatalogVerifier>();
 builder.Services.AddScoped<IPaymentQueryService, PaymentQueryService>();
+builder.Services.AddScoped<IDeliveryNoteCommandService, DeliveryNoteCommandService>();
+builder.Services.AddScoped<IDeliveryNoteQueryService, DeliveryNoteQueryService>();
+builder.Services.AddSingleton<IDeliveryNotePdfService, DeliveryNotePdfService>();
     builder.Services.AddScoped<IPaymentCommandService, PaymentCommandService>();
 builder.Services.AddScoped<IAuxiliaryTablesService, AuxiliaryTablesService>();
 builder.Services.Configure<CurrentAccountGuardrailOptions>(
@@ -157,6 +161,7 @@ app.MapCreditNotesEndpoints();
 app.MapDebitNotesEndpoints();
 app.MapCurrentAccountEndpoints();
 app.MapPaymentsEndpoints();
+app.MapDeliveryNotesEndpoints();
 app.MapAuxiliaryTablesEndpoints();
 
 

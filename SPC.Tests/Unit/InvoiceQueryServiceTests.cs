@@ -177,6 +177,7 @@ public class InvoiceQueryServiceTests : IDisposable
         // Assert
         result.Should().NotBeNull();
         result!.Id.Should().Be(1);
+        result.BranchId.Should().Be(1);
         result.Details.Should().HaveCount(1);
         result.CustomerCompanyName.Should().Be("Test Customer");
     }

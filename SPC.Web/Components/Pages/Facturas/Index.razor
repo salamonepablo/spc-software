@@ -281,6 +281,10 @@
                     </table>
                 </div>
                 <div class="modal-footer">
+                    @if (facturaSeleccionada != null)
+                    {
+                        <button type="button" class="btn btn-outline-primary" @onclick="CrearRemito">Crear remito</button>
+                    }
                     <button type="button" class="btn btn-secondary" @onclick="CerrarDetalle">Cerrar</button>
                 </div>
             </div>
@@ -437,5 +441,13 @@
     private void CerrarDetalle()
     {
         facturaSeleccionada = null;
+    }
+
+    private void CrearRemito()
+    {
+        if (facturaSeleccionada != null)
+        {
+            Navigation.NavigateTo($"/delivery-notes/new?invoiceId={facturaSeleccionada.Id}");
+        }
     }
 }

@@ -1,0 +1,77 @@
+@page "/delivery-notes/new"
+@page "/remitos/nuevo"
+@using SPC.Web.Services
+@using SPC.Web.Services.Models
+@using SPC.Web.Components.Shared
+@inject IApiService Api
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Nuevo remito - SPC</PageTitle>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between mb-3"><h3>@(invoiceId.HasValue ? "Remito desde factura" : "Nuevo remito")</h3><a class="btn btn-outline-secondary" href="/delivery-notes">Volver</a></div>
+    @if (loading) { <p>Cargando datos...</p> }
+    else {
+        @if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
+        @if (invoiceId.HasValue && invoice == null) { <div class="alert alert-danger">No se pudo cargar la factura.</div> }
+        else {
+        <EditForm Model="this" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <div class="card mb-3"><div class="card-header">Datos del remito</div><div class="card-body"><div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Sucursal</label><select class="form-select" value="@branchId" @onchange="BranchChanged"><option value="">Seleccionar...</option>@foreach (var b in branches) { <option value="@b.Id">@b.Name (@b.PointOfSale)</option> }</select></div>
+                <div class="col-md-4"><label class="form-label">Número manual (opcional)</label><input class="form-control" type="number" min="1" @bind="manualNumber" /></div>
+                <div class="col-md-4"><label class="form-label">Fecha</label><input class="form-control" type="date" @bind="noteDate" /></div>
+                <div class="col-md-4"><label class="form-label">Número sugerido (orientativo)</label><input class="form-control" value="@(proposal?.NextNumber.ToString() ?? "-")" readonly /></div>
+                @if (invoice != null) { <div class="col-md-8"><label class="form-label">Factura origen</label><div class="form-control-plaintext">@invoice.NumeroCompleto — @invoice.CustomerCompanyName (solo lectura)</div></div> }
+                else {
+                    <div class="col-md-8"><label class="form-label">Cliente</label><TypeaheadInput TItem="CustomerDto" Placeholder="Buscar cliente..." SearchAsync="Api.SearchCustomersAsync" DisplaySelector="CustomerLabel" OnSelected="CustomerSelected" SelectedText="@(customer?.CompanyName ?? "")" /></div>
+                    <div class="col-md-4"><label class="form-label">Vendedor</label><select class="form-select" @bind="salesRepId"><option value="">Sin vendedor</option>@foreach (var rep in reps) { <option value="@rep.Id">@rep.FirstName @rep.LastName</option> }</select></div>
+                    <div class="col-12"><h5>Productos</h5>@foreach (var line in lines) { <div class="row g-2 mb-2"><div class="col-md-8"><TypeaheadInput TItem="ProductDto" Placeholder="Buscar producto..." SearchAsync="Api.SearchProductsAsync" DisplaySelector="ProductLabel" OnSelected="@(p => SelectProduct(line,p))" SelectedText="@(line.Product == null ? "" : ProductLabel(line.Product))" /></div><div class="col-md-3"><input class="form-control" type="number" min="0.01" step="0.01" @bind="line.Quantity" /></div><div class="col-md-1"><button type="button" class="btn btn-outline-danger" @onclick="() => lines.Remove(line)">×</button></div></div> }</div>
+                    <div class="col-12"><button type="button" class="btn btn-outline-primary" @onclick="() => lines.Add(new())">Agregar producto</button></div>
+                    <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" @bind="adjustStock" /><label class="form-check-label">Ajustar stock</label></div>
+                }
+                @if (invoice != null) { <div class="col-12"><h5>Detalle de factura (solo lectura)</h5><ul>@foreach (var line in invoice.Details) { <li>@line.ProductDescription — @line.Quantity</li> }</ul><p class="text-muted">La API copiará el cliente, vendedor y detalle originales. No se modifica la factura ni se vuelve a ajustar stock.</p></div> }
+                <div class="col-md-6"><label class="form-label">Dirección de entrega</label><input class="form-control" @bind="address" /></div><div class="col-md-6"><label class="form-label">Ciudad</label><input class="form-control" @bind="city" /></div>
+                <div class="col-md-6"><label class="form-label">Unidad de negocio</label><input class="form-control" @bind="businessUnit" /></div><div class="col-md-6"><label class="form-label">Aclaraciones</label><input class="form-control" @bind="clarification" /></div>
+                <div class="col-12"><label class="form-label">Notas</label><textarea class="form-control" @bind="notes"></textarea></div>
+            </div></div></div>
+            <button class="btn btn-primary" type="submit" disabled="@saving">@(saving ? "Guardando..." : "Guardar remito")</button>
+        </EditForm>
+        }
+    }
+</div>
+@code {
+    [SupplyParameterFromQuery(Name="invoiceId")] public int? InvoiceIdQuery { get; set; }
+    private int? invoiceId;
+    private InvoiceCompletaDto? invoice;
+    private List<SucursalDto> branches = new(); private List<SalesRepDto> reps = new();
+    private CustomerDto? customer; private int? salesRepId; private int? branchId; private long? manualNumber; private DeliveryNoteNextNumberDto? proposal;
+    private DateTime noteDate = DateTime.Today; private string? address, city, businessUnit, clarification, notes;
+    private bool adjustStock = true, loading = true, saving; private string? error;
+    private readonly string idempotencyKey = Guid.NewGuid().ToString("N");
+    private List<LineInput> lines = new() { new() };
+    protected override async Task OnParametersSetAsync() {
+        invoiceId = InvoiceIdQuery;
+        branches = await Api.GetBranchesAsync(); reps = await Api.GetSalesRepesAsync();
+        if (invoiceId.HasValue) { invoice = await Api.GetInvoiceAsync(invoiceId.Value); if(invoice != null) { branchId = invoice.BranchId; adjustStock = false; await LoadProposal(); } }
+        else if (branches.Count > 0) { branchId = branches[0].Id; await LoadProposal(); }
+        loading = false;
+    }
+    private async Task BranchChanged(ChangeEventArgs e) { branchId = int.TryParse(e.Value?.ToString(), out var id) ? id : null; await LoadProposal(); }
+    private async Task LoadProposal() { proposal = branchId.HasValue ? await Api.GetNextDeliveryNoteNumberAsync(branchId.Value) : null; }
+    private void CustomerSelected(CustomerDto value) { customer = value; if (!salesRepId.HasValue) salesRepId = value.SalesRepId; }
+    private static string CustomerLabel(CustomerDto c) => c.CompanyName;
+    private static string ProductLabel(ProductDto p) => $"{p.Code} — {p.Description}";
+    private static void SelectProduct(LineInput line, ProductDto product) => line.Product = product;
+    private async Task Save() {
+        error = null;
+        if (!branchId.HasValue) { error = "Seleccioná una sucursal."; return; }
+        if (invoice == null && (customer == null || lines.Count == 0 || lines.Any(x => x.Product == null || x.Quantity <= 0))) { error = "Seleccioná un cliente y completá al menos un producto con cantidad válida."; return; }
+        saving = true;
+        var request = new CreateDeliveryNoteDto { BranchId = branchId.Value, RequestedDeliveryNoteNumber = manualNumber, PointOfSale = branches.FirstOrDefault(x => x.Id == branchId)?.PointOfSale, DeliveryNoteDate = noteDate, CustomerId = invoice?.CustomerId ?? customer!.Id, SalesRepId = invoice?.SalesRepId ?? salesRepId, InvoiceId = invoiceId, AdjustStock = invoice == null && adjustStock, DeliveryAddress = address, DeliveryCity = city, BusinessUnit = businessUnit, Clarification = clarification, Notes = notes, Details = invoice == null ? lines.Select(x => new CreateDeliveryNoteLineDto { ProductId = x.Product!.Id, Quantity = x.Quantity }).ToList() : new() };
+        var created = await Api.CreateDeliveryNoteAsync(request, idempotencyKey); saving = false;
+        if (created == null) { error = "No se pudo guardar el remito."; return; }
+        Navigation.NavigateTo($"/delivery-notes/{created.Id}");
+    }
+    private sealed class LineInput { public ProductDto? Product { get; set; } public decimal Quantity { get; set; } = 1; }
+}

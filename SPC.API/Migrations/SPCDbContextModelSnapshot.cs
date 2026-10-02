@@ -85,6 +85,14 @@ namespace SPC.API.Migrations
                     b.ToTable("BranchPaymentSequences");
                 });
 
+            modelBuilder.Entity("SPC.Shared.Models.BranchDeliveryNoteSequence", b =>
+                {
+                    b.Property<int>("BranchId").HasColumnType("int");
+                    b.Property<long>("NextDeliveryNoteNumber").HasColumnType("bigint");
+                    b.HasKey("BranchId");
+                    b.ToTable("BranchDeliveryNoteSequences");
+                });
+
             modelBuilder.Entity("SPC.Shared.Models.CasualDeliveryNote", b =>
                 {
                     b.Property<int>("Id")
@@ -901,6 +909,9 @@ namespace SPC.API.Migrations
                     b.Property<DateTime>("DeliveryNoteDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("IdempotencyKey").HasMaxLength(128).HasColumnType("nvarchar(128)");
+                    b.Property<string>("RequestFingerprint").HasMaxLength(64).HasColumnType("nvarchar(64)");
+
                     b.Property<long>("DeliveryNoteNumber")
                         .HasColumnType("bigint");
 
@@ -937,6 +948,7 @@ namespace SPC.API.Migrations
 
                     b.HasIndex("BranchId", "DeliveryNoteNumber")
                         .IsUnique();
+                    b.HasIndex("BranchId", "IdempotencyKey").IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
 
                     b.ToTable("DeliveryNotes");
                 });
@@ -2216,6 +2228,14 @@ namespace SPC.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("SPC.Shared.Models.BranchDeliveryNoteSequence", b =>
+                {
+                    b.HasOne("SPC.Shared.Models.Branch", "Branch").WithOne()
+                        .HasForeignKey("SPC.Shared.Models.BranchDeliveryNoteSequence", "BranchId")
+                        .OnDelete(DeleteBehavior.Cascade).IsRequired();
                     b.Navigation("Branch");
                 });
 

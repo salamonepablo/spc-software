@@ -974,9 +974,15 @@ public static class CsvImporter
                 UnidadNegocio = SafeStr(row.GetValueOrDefault("UnidadNegocio"), 50),
                 InvoiceId = facturaId,
                 TipoFactura = tipoInvoice,
-                Facturado = facturaId.HasValue,
-                Aclaracion = SafeStr(row.GetValueOrDefault("AclaracionRemito"), 500),
-                Anulado = false
+                IsInvoiced = DeliveryNoteImportMapper.MapStatus(
+                    row.GetValueOrDefault("Facturado"),
+                    row.GetValueOrDefault("Anulado"),
+                    facturaId.HasValue).IsInvoiced,
+                IsVoided = DeliveryNoteImportMapper.MapStatus(
+                    row.GetValueOrDefault("Facturado"),
+                    row.GetValueOrDefault("Anulado"),
+                    facturaId.HasValue).IsVoided,
+                Aclaracion = SafeStr(row.GetValueOrDefault("AclaracionRemito"), 500)
             };
 
             remitos.Add(remito);

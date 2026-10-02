@@ -42,6 +42,13 @@ public interface IApiService
     Task<List<StockResumenDto>> GetStockBajoMinimoAsync();
     Task<List<StockDetalleDto>> GetStockByProductAsync(int productoId);
     
+    // Delivery notes
+    Task<DeliveryNoteSearchResultDto?> SearchDeliveryNotesAsync(DeliveryNoteSearchRequestDto request);
+    Task<DeliveryNoteDto?> GetDeliveryNoteAsync(int id);
+    Task<DeliveryNoteNextNumberDto?> GetNextDeliveryNoteNumberAsync(int branchId);
+    Task<DeliveryNoteDto?> CreateDeliveryNoteAsync(CreateDeliveryNoteDto request, string idempotencyKey);
+    string GetDeliveryNotePdfUrl(int id, bool download = false);
+
     // Invoices
     Task<List<InvoiceDto>> GetInvoicesAsync(int skip = 0, int take = 50);
     Task<InvoiceCompletaDto?> GetInvoiceAsync(int id);

@@ -187,6 +187,7 @@ public class InvoiceQueryService : IInvoiceQueryService
         return new InvoiceCompletaResponse
         {
             Id = invoice.Id,
+            BranchId = invoice.BranchId,
             InvoiceType = invoice.InvoiceType,
             PointOfSale = invoice.PointOfSale,
             InvoiceNumber = invoice.InvoiceNumber,
@@ -227,6 +228,7 @@ public class InvoiceQueryService : IInvoiceQueryService
         return new InvoiceResponse
         {
             Id = invoice.Id,
+            BranchId = invoice.BranchId,
             InvoiceType = invoice.InvoiceType,
             PointOfSale = invoice.PointOfSale,
             InvoiceNumber = invoice.InvoiceNumber,

@@ -28,4 +28,8 @@
     <ProjectReference Include="..\SPC.Web\SPC.Web.csproj" Aliases="SPCWEB" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\SPC.Migration\DeliveryNoteImportMapper.cs" Link="Migration\DeliveryNoteImportMapper.cs" />
+  </ItemGroup>
+
 </Project>
