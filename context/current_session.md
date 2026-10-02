@@ -1,9 +1,9 @@
 # Current Session Context
 
 **Last Updated:** 2026-10-02
-**Branch:** feature/remitos-comunes (parent owns integration to main)
+**Branch:** main
 **Version:** 1.0.0
-**Tests:** R5 functional validation complete; focused tests 27 passed, 5 SQL-skipped; full suite 333 passed, 5 skipped, 2 pre-existing LocalDB/WSL failures. Final incremental API/Web builds: 0 errors; API has 2 NU1903 warnings. `git diff --check` passed. Commit/publication pending; no hash claimed.
+**Tests:** R5 functional validation complete; focused tests 27 passed, 5 SQL-skipped; full suite 333 passed, 5 skipped, 2 pre-existing LocalDB/WSL failures. Final incremental API/Web builds: 0 errors; API has 2 NU1903 warnings. `git diff --check` passed. Feature commit `b0e17b8da79916882bee9cdd51e402febac67fca` published on `main`; fetched `main` and `origin/main` aligned 0/0.
 
 ## Latest closure — Remitos R5 (2026-10-02)
 
@@ -11,7 +11,9 @@
 - Headed UI validated saved list/detail, 3-copy PDF, stock adjustment, and the existing linked-note Payments handoff (no amount and no save). API 5233 and Web 5065 were left running. Existing invoice immutability/no-double-decrement evidence remains; no new linked note or payment was created.
 - First SQL test run: 4 passed/1 failed due to harness losing password from opened `ConnectionString`; reused original options, corrected isolated rollback test passed 1/1. Concurrent attempt rejected with zero effects; automatic retry is not guaranteed.
 - Verification: focused 27 passed/5 SQL-skipped; full suite 333 passed/5 skipped/2 known LocalDB/WSL failures; incremental API build 0 errors/2 NU1903 warnings; Web build 0 errors/0 warnings; `git diff --check` passed. Importer baseline (203 clean vs 199 working errors) not rerun/repaired.
-- Parent owns explicit-path Remitos commit, safe main integration/publication, and safe deletion of merged branches; no new branches. No application changes in this documentation-only continuation. Preserved protected `SPC.API/bin\\Debug/`, old `odd/`, continuity notes and Playwright artifacts. Durable recovery backup: `/home/pablo/spc-backups/spc-remitos-handoff-20261002T214610`.
+- Publication: feature commit `b0e17b8da79916882bee9cdd51e402febac67fca` is on `main`; fetched `main` and `origin/main` aligned 0/0. `feature/remitos-comunes` and `safe-ddeletedreconcile-l2-preflight` were confirmed exclusive ancestors of `main` and safely deleted. No new branches were created. This is a documentation-only publication record; no future documentation commit is claimed.
+- No application changes. Preserved untracked `.playwright-cli/`, `SPC.API/bin\\Debug/`, `context/SPC_SCOPE_AND_CONTINUITY.md`, and `odd/tasks/payment-circuit-local-commit.md`. Recovery backup `/home/pablo/spc-backups/spc-remitos-handoff-20261002T21461047` remained byte-identical for prior files. Test records retained; no cleanup. API 5233, Web 5065, and headed browser remain open.
+- Follow-ups: pre-existing LocalDB/WSL failures and importer baseline are not new blockers. Next client requests are analysis-only, no implementation; plan only a small handoff analysis, with no proposed feature artifacts.
 
 ---
 
